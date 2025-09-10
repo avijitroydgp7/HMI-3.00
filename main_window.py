@@ -37,17 +37,25 @@ class MainWindow(QMainWindow):
         file_menu = menu_bar.addMenu("&File")
 
         # New, Open, Save actions
-        new_action = QAction("New", self)
+        new_action = QAction(qta.icon('ei.file-new'),"New", self)
+        open_action = QAction(qta.icon('fa5.folder-open'),"Open", self)
+        save_action = QAction(qta.icon('fa5.save'),"Save", self)
+        save_as_action = QAction(qta.icon('mdi.content-save-all-outline'),"Save As", self)
+        run_action = QAction(qta.icon('msc.run-all'),"Run", self)
+        close_tab_action = QAction(qta.icon('fa5.window-close'),"Close Tab", self)
+        close_all_tabs_action = QAction(qta.icon('mdi.close-box-multiple'),"Close All Tabs", self)
+        exit_action = QAction(qta.icon('mdi.exit-to-app'),"Exit", self)
+
         new_action.setShortcut("Ctrl+N")
-        open_action = QAction("Open", self)
-        save_action = QAction("Save", self)
-        save_as_action = QAction("Save As", self)
-        run_action = QAction("Run", self)
+        open_action.setShortcut("Ctrl+O")
+        save_action.setShortcut("Ctrl+S")
+        save_as_action.setShortcut("Ctrl+Shift+S")
+        run_action.setShortcut("F4")
+        close_tab_action.setShortcut("Ctrl+W")
+        close_all_tabs_action.setShortcut("Ctrl+Shift+W")
+        exit_action.setShortcut("Ctrl+Q")
 
         # Exit action
-        close_tab_action = QAction("Close Tab", self)
-        close_all_tabs_action = QAction("Close All Tabs", self)
-        exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close) # Connects the action to closing the window
 
         # Add actions to the File menu
@@ -68,19 +76,29 @@ class MainWindow(QMainWindow):
         edit_menu = menu_bar.addMenu("&Edit")
 
         # Cut, Copy, Paste actions
-        undo_action = QAction("Undo", self)
-        redo_action = QAction("Redo", self)
-        cut_action = QAction("Cut", self)
-        copy_action = QAction("Copy", self)
-        paste_action = QAction("Paste", self)
-        dublicate_action = QAction("Dublicate", self)
+        undo_action = QAction(qta.icon('fa5s.undo-alt'),"Undo", self)
+        redo_action = QAction(qta.icon('fa5s.redo-alt'),"Redo", self)
+        cut_action = QAction(qta.icon('fa5s.cut'),"Cut", self)
+        copy_action = QAction(qta.icon('fa5.copy'),"Copy", self)
+        paste_action = QAction(qta.icon('mdi6.content-paste'),"Paste", self)
+        dublicate_action = QAction(qta.icon('fa5.clone'),"Dublicate", self)
         consecutive_copy_action = QAction("Consecutive Copy", self)
         select_all_action = QAction("Select All", self)
-        delete_action = QAction("Delete", self)
+        delete_action = QAction(qta.icon('mdi.delete'),"Delete", self)
         stacking_order_action = QAction("Stacking Order", self)
-        align_action = QAction("Align", self)
+        align_action = QAction(qta.icon('fa6s.align-center'),"Align", self)
         wrap_action = QAction("Wrap", self)
         flip_action = QAction("Flip", self)
+        
+        undo_action.setShortcut("Ctrl+Z")
+        redo_action.setShortcut("Ctrl+Y")
+        cut_action.setShortcut("Ctrl+X")
+        copy_action.setShortcut("Ctrl+C")
+        paste_action.setShortcut("Ctrl+V")
+        dublicate_action.setShortcut("Ctrl+D")
+        consecutive_copy_action.setShortcut("Ctrl+Shift+C")
+        select_all_action.setShortcut("Ctrl+V")
+        delete_action.setShortcut("Del")
 
         # Add actions to the Edit menu
         edit_menu.addAction(cut_action)
