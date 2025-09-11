@@ -1,5 +1,5 @@
 import sys
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QStyleFactory
 from main_window.main_window import MainWindow
 
 def main():
@@ -8,7 +8,8 @@ def main():
     """
     # Create an instance of QApplication
     app = QApplication(sys.argv)
-
+    # Set the application style to Fusion
+    app.setStyle(QStyleFactory.create('Fusion'))
     # Create an instance of our MainWindow
     window = MainWindow()
 
