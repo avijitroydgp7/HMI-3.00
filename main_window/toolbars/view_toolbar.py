@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QToolBar, QComboBox, QToolButton, QCheckBox
+from PyQt6.QtWidgets import QToolBar, QComboBox, QToolButton, QCheckBox, QSpinBox
 from PyQt6.QtCore import Qt
 import qtawesome as qta
 
@@ -8,6 +8,8 @@ class ViewToolbar(QToolBar):
         self.main_window = main_window
         self.view_menu = view_menu
         self.setMovable(True)
+        self.current_state = 0
+        self.max_states = 64
 
         # Snap Dropdown
         self.snap_combo = QComboBox()
@@ -47,10 +49,17 @@ class ViewToolbar(QToolBar):
         self.addAction(self.view_menu.fit_screen_action)
         self.addSeparator()
 
-        # State Controls
-        self.addAction(self.view_menu.prev_state_action)
-        self.addAction(self.view_menu.state_on_off_action)
-        self.addAction(self.view_menu.next_state_action)
+        # --- State Controls ---
+        self.state_toggle_button = QToolButton()
+        self.state_toggle_button.setCheckable(True)
+        self.state_toggle_button.clicked.connect(self.toggle_state)
+        self.addWidget(self.state_toggle_button)
+        
+        self.state_spin_box = QSpinBox()
+        self.state_spin_box.setRange(0, self.max_states - 1)
+        self.state_spin_box.valueChanged.connect(self.set_state_from_spinbox)
+        self.addWidget(self.state_spin_box)
+        
         self.addSeparator()
 
         # Display Item Toggles
@@ -58,9 +67,66 @@ class ViewToolbar(QToolBar):
         self.addAction(self.view_menu.object_id_action)
         self.addAction(self.view_menu.transform_line_action)
         self.addAction(self.view_menu.click_area_action)
+        
+        # Connect menu actions to toolbar methods
+        self.view_menu.state_on_off_action.triggered.connect(self.toggle_state)
+        self.view_menu.next_state_action.triggered.connect(self.next_state)
+        self.view_menu.prev_state_action.triggered.connect(self.prev_state)
+        
+        # Set initial UI state
+        self.update_state_ui()
 
     def sync_zoom_action(self, text):
         for action in self.view_menu.zoom_actions:
             if action.text() == text:
                 action.setChecked(True)
                 break
+
+    def update_state_ui(self):
+        """Updates all state-related UI elements to reflect the current state."""
+        # Block signals on the spin box to prevent recursive calls when we set its value
+        self.state_spin_box.blockSignals(True)
+        self.state_spin_box.setValue(self.current_state)
+        self.state_spin_box.blockSignals(False)
+
+        # Update the toggle button and menu item based on the current state
+        if self.current_state == 0:
+            self.state_toggle_button.setText("OFF")
+            self.state_toggle_button.setStyleSheet("QToolButton { background-color: yellow; color: black; }")
+            self.state_toggle_button.setChecked(False)
+            self.view_menu.state_on_off_action.setChecked(False)
+        elif self.current_state == 1:
+            self.state_toggle_button.setText("ON")
+            self.state_toggle_button.setStyleSheet("QToolButton { background-color: green; color: white; }")
+            self.state_toggle_button.setChecked(True)
+            self.view_menu.state_on_off_action.setChecked(True)
+        else:
+            self.state_toggle_button.setText("OFF")
+            self.state_toggle_button.setStyleSheet("") # Reset to default style
+            self.state_toggle_button.setChecked(False)
+            self.view_menu.state_on_off_action.setChecked(False)
+
+    def toggle_state(self):
+        """Toggles the state between 0 (OFF) and 1 (ON)."""
+        if self.current_state == 1:
+            self.current_state = 0
+        else:
+            self.current_state = 1
+        self.update_state_ui()
+
+    def next_state(self):
+        """Moves to the next state, wrapping around if necessary."""
+        self.current_state = (self.current_state + 1) % self.max_states
+        self.update_state_ui()
+
+    def prev_state(self):
+        """Moves to the previous state, wrapping around if necessary."""
+        self.current_state = (self.current_state - 1 + self.max_states) % self.max_states
+        self.update_state_ui()
+
+    def set_state_from_spinbox(self, value):
+        """Sets the state from the spin box value."""
+        if 0 <= value < self.max_states:
+            self.current_state = value
+            self.update_state_ui()
+
