@@ -25,9 +25,6 @@ from .toolbars.debug_toolbar import DebugToolbar
 # Import the dock widget factory
 from .docking_windows.dock_widget_factory import DockWidgetFactory
 
-# Import the settings service
-from .services.settings_service import SettingsService
-
 
 class MainWindow(QMainWindow):
     """
@@ -44,7 +41,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("HMI Designer")
 
         # Set the initial size of the window (width, height)
-        self.setGeometry(0, 0, 1920, 1080)
+        self.setGeometry(0, 0, 1200, 720)
         self.setWindowState(Qt.WindowState.WindowMaximized)
 
         self.setIconSize(QSize(24, 24))
@@ -62,10 +59,6 @@ class MainWindow(QMainWindow):
         # Create the dock widgets
         self._create_dock_widgets()
         
-        # Initialize and load settings
-        self.settings_service = SettingsService()
-        self.settings_service.load_settings(self)
-
     def _create_menu_bar(self):
         """
         Creates the menu bar for the main window by instantiating
@@ -108,54 +101,43 @@ class MainWindow(QMainWindow):
             if checkbox:
                 toolbar_name = action.text()
                 if toolbar_name in self.toolbars:
-                    # Use a lambda to capture the toolbar name correctly
+                    toolbar = self.toolbars[toolbar_name]
+                    # Connect checkbox to toolbar visibility
                     checkbox.toggled.connect(
                         lambda checked, name=toolbar_name: self.toggle_toolbar(checked, name)
                     )
+                    # Connect toolbar visibility to checkbox state
+                    toolbar.visibilityChanged.connect(checkbox.setChecked)
 
     def _create_dock_widgets(self):
         """Creates and arranges all dock widgets."""
         self.dock_factory = DockWidgetFactory(self)
         self.dock_factory.create_all_docks()
 
-        # DOCKING SETUP
-        # All dock widgets are movable and closable by default.
-        # We allow them to be tabbed.
-        
-        # --- Left Area ---
+
         project_tree = self.dock_factory.get_dock("project_tree")
         screen_tree = self.dock_factory.get_dock("screen_tree")
         system_tree = self.dock_factory.get_dock("system_tree")
-        
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, project_tree)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, screen_tree)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, system_tree)
-        
-        # Tabify the left docks
-        self.tabifyDockWidget(project_tree, screen_tree)
-        self.tabifyDockWidget(screen_tree, system_tree)
-
-        # --- Right Area ---
         property_tree = self.dock_factory.get_dock("property_tree")
         library = self.dock_factory.get_dock("library")
         screen_image_list = self.dock_factory.get_dock("screen_image_list")
-        
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, property_tree)
-        self.splitDockWidget(property_tree, library, Qt.Orientation.Vertical)
-        self.tabifyDockWidget(library, screen_image_list)
-
-        # --- Bottom Area ---
         tag_search = self.dock_factory.get_dock("tag_search")
         data_browser = self.dock_factory.get_dock("data_browser")
         ip_address = self.dock_factory.get_dock("ip_address")
         controller_list = self.dock_factory.get_dock("controller_list")
         data_view = self.dock_factory.get_dock("data_view")
-
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, tag_search)
-        self.tabifyDockWidget(tag_search, data_browser)
-        self.tabifyDockWidget(data_browser, ip_address)
-        self.tabifyDockWidget(ip_address, controller_list)
-        self.tabifyDockWidget(controller_list, data_view)
+        
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, project_tree)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, screen_tree)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, system_tree)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, property_tree)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, library)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, screen_image_list)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, tag_search)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, data_browser)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, ip_address)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, controller_list)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.BottomDockWidgetArea, data_view)
 
         # Connect the toggle actions from the view menu
         for action in self.view_menu.docking_window_menu.actions():
@@ -182,9 +164,3 @@ class MainWindow(QMainWindow):
         if dock:
             dock.setVisible(checked)
 
-    def closeEvent(self, event):
-        """
-        Saves the window state when the application is about to close.
-        """
-        self.settings_service.save_settings(self)
-        super().closeEvent(event)
