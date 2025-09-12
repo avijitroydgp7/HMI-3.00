@@ -25,10 +25,6 @@ from .toolbars.debug_toolbar import DebugToolbar
 # Import the dock widget factory
 from .docking_windows.dock_widget_factory import DockWidgetFactory
 
-# Import the settings service
-from .services.settings_service import SettingsService
-
-
 class MainWindow(QMainWindow):
     """
     This is the main window of the application.
@@ -61,10 +57,6 @@ class MainWindow(QMainWindow):
         self._create_toolbars()
         # Create the dock widgets
         self._create_dock_widgets()
-        
-        # Initialize and load settings
-        self.settings_service = SettingsService()
-        self.settings_service.load_settings(self)
 
     def _create_menu_bar(self):
         """
