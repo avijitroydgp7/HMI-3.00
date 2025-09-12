@@ -164,10 +164,12 @@ class MainWindow(QMainWindow):
             if checkbox:
                 # The object name must match the key in the factory's dock dict
                 dock_name = action.text().lower().replace(' ', '_')
-                if self.dock_factory.get_dock(dock_name):
+                dock = self.dock_factory.get_dock(dock_name)
+                if dock:
                     checkbox.toggled.connect(
                         lambda checked, name=dock_name: self.toggle_dock_widget(checked, name)
                     )
+                    dock.visibilityChanged.connect(checkbox.setChecked)
 
     def toggle_toolbar(self, checked, name):
         """Shows or hides the toolbar with the given name."""

@@ -30,7 +30,9 @@ class SettingsService:
             'main_window': {
                 'geometry': main_window.saveGeometry().toBase64().data().decode('utf-8'),
                 'state': main_window.saveState().toBase64().data().decode('utf-8')
-            }
+            },
+            'dock_visibility': {name: dock.isVisible() for name, dock in main_window.dock_factory.docks.items()},
+            'toolbar_visibility': {name: toolbar.isVisible() for name, toolbar in main_window.toolbars.items()}
         }
         try:
             with open(self.settings_file, 'w') as f:
@@ -40,7 +42,7 @@ class SettingsService:
 
     def load_settings(self, main_window):
         """
-        Loads the main window's geometry and state from the settings file.
+        Loads the main window's geometry, state, and visibility settings from the settings file.
 
         Args:
             main_window (QMainWindow): The main window instance.
@@ -56,50 +58,42 @@ class SettingsService:
             print(f"Could not load settings: {e}. Using default layout.")
             return
 
-        if 'main_window' in settings and 'geometry' in settings['main_window'] and 'state' in settings['main_window']:
-            geometry_data = settings['main_window']['geometry']
-            state_data = settings['main_window']['state']
+        # Restore main window geometry and state first.
+        # The visibility of docks/toolbars might be part of this state, but we will
+        # explicitly set it from our saved settings for better reliability.
+        if 'main_window' in settings:
+            geometry_data = settings['main_window'].get('geometry')
+            state_data = settings['main_window'].get('state')
             
-            # Restore geometry and state if the data is valid
             if geometry_data:
                 main_window.restoreGeometry(QByteArray.fromBase64(geometry_data.encode('utf-8')))
             if state_data:
                 main_window.restoreState(QByteArray.fromBase64(state_data.encode('utf-8')))
-            
-            # After restoring state, update the checkboxes in the View menu to reflect the actual visibility
-            self.update_view_menu_checkboxes(main_window)
-        else:
-            print("Invalid settings format. Using default layout.")
 
-    def update_view_menu_checkboxes(self, main_window):
-        """
-        Syncs the checked state of the checkboxes in the View menu with the visibility
-        of their corresponding docks and toolbars.
-
-        Args:
-            main_window (QMainWindow): The main window instance.
-        """
-        # Update dock visibility checkboxes
-        for action in main_window.view_menu.docking_window_menu.actions():
-            dock_name = action.text().lower().replace(' ', '_')
-            dock = main_window.dock_factory.get_dock(dock_name)
-            if dock:
+        # Restore dock visibility by setting the state of the checkboxes in the menu.
+        # This is the source of truth and will override any visibility loaded by restoreState.
+        if 'dock_visibility' in settings:
+            for action in main_window.view_menu.docking_window_menu.actions():
+                dock_name = action.text().lower().replace(' ', '_')
+                # Default to True if the key is somehow missing for a new dock
+                is_visible = settings['dock_visibility'].get(dock_name, True)
+                
                 widget = action.defaultWidget()
                 checkbox = widget.findChild(QCheckBox)
                 if checkbox:
-                    # Block signals to prevent toggled signal from firing unnecessarily
-                    checkbox.blockSignals(True)
-                    checkbox.setChecked(dock.isVisible())
-                    checkbox.blockSignals(False)
+                    # This will trigger the toggled signal, which shows/hides the dock
+                    checkbox.setChecked(is_visible)
         
-        # Update toolbar visibility checkboxes
-        for action in main_window.view_menu.tool_bar_menu.actions():
-            toolbar_name = action.text()
-            if toolbar_name in main_window.toolbars:
-                toolbar = main_window.toolbars[toolbar_name]
+        # Restore toolbar visibility similarly.
+        if 'toolbar_visibility' in settings:
+            for action in main_window.view_menu.tool_bar_menu.actions():
+                toolbar_name = action.text()
+                 # Default to True if the key is somehow missing for a new toolbar
+                is_visible = settings['toolbar_visibility'].get(toolbar_name, True)
+
                 widget = action.defaultWidget()
                 checkbox = widget.findChild(QCheckBox)
                 if checkbox:
-                    checkbox.blockSignals(True)
-                    checkbox.setChecked(toolbar.isVisible())
-                    checkbox.blockSignals(False)
+                    # This will trigger the toggled signal, which shows/hides the toolbar
+                    checkbox.setChecked(is_visible)
+
