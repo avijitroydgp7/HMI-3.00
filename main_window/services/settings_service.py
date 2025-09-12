@@ -33,6 +33,9 @@ class SettingsService:
                     settings["toolbars_visibility"] = {}
                 if "docks_visibility" not in settings:
                     settings["docks_visibility"] = {}
+                # Ensure view_settings key exists
+                if "view_settings" not in settings:
+                    settings["view_settings"] = self._get_default_settings()["view_settings"]
                 return settings
         except (json.JSONDecodeError, FileNotFoundError):
             return self._get_default_settings()
@@ -45,7 +48,12 @@ class SettingsService:
                 "state": None
             },
             "toolbars_visibility": {},
-            "docks_visibility": {}
+            "docks_visibility": {},
+            "view_settings": {
+                "object_snap": True,
+                "snap_distance": "10",
+                "state_number": 0
+            }
         }
 
     def save_settings(self, main_window):
@@ -67,6 +75,15 @@ class SettingsService:
             name: dock.isVisible() for name, dock in main_window.dock_factory.docks.items()
         }
         
+        # Save view settings
+        view_toolbar = main_window.toolbars.get("View")
+        if view_toolbar:
+            self.settings['view_settings'] = {
+                "object_snap": view_toolbar.object_snap_checkbox.isChecked(),
+                "snap_distance": view_toolbar.snap_combo.currentText(),
+                "state_number": view_toolbar.current_state
+            }
+        
         with open(self.file_path, 'w') as f:
             json.dump(self.settings, f, indent=4)
 
@@ -83,3 +100,8 @@ class SettingsService:
     def get_docks_visibility(self):
         """Returns the visibility settings for dock widgets."""
         return self.settings.get('docks_visibility', {})
+
+    def get_view_settings(self):
+        """Returns the view settings."""
+        return self.settings.get('view_settings', self._get_default_settings()['view_settings'])
+

@@ -64,6 +64,9 @@ class MainWindow(QMainWindow):
         # Sync UI elements like checkboxes to the restored state
         self._sync_checkboxes_to_widget_visibility()
 
+        # Restore other UI settings from the settings file
+        self._restore_ui_settings()
+
     def _create_menu_bar(self):
         """
         Creates the menu bar for the main window by instantiating
@@ -192,10 +195,30 @@ class MainWindow(QMainWindow):
             # If no state, maximize the window
             self.setWindowState(Qt.WindowState.WindowMaximized)
 
+    def _restore_ui_settings(self):
+        """Restores various UI settings from the settings service."""
+        view_settings = self.settings_service.get_view_settings()
+        view_toolbar = self.toolbars.get("View")
+
+        if view_toolbar:
+            # Restore object snap state from settings
+            object_snap_checked = view_settings.get("object_snap", True)
+            self.view_menu.object_snap_checkbox.setChecked(object_snap_checked)
+
+            # Restore snap distance from settings
+            snap_distance = view_settings.get("snap_distance", "10")
+            view_toolbar.snap_combo.setCurrentText(snap_distance)
+
+            # Restore state number from settings
+            state_number = view_settings.get("state_number", 0)
+            if 0 <= state_number < view_toolbar.max_states:
+                view_toolbar.current_state = state_number
+                view_toolbar.update_state_ui()
+
     def _sync_checkboxes_to_widget_visibility(self):
         """
         After restoring state, syncs the visibility checkboxes in the View menu
-        to match the last saved visibility state from the settings file, as
+        to match the actual visibility of toolbars and dock widgets.
         querying widget visibility right after restoring state can be unreliable.
         """
         toolbars_visibility = self.settings_service.get_toolbars_visibility()
@@ -236,3 +259,5 @@ class MainWindow(QMainWindow):
         """
         self.settings_service.save_settings(self)
         super().closeEvent(event)
+
+
