@@ -171,10 +171,3 @@ class MainWindow(QMainWindow):
         dock = self.dock_factory.get_dock(name)
         if dock:
             dock.setVisible(checked)
-
-    def closeEvent(self, event):
-        """
-        Saves the window state when the application is about to close.
-        """
-        self.settings_service.save_settings(self)
-        super().closeEvent(event)
