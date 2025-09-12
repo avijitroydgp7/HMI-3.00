@@ -1,5 +1,5 @@
 import sys
-from PyQt6.QtWidgets import QMainWindow, QCheckBox
+from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit
 from PyQt6.QtCore import Qt, QSize
 
 # Import the menu classes from the new modules
@@ -22,6 +22,9 @@ from .toolbars.figure_toolbar import FigureToolbar
 from .toolbars.object_toolbar import ObjectToolbar
 # from .toolbars.debug_toolbar import DebugToolbar
 
+# Import the dock widget factory
+from .docking_windows.dock_widget_factory import DockWidgetFactory
+
 
 class MainWindow(QMainWindow):
     """
@@ -42,11 +45,19 @@ class MainWindow(QMainWindow):
         self.setWindowState(Qt.WindowState.WindowMaximized)
 
         self.setIconSize(QSize(24, 24))
+        
+        # Set the central widget
+        self.setCentralWidget(QTextEdit("Central Workspace"))
+
+        # Allow nested docks and tabbed docks
+        self.setDockNestingEnabled(True)
 
         # Create the menu bar by instantiating the menu classes
         self._create_menu_bar()
         # Create the toolbars
         self._create_toolbars()
+        # Create the dock widgets
+        self._create_dock_widgets()
 
     def _create_menu_bar(self):
         """
@@ -93,8 +104,69 @@ class MainWindow(QMainWindow):
                         lambda checked, name=toolbar_name: self.toggle_toolbar(checked, name)
                     )
 
+    def _create_dock_widgets(self):
+        """Creates and arranges all dock widgets."""
+        self.dock_factory = DockWidgetFactory(self)
+        self.dock_factory.create_all_docks()
+
+        # DOCKING SETUP
+        # All dock widgets are movable and closable by default.
+        # We allow them to be tabbed.
+        
+        # --- Left Area ---
+        project_tree = self.dock_factory.get_dock("project_tree")
+        screen_tree = self.dock_factory.get_dock("screen_tree")
+        system_tree = self.dock_factory.get_dock("system_tree")
+        
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, project_tree)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, screen_tree)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, system_tree)
+        
+        # Tabify the left docks
+        self.tabifyDockWidget(project_tree, screen_tree)
+        self.tabifyDockWidget(screen_tree, system_tree)
+
+        # --- Right Area ---
+        property_tree = self.dock_factory.get_dock("property_tree")
+        library = self.dock_factory.get_dock("library")
+        screen_image_list = self.dock_factory.get_dock("screen_image_list")
+        
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, property_tree)
+        self.splitDockWidget(property_tree, library, Qt.Orientation.Vertical)
+        self.tabifyDockWidget(library, screen_image_list)
+
+        # --- Bottom Area ---
+        device_search = self.dock_factory.get_dock("device_search")
+        data_browser = self.dock_factory.get_dock("data_browser")
+        ip_address = self.dock_factory.get_dock("ip_address")
+        controller_list = self.dock_factory.get_dock("controller_list")
+        data_view = self.dock_factory.get_dock("data_view")
+
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, device_search)
+        self.tabifyDockWidget(device_search, data_browser)
+        self.tabifyDockWidget(data_browser, ip_address)
+        self.tabifyDockWidget(ip_address, controller_list)
+        self.tabifyDockWidget(controller_list, data_view)
+
+        # Connect the toggle actions from the view menu
+        for action in self.view_menu.docking_window_menu.actions():
+            widget = action.defaultWidget()
+            checkbox = widget.findChild(QCheckBox)
+            if checkbox:
+                # The object name must match the key in the factory's dock dict
+                dock_name = action.text().lower().replace(' ', '_')
+                if self.dock_factory.get_dock(dock_name):
+                    checkbox.toggled.connect(
+                        lambda checked, name=dock_name: self.toggle_dock_widget(checked, name)
+                    )
+
     def toggle_toolbar(self, checked, name):
         """Shows or hides the toolbar with the given name."""
         if name in self.toolbars:
             self.toolbars[name].setVisible(checked)
 
+    def toggle_dock_widget(self, checked, name):
+        """Shows or hides the dock widget with the given name."""
+        dock = self.dock_factory.get_dock(name)
+        if dock:
+            dock.setVisible(checked)

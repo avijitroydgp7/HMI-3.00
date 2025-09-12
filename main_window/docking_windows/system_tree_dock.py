@@ -1,0 +1,15 @@
+from PyQt6.QtWidgets import QDockWidget, QTreeWidget, QTreeWidgetItem
+
+class SystemTreeDock(QDockWidget):
+    """
+    Dockable window to display system-level components and settings.
+    """
+    def __init__(self, main_window):
+        """
+        Initializes the System Tree dock widget.
+
+        Args:
+            main_window (QMainWindow): The main window instance.
+        """
+        super().__init__("System Tree", main_window)
+        self.setObjectName("system_tree")

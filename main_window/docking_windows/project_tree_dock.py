@@ -1,0 +1,15 @@
+from PyQt6.QtWidgets import QDockWidget, QTreeWidget, QTreeWidgetItem
+
+class ProjectTreeDock(QDockWidget):
+    """
+    Dockable window to display the project file structure.
+    """
+    def __init__(self, main_window):
+        """
+        Initializes the Project Tree dock widget.
+
+        Args:
+            main_window (QMainWindow): The main window instance.
+        """
+        super().__init__("Project Tree", main_window)
+        self.setObjectName("project_tree")
