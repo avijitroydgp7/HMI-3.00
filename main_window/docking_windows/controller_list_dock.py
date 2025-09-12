@@ -14,3 +14,5 @@ class ControllerListDock(QDockWidget):
         super().__init__("Controller List", main_window)
         self.setObjectName("controller_list")
 
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTextEdit("Controller List"))

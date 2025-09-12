@@ -139,7 +139,7 @@ class ViewMenu:
             ("Project Tree", qta.icon('fa5s.project-diagram')),
             ("Screen Tree", qta.icon('fa5s.sitemap')),
             ("System Tree", qta.icon('fa5s.cogs')),
-            ("Device Search", qta.icon('fa5s.search-location')),
+            ("Tag Search", qta.icon('fa5s.search-location')),
             ("Data Browser", qta.icon('fa5s.database')),
             ("Property Tree", qta.icon('fa5s.list-alt')),
             ("IP Address", qta.icon('fa5s.ethernet')),

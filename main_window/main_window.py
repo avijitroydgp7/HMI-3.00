@@ -25,6 +25,9 @@ from .toolbars.object_toolbar import ObjectToolbar
 # Import the dock widget factory
 from .docking_windows.dock_widget_factory import DockWidgetFactory
 
+# Import the settings service
+from .services.settings_service import SettingsService
+
 
 class MainWindow(QMainWindow):
     """
@@ -58,6 +61,10 @@ class MainWindow(QMainWindow):
         self._create_toolbars()
         # Create the dock widgets
         self._create_dock_widgets()
+        
+        # Initialize and load settings
+        self.settings_service = SettingsService()
+        self.settings_service.load_settings(self)
 
     def _create_menu_bar(self):
         """
@@ -88,7 +95,9 @@ class MainWindow(QMainWindow):
         self.toolbars["Object"] = ObjectToolbar(self, self.object_menu)
         # self.toolbars["Debug"] = DebugToolbar(self)
         
-        for toolbar in self.toolbars.values():
+        for name, toolbar in self.toolbars.items():
+            # Set a unique object name for each toolbar so its state can be saved.
+            toolbar.setObjectName(f"{name.lower().replace(' ', '_')}_toolbar")
             self.addToolBar(toolbar)
             toolbar.setIconSize(self.iconSize())
             
@@ -170,3 +179,11 @@ class MainWindow(QMainWindow):
         dock = self.dock_factory.get_dock(name)
         if dock:
             dock.setVisible(checked)
+
+    def closeEvent(self, event):
+        """
+        Saves the window state when the application is about to close.
+        """
+        self.settings_service.save_settings(self)
+        super().closeEvent(event)
+

@@ -13,3 +13,6 @@ class ProjectTreeDock(QDockWidget):
         """
         super().__init__("Project Tree", main_window)
         self.setObjectName("project_tree")
+
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTreeWidget())

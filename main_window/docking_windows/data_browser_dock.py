@@ -14,3 +14,5 @@ class DataBrowserDock(QDockWidget):
         super().__init__("Data Browser", main_window)
         self.setObjectName("data_browser")
 
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTextEdit("Data Browser"))

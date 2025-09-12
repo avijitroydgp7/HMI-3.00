@@ -13,3 +13,6 @@ class ScreenImageListDock(QDockWidget):
         """
         super().__init__("Screen Image List", main_window)
         self.setObjectName("screen_image_list")
+
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTreeWidget())

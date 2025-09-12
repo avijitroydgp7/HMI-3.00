@@ -13,3 +13,6 @@ class SystemTreeDock(QDockWidget):
         """
         super().__init__("System Tree", main_window)
         self.setObjectName("system_tree")
+        
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTreeWidget())

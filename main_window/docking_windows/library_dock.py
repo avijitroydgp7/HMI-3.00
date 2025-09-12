@@ -14,3 +14,5 @@ class LibraryDock(QDockWidget):
         super().__init__("Library", main_window)
         self.setObjectName("library")
 
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTreeWidget())

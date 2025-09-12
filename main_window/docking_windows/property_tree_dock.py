@@ -13,3 +13,6 @@ class PropertyTreeDock(QDockWidget):
         """
         super().__init__("Property Tree", main_window)
         self.setObjectName("property_tree")
+
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTreeWidget())

@@ -5,7 +5,7 @@ from .system_tree_dock import SystemTreeDock
 from .property_tree_dock import PropertyTreeDock
 from .library_dock import LibraryDock
 from .screen_image_list_dock import ScreenImageListDock
-from .device_search_dock import DeviceSearchDock
+from .tag_search_dock import TagSearchDock
 from .data_browser_dock import DataBrowserDock
 from .ip_address_dock import IPAddressDock
 from .controller_list_dock import ControllerListDock
@@ -41,7 +41,7 @@ class DockWidgetFactory:
         self.docks["library"] = LibraryDock(self.main_window)
         self.docks["screen_image_list"] = ScreenImageListDock(self.main_window)
         
-        self.docks["device_search"] = DeviceSearchDock(self.main_window)
+        self.docks["device_search"] = TagSearchDock(self.main_window)
         self.docks["data_browser"] = DataBrowserDock(self.main_window)
         self.docks["ip_address"] = IPAddressDock(self.main_window)
         self.docks["controller_list"] = ControllerListDock(self.main_window)

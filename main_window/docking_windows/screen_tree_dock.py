@@ -13,3 +13,6 @@ class ScreenTreeDock(QDockWidget):
         """
         super().__init__("Screen Tree", main_window)
         self.setObjectName("screen_tree")
+
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTreeWidget())

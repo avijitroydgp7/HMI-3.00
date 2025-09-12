@@ -14,3 +14,5 @@ class IPAddressDock(QDockWidget):
         super().__init__("IP Address", main_window)
         self.setObjectName("ip_address")
 
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTextEdit("IP Address"))

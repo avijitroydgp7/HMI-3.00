@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QDockWidget, QTextEdit
 
-class DeviceSearchDock(QDockWidget):
+class TagSearchDock(QDockWidget):
     """
     Dockable window for searching devices on the network.
     """
@@ -11,6 +11,8 @@ class DeviceSearchDock(QDockWidget):
         Args:
             main_window (QMainWindow): The main window instance.
         """
-        super().__init__("Device Search", main_window)
+        super().__init__("Tag Search", main_window)
         self.setObjectName("device_search")
 
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTextEdit("Tag Search"))

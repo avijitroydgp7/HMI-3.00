@@ -14,3 +14,5 @@ class DataViewDock(QDockWidget):
         super().__init__("Data View", main_window)
         self.setObjectName("data_view")
 
+        # Set a central widget to avoid rendering glitches.
+        self.setWidget(QTextEdit("Data View"))
