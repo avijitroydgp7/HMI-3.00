@@ -1,6 +1,6 @@
 import sys
 from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, QByteArray
 
 # Import the menu classes from the new modules
 from .menus.file_menu import FileMenu
@@ -30,19 +30,19 @@ class MainWindow(QMainWindow):
     This is the main window of the application.
     It inherits from QMainWindow.
     """
-    def __init__(self):
+    def __init__(self, settings_service):
         """
         Constructor for the MainWindow class.
         """
         super().__init__()
+        self.settings_service = settings_service
 
         # Set the window title
         self.setWindowTitle("HMI Designer")
 
         # Set the initial size of the window (width, height)
         self.setGeometry(0, 0, 1200, 720)
-        self.setWindowState(Qt.WindowState.WindowMaximized)
-
+        
         self.setIconSize(QSize(24, 24))
         
         # Set the central widget
@@ -57,6 +57,12 @@ class MainWindow(QMainWindow):
         self._create_toolbars()
         # Create the dock widgets
         self._create_dock_widgets()
+        
+        # Restore window state from settings
+        self._restore_window_state()
+        
+        # Sync UI elements like checkboxes to the restored state
+        self._sync_checkboxes_to_widget_visibility()
 
     def _create_menu_bar(self):
         """
@@ -171,3 +177,57 @@ class MainWindow(QMainWindow):
         dock = self.dock_factory.get_dock(name)
         if dock:
             dock.setVisible(checked)
+
+    def _restore_window_state(self):
+        """Restores the window geometry and state from settings."""
+        main_window_settings = self.settings_service.get_main_window_settings()
+        geometry = main_window_settings.get('geometry')
+        state = main_window_settings.get('state')
+
+        if geometry:
+            self.restoreGeometry(QByteArray.fromHex(bytes(geometry, 'utf-8')))
+        if state:
+            self.restoreState(QByteArray.fromHex(bytes(state, 'utf-8')))
+        else:
+            # If no state, maximize the window
+            self.setWindowState(Qt.WindowState.WindowMaximized)
+
+    def _sync_checkboxes_to_widget_visibility(self):
+        """
+        After restoring state, syncs the visibility checkboxes in the View menu
+        to match the actual visibility of toolbars and dock widgets.
+        """
+        # Sync toolbar checkboxes
+        for action in self.view_menu.tool_bar_menu.actions():
+            widget = action.defaultWidget()
+            checkbox = widget.findChild(QCheckBox)
+            if checkbox:
+                toolbar_name = action.text()
+                if toolbar_name in self.toolbars:
+                    toolbar = self.toolbars[toolbar_name]
+                    checkbox.blockSignals(True)
+                    checkbox.setChecked(toolbar.isVisible())
+                    checkbox.blockSignals(False)
+
+        # Sync dock widget checkboxes
+        for action in self.view_menu.docking_window_menu.actions():
+            widget = action.defaultWidget()
+            checkbox = widget.findChild(QCheckBox)
+            if checkbox:
+                dock_name = action.text().lower().replace(' ', '_')
+                dock = self.dock_factory.get_dock(dock_name)
+                if dock:
+                    checkbox.blockSignals(True)
+                    checkbox.setChecked(dock.isVisible())
+                    checkbox.blockSignals(False)
+
+    def closeEvent(self, event):
+        """
+        Handles the window's close event. Overridden to save settings.
+        
+        Args:
+            event (QCloseEvent): The close event.
+        """
+        self.settings_service.save_settings(self)
+        super().closeEvent(event)
+

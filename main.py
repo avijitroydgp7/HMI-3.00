@@ -1,6 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QStyleFactory
 from main_window.main_window import MainWindow
+from main_window.services.settings_service import SettingsService
 
 def main():
     """
@@ -10,8 +11,12 @@ def main():
     app = QApplication(sys.argv)
     # Set the application style to Fusion
     app.setStyle(QStyleFactory.create('Fusion'))
+    
+    # Initialize the settings service
+    settings_service = SettingsService('settings.json')
+    
     # Create an instance of our MainWindow
-    window = MainWindow()
+    window = MainWindow(settings_service)
 
     # Show the window
     window.show()
