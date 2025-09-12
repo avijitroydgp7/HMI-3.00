@@ -13,14 +13,14 @@ from .menus.figure_menu import FigureMenu
 from .menus.object_menu import ObjectMenu
 
 # Import the toolbar classes
-# from .toolbars.window_display_toolbar import WindowDisplayToolbar
+from .toolbars.docking_toolbar import DockingToolbar
 from .toolbars.view_toolbar import ViewToolbar
 from .toolbars.screen_toolbar import ScreenToolbar
 from .toolbars.edit_toolbar import EditToolbar
 from .toolbars.alignment_toolbar import AlignmentToolbar
 from .toolbars.figure_toolbar import FigureToolbar
 from .toolbars.object_toolbar import ObjectToolbar
-# from .toolbars.debug_toolbar import DebugToolbar
+from .toolbars.debug_toolbar import DebugToolbar
 
 # Import the dock widget factory
 from .docking_windows.dock_widget_factory import DockWidgetFactory
@@ -86,14 +86,14 @@ class MainWindow(QMainWindow):
     def _create_toolbars(self):
         """Creates the toolbars for the main window."""
         self.toolbars = {}
-        # self.toolbars["Window Display"] = WindowDisplayToolbar(self)
+        self.toolbars["Window Display"] = DockingToolbar(self, self.view_menu)
         self.toolbars["View"] = ViewToolbar(self, self.view_menu)
         self.toolbars["Screen"] = ScreenToolbar(self, self.screen_menu)
         self.toolbars["Edit"] = EditToolbar(self, self.edit_menu)
         self.toolbars["Alignment"] = AlignmentToolbar(self, self.edit_menu)
         self.toolbars["Figure"] = FigureToolbar(self, self.figure_menu)
         self.toolbars["Object"] = ObjectToolbar(self, self.object_menu)
-        # self.toolbars["Debug"] = DebugToolbar(self)
+        self.toolbars["Debug"] = DebugToolbar(self)
         
         for name, toolbar in self.toolbars.items():
             # Set a unique object name for each toolbar so its state can be saved.
