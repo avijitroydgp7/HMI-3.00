@@ -145,14 +145,14 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(library, screen_image_list)
 
         # --- Bottom Area ---
-        device_search = self.dock_factory.get_dock("device_search")
+        tag_search = self.dock_factory.get_dock("tag_search")
         data_browser = self.dock_factory.get_dock("data_browser")
         ip_address = self.dock_factory.get_dock("ip_address")
         controller_list = self.dock_factory.get_dock("controller_list")
         data_view = self.dock_factory.get_dock("data_view")
 
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, device_search)
-        self.tabifyDockWidget(device_search, data_browser)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, tag_search)
+        self.tabifyDockWidget(tag_search, data_browser)
         self.tabifyDockWidget(data_browser, ip_address)
         self.tabifyDockWidget(ip_address, controller_list)
         self.tabifyDockWidget(controller_list, data_view)
@@ -186,4 +186,3 @@ class MainWindow(QMainWindow):
         """
         self.settings_service.save_settings(self)
         super().closeEvent(event)
-

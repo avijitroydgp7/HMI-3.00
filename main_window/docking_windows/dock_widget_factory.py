@@ -41,7 +41,7 @@ class DockWidgetFactory:
         self.docks["library"] = LibraryDock(self.main_window)
         self.docks["screen_image_list"] = ScreenImageListDock(self.main_window)
         
-        self.docks["device_search"] = TagSearchDock(self.main_window)
+        self.docks["tag_search"] = TagSearchDock(self.main_window)
         self.docks["data_browser"] = DataBrowserDock(self.main_window)
         self.docks["ip_address"] = IPAddressDock(self.main_window)
         self.docks["controller_list"] = ControllerListDock(self.main_window)
@@ -58,4 +58,3 @@ class DockWidgetFactory:
             QDockWidget or None: The dock widget instance if found, otherwise None.
         """
         return self.docks.get(name)
-

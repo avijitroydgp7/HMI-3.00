@@ -12,7 +12,7 @@ class TagSearchDock(QDockWidget):
             main_window (QMainWindow): The main window instance.
         """
         super().__init__("Tag Search", main_window)
-        self.setObjectName("Tag_search")
+        self.setObjectName("tag_search")
 
         # Set a central widget to avoid rendering glitches.
         self.setWidget(QTextEdit("Tag Search"))
