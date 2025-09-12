@@ -195,19 +195,23 @@ class MainWindow(QMainWindow):
     def _sync_checkboxes_to_widget_visibility(self):
         """
         After restoring state, syncs the visibility checkboxes in the View menu
-        to match the actual visibility of toolbars and dock widgets.
+        to match the last saved visibility state from the settings file, as
+        querying widget visibility right after restoring state can be unreliable.
         """
+        toolbars_visibility = self.settings_service.get_toolbars_visibility()
+        docks_visibility = self.settings_service.get_docks_visibility()
+
         # Sync toolbar checkboxes
         for action in self.view_menu.tool_bar_menu.actions():
             widget = action.defaultWidget()
             checkbox = widget.findChild(QCheckBox)
             if checkbox:
                 toolbar_name = action.text()
-                if toolbar_name in self.toolbars:
-                    toolbar = self.toolbars[toolbar_name]
-                    checkbox.blockSignals(True)
-                    checkbox.setChecked(toolbar.isVisible())
-                    checkbox.blockSignals(False)
+                # Default to True if the toolbar is new and not in settings
+                is_visible = toolbars_visibility.get(toolbar_name, True)
+                checkbox.blockSignals(True)
+                checkbox.setChecked(is_visible)
+                checkbox.blockSignals(False)
 
         # Sync dock widget checkboxes
         for action in self.view_menu.docking_window_menu.actions():
@@ -217,8 +221,10 @@ class MainWindow(QMainWindow):
                 dock_name = action.text().lower().replace(' ', '_')
                 dock = self.dock_factory.get_dock(dock_name)
                 if dock:
+                    # Default to True if the dock is new and not in settings
+                    is_visible = docks_visibility.get(dock_name, True)
                     checkbox.blockSignals(True)
-                    checkbox.setChecked(dock.isVisible())
+                    checkbox.setChecked(is_visible)
                     checkbox.blockSignals(False)
 
     def closeEvent(self, event):
@@ -230,4 +236,3 @@ class MainWindow(QMainWindow):
         """
         self.settings_service.save_settings(self)
         super().closeEvent(event)
-

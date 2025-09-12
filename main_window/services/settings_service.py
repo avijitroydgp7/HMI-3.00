@@ -24,26 +24,33 @@ class SettingsService:
         it returns a default dictionary.
         """
         if not os.path.exists(self.file_path):
-            return {
-                "main_window": {
-                    "geometry": None,
-                    "state": None
-                }
-            }
+            return self._get_default_settings()
         try:
             with open(self.file_path, 'r') as f:
-                return json.load(f)
+                settings = json.load(f)
+                # Ensure visibility keys exist for backward compatibility
+                if "toolbars_visibility" not in settings:
+                    settings["toolbars_visibility"] = {}
+                if "docks_visibility" not in settings:
+                    settings["docks_visibility"] = {}
+                return settings
         except (json.JSONDecodeError, FileNotFoundError):
-            return {
-                "main_window": {
-                    "geometry": None,
-                    "state": None
-                }
-            }
+            return self._get_default_settings()
+
+    def _get_default_settings(self):
+        """Returns the default settings structure."""
+        return {
+            "main_window": {
+                "geometry": None,
+                "state": None
+            },
+            "toolbars_visibility": {},
+            "docks_visibility": {}
+        }
 
     def save_settings(self, main_window):
         """
-        Saves the current state of the main window (geometry and state of toolbars/docks)
+        Saves the current state of the main window and visibility of UI elements
         to the JSON file.
 
         Args:
@@ -51,6 +58,14 @@ class SettingsService:
         """
         self.settings['main_window']['geometry'] = main_window.saveGeometry().data().hex()
         self.settings['main_window']['state'] = main_window.saveState().data().hex()
+        
+        # Save visibility of toolbars and docks
+        self.settings['toolbars_visibility'] = {
+            name: toolbar.isVisible() for name, toolbar in main_window.toolbars.items()
+        }
+        self.settings['docks_visibility'] = {
+            name: dock.isVisible() for name, dock in main_window.dock_factory.docks.items()
+        }
         
         with open(self.file_path, 'w') as f:
             json.dump(self.settings, f, indent=4)
@@ -60,3 +75,11 @@ class SettingsService:
         Returns the settings for the main window.
         """
         return self.settings.get('main_window', {})
+
+    def get_toolbars_visibility(self):
+        """Returns the visibility settings for toolbars."""
+        return self.settings.get('toolbars_visibility', {})
+
+    def get_docks_visibility(self):
+        """Returns the visibility settings for dock widgets."""
+        return self.settings.get('docks_visibility', {})
