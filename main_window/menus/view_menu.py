@@ -1,6 +1,6 @@
 from PyQt6.QtGui import QAction, QActionGroup
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QCheckBox, QWidgetAction
-import qtawesome as qta
+from ..services.icon_service import IconService
 
 class ViewMenu:
     """
@@ -10,76 +10,76 @@ class ViewMenu:
         self.main_window = main_window
         view_menu = menu_bar.addMenu("&View")
         
-        preview_icon = qta.icon('fa5s.eye', options=[{'color': '#bbdefb'}])
+        preview_icon = IconService.get_icon('view-preview')
         
         self.preview_action = QAction(preview_icon,"Preview", self.main_window)
         view_menu.addAction(self.preview_action)
 
         # State No. Submenu
-        state_number_icon = qta.icon('fa5s.exchange-alt', options=[{'color': '#4285f4'}])
+        state_number_icon = IconService.get_icon('view-state-number')
         state_no_menu = view_menu.addMenu(state_number_icon, "State No.")
         self.state_on_off_action = QAction("State On/Off", self.main_window)
         self.state_on_off_action.setCheckable(True)
         self.state_on_off_action.setChecked(True)
         state_no_menu.addAction(self.state_on_off_action)
-        self.next_state_action = QAction(qta.icon('fa5s.arrow-right'), "Next State", self.main_window)
+        self.next_state_action = QAction(IconService.get_icon('view-next-state'), "Next State", self.main_window)
         state_no_menu.addAction(self.next_state_action)
-        self.prev_state_action = QAction(qta.icon('fa5s.arrow-left'), "Previous State", self.main_window)
+        self.prev_state_action = QAction(IconService.get_icon('view-prev-state'), "Previous State", self.main_window)
         state_no_menu.addAction(self.prev_state_action)
 
         # Tool Bar Submenu
-        tool_bar_icon = qta.icon('fa5s.wrench', options=[{'color': '#5f6368'}])
+        tool_bar_icon = IconService.get_icon('view-tool-bar')
         self.tool_bar_menu = view_menu.addMenu(tool_bar_icon, "Tool Bar")
         toolbar_items = [
-            ("Window Display", qta.icon('fa5s.desktop')),
-            ("View", qta.icon('fa5s.eye')),
-            ("Screen", qta.icon('fa5s.columns')),
-            ("Edit", qta.icon('fa5s.edit')),
-            ("Alignment", qta.icon('fa5s.align-center')),
-            ("Figure", qta.icon('fa5s.shapes')),
-            ("Object", qta.icon('fa5s.cube')),
-            ("Debug", qta.icon('fa5s.bug')),
+            ("Window Display", IconService.get_icon('view-window-display')),
+            ("View", IconService.get_icon('view-view')),
+            ("Screen", IconService.get_icon('view-screen')),
+            ("Edit", IconService.get_icon('view-edit')),
+            ("Alignment", IconService.get_icon('view-alignment')),
+            ("Figure", IconService.get_icon('view-figure')),
+            ("Object", IconService.get_icon('view-object')),
+            ("Debug", IconService.get_icon('view-debug')),
         ]
         self._create_checkable_actions(self.tool_bar_menu, toolbar_items)
 
 
         # Docking Window Submenu
-        docking_window_icon = qta.icon('fa5.window-restore', options=[{'color': '#bbdefb'}])
+        docking_window_icon = IconService.get_icon('view-docking-window')
         self.docking_window_menu = view_menu.addMenu(docking_window_icon, "Docking Window")
         docking_items = [
-            ("Project Tree", qta.icon('fa5s.project-diagram')),
-            ("Screen Tree", qta.icon('fa5s.sitemap')),
-            ("System Tree", qta.icon('fa5s.cogs')),
-            ("Tag Search", qta.icon('fa5s.search-location')),
-            ("Data Browser", qta.icon('fa5s.database')),
-            ("Property Tree", qta.icon('fa5s.list-alt')),
-            ("IP Address", qta.icon('fa5s.ethernet')),
-            ("Library", qta.icon('fa5s.book-open')),
-            ("Controller List", qta.icon('fa5s.gamepad')),
-            ("Data View", qta.icon('fa5s.table')),
-            ("Screen Image List", qta.icon('fa5s.images')),
+            ("Project Tree", IconService.get_icon('dock-project-tree')),
+            ("Screen Tree", IconService.get_icon('dock-screen-tree')),
+            ("System Tree", IconService.get_icon('dock-system-tree')),
+            ("Tag Search", IconService.get_icon('dock-tag-search')),
+            ("Data Browser", IconService.get_icon('dock-data-browser')),
+            ("Property Tree", IconService.get_icon('dock-property-tree')),
+            ("IP Address", IconService.get_icon('dock-ip-address')),
+            ("Library", IconService.get_icon('dock-library')),
+            ("Controller List", IconService.get_icon('dock-controller-list')),
+            ("Data View", IconService.get_icon('dock-data-view')),
+            ("Screen Image List", IconService.get_icon('dock-screen-image-list')),
         ]
         self._create_checkable_actions(self.docking_window_menu, docking_items)
 
 
         # Display Item Submenu
-        display_item_icon = qta.icon('fa5s.paint-brush', options=[{'color':'#4285f4'}])
+        display_item_icon = IconService.get_icon('view-display-item')
         display_item_menu = view_menu.addMenu(display_item_icon, "Display Item")
-        self.tag_action = QAction(qta.icon('fa5s.tag'), "Tag", self.main_window)
+        self.tag_action = QAction(IconService.get_icon('view-tag'), "Tag", self.main_window)
         self.tag_action.setCheckable(True)
         display_item_menu.addAction(self.tag_action)
-        self.object_id_action = QAction(qta.icon('fa5s.hashtag'), "Object ID", self.main_window)
+        self.object_id_action = QAction(IconService.get_icon('view-object-id'), "Object ID", self.main_window)
         self.object_id_action.setCheckable(True)
         display_item_menu.addAction(self.object_id_action)
-        self.transform_line_action = QAction(qta.icon('fa5s.ruler-combined'), "Transform Line", self.main_window)
+        self.transform_line_action = QAction(IconService.get_icon('view-transform-line'), "Transform Line", self.main_window)
         self.transform_line_action.setCheckable(True)
         display_item_menu.addAction(self.transform_line_action)
-        self.click_area_action = QAction(qta.icon('fa5s.hand-pointer'), "Click Area", self.main_window)
+        self.click_area_action = QAction(IconService.get_icon('view-click-area'), "Click Area", self.main_window)
         self.click_area_action.setCheckable(True)
         display_item_menu.addAction(self.click_area_action)
         
         # Object Snap Action
-        object_snap_icon = qta.icon('fa5s.magnet', options=[{'color': '#ea4335'}])
+        object_snap_icon = IconService.get_icon('view-object-snap')
         object_snap_widget_action = QWidgetAction(self.main_window)
         object_snap_widget = QWidget()
         object_snap_layout = QHBoxLayout(object_snap_widget)
@@ -101,9 +101,9 @@ class ViewMenu:
         view_menu.addAction(object_snap_widget_action)
 
         # Zoom Submenu
-        zoom_icon = qta.icon('fa5s.search-plus', options=[{'color': '#4285f4'}])
+        zoom_icon = IconService.get_icon('view-zoom')
         self.zoom_menu = view_menu.addMenu(zoom_icon, "Zoom")
-        self.fit_screen_action = QAction(qta.icon('fa5s.compress'), "Fit Screen", self.main_window)
+        self.fit_screen_action = QAction(IconService.get_icon('view-fit-screen'), "Fit Screen", self.main_window)
         self.zoom_menu.addAction(self.fit_screen_action)
         self.zoom_menu.addSeparator()
         

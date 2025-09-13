@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QToolBar, QCheckBox
 from PyQt6.QtGui import QAction
-import qtawesome as qta
+from ..services.icon_service import IconService
 
 class DockingToolbar(QToolBar):
     """
@@ -15,17 +15,17 @@ class DockingToolbar(QToolBar):
 
         # This list should match the one in view_menu.py for consistency
         docking_items = [
-            ("Project Tree", qta.icon('fa5s.project-diagram')),
-            ("Screen Tree", qta.icon('fa5s.sitemap')),
-            ("System Tree", qta.icon('fa5s.cogs')),
-            ("Property Tree", qta.icon('fa5s.list-alt')),
-            ("Library", qta.icon('fa5s.book-open')),
-            ("Screen Image List", qta.icon('fa5s.images')),
-            ("Tag Search", qta.icon('fa5s.search-location')),
-            ("Data Browser", qta.icon('fa5s.database')),
-            ("IP Address", qta.icon('fa5s.ethernet')),
-            ("Controller List", qta.icon('fa5s.gamepad')),
-            ("Data View", qta.icon('fa5s.table')),
+            ("Project Tree", IconService.get_icon('dock-project-tree')),
+            ("Screen Tree", IconService.get_icon('dock-screen-tree')),
+            ("System Tree", IconService.get_icon('dock-system-tree')),
+            ("Property Tree", IconService.get_icon('dock-property-tree')),
+            ("Library", IconService.get_icon('dock-library')),
+            ("Screen Image List", IconService.get_icon('dock-screen-image-list')),
+            ("Tag Search", IconService.get_icon('dock-tag-search')),
+            ("Data Browser", IconService.get_icon('dock-data-browser')),
+            ("IP Address", IconService.get_icon('dock-ip-address')),
+            ("Controller List", IconService.get_icon('dock-controller-list')),
+            ("Data View", IconService.get_icon('dock-data-view')),
         ]
         
         for text, icon in docking_items:

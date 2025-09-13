@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QToolBar, QComboBox, QToolButton, QCheckBox, QSpinBox
 from PyQt6.QtCore import Qt
-import qtawesome as qta
+from ..services.icon_service import IconService
 
 class ViewToolbar(QToolBar):
     def __init__(self, main_window, view_menu):
@@ -27,8 +27,8 @@ class ViewToolbar(QToolBar):
         self.addSeparator()
 
         # Zoom Controls
-        zoom_in_icon = qta.icon('fa5s.search-plus')
-        zoom_out_icon = qta.icon('fa5s.search-minus')
+        zoom_in_icon = IconService.get_icon('zoom-in')
+        zoom_out_icon = IconService.get_icon('zoom-out')
         
         self.zoom_out_button = QToolButton()
         self.zoom_out_button.setIcon(zoom_out_icon)

@@ -1,5 +1,5 @@
 from PyQt6.QtGui import QAction
-import qtawesome as qta
+from ..services.icon_service import IconService
 
 class EditMenu:
     """
@@ -10,15 +10,15 @@ class EditMenu:
         edit_menu = menu_bar.addMenu("&Edit")
 
         # Icons
-        undo_icon = qta.icon('fa5s.undo', options=[{'color': '#4285f4'}])
-        redo_icon = qta.icon('fa5s.redo', options=[{'color': '#4285f4'}])
-        cut_icon = qta.icon('fa5s.cut', options=[{'color': '#5f6368'}])
-        copy_icon = qta.icon('fa5.copy', options=[{'color': '#bbdefb'}])
-        paste_icon = qta.icon('fa5s.clipboard', options=[{'color': '#5f6368'}])
-        duplicate_icon = qta.icon('fa5.clone', options=[{'color': '#4285f4'}])
-        delete_icon = qta.icon('fa5s.trash-alt', options=[{'color': '#ea4335'}])
-        consecutive_copy_icon = qta.icon('fa5s.layer-group', options=[{'color': '#4285f4'}])
-        select_all_icon = qta.icon('fa5s.border-all', options=[{'color': '#5f6368'}])
+        undo_icon = IconService.get_icon('edit-undo')
+        redo_icon = IconService.get_icon('edit-redo')
+        cut_icon = IconService.get_icon('edit-cut')
+        copy_icon = IconService.get_icon('edit-copy')
+        paste_icon = IconService.get_icon('edit-paste')
+        duplicate_icon = IconService.get_icon('edit-duplicate')
+        delete_icon = IconService.get_icon('edit-delete')
+        consecutive_copy_icon = IconService.get_icon('edit-consecutive-copy')
+        select_all_icon = IconService.get_icon('edit-select-all')
         
         # Actions
         self.undo_action = QAction(undo_icon,"Undo", self.main_window)
@@ -57,12 +57,12 @@ class EditMenu:
         edit_menu.addSeparator()
 
         # Stacking Order Submenu
-        stacking_order_icon = qta.icon('fa5s.sort-amount-up', options=[{'color': '#4285f4'}])
+        stacking_order_icon = IconService.get_icon('stacking-order')
         stacking_order_menu = edit_menu.addMenu(stacking_order_icon, "Stacking Order")
-        move_front_layer_icon = qta.icon('mdi.arrange-bring-to-front', options=[{'color': '#4285f4'}])
-        move_back_layer_icon = qta.icon('mdi.arrange-send-to-back', options=[{'color': '#4285f4'}])
-        move_to_front_icon = qta.icon('mdi.vector-arrange-above', options=[{'color': '#34a853'}])
-        move_to_back_icon = qta.icon('mdi.vector-arrange-below', options=[{'color': '#ea4335'}])
+        move_front_layer_icon = IconService.get_icon('move-front-layer')
+        move_back_layer_icon = IconService.get_icon('move-back-layer')
+        move_to_front_icon = IconService.get_icon('move-to-front')
+        move_to_back_icon = IconService.get_icon('move-to-back')
         self.move_front_layer_action = QAction(move_front_layer_icon, "Move Front Layer", self.main_window)
         stacking_order_menu.addAction(self.move_front_layer_action)
         self.move_back_layer_action = QAction(move_back_layer_icon, "Move Back Layer", self.main_window)
@@ -73,16 +73,16 @@ class EditMenu:
         stacking_order_menu.addAction(self.move_to_back_action)
 
         # Align Submenu
-        align_icon = qta.icon('fa5s.align-center', options=[{'color': '#4285f4'}])
+        align_icon = IconService.get_icon('align-center')
         align_menu = edit_menu.addMenu(align_icon, "Align")
-        align_left_icon = qta.icon('mdi.align-horizontal-left', options=[{'color':'#5f6368'}])
-        align_center_icon = qta.icon('mdi.align-horizontal-center', options=[{'color':'#5f6368'}])
-        align_right_icon = qta.icon('mdi.align-horizontal-right', options=[{'color':'#5f6368'}])
-        align_top_icon = qta.icon('mdi.align-vertical-top', options=[{'color':'#5f6368'}])
-        align_middle_icon = qta.icon('mdi.align-vertical-center', options=[{'color':'#5f6368'}])
-        align_bottom_icon = qta.icon('mdi.align-vertical-bottom', options=[{'color':'#5f6368'}])
-        dist_horz_icon = qta.icon('mdi6.align-horizontal-distribute', options=[{'color':'#4285f4'}])
-        dist_vert_icon = qta.icon('mdi6.align-vertical-distribute', options=[{'color':'#4285f4'}])
+        align_left_icon = IconService.get_icon('align-left')
+        align_center_icon = IconService.get_icon('align-horizontal-center')
+        align_right_icon = IconService.get_icon('align-right')
+        align_top_icon = IconService.get_icon('align-top')
+        align_middle_icon = IconService.get_icon('align-middle')
+        align_bottom_icon = IconService.get_icon('align-bottom')
+        dist_horz_icon = IconService.get_icon('distribute-horizontal')
+        dist_vert_icon = IconService.get_icon('distribute-vertical')
         self.align_left_action = QAction(align_left_icon, "Left", self.main_window)
         align_menu.addAction(self.align_left_action)
         self.align_center_action = QAction(align_center_icon, "Center", self.main_window)
@@ -103,17 +103,17 @@ class EditMenu:
         align_menu.addAction(self.dist_vert_action)
 
         # Wrap Action
-        wrap_icon = qta.icon('fa5s.compress-arrows-alt', options=[{'color': '#4285f4'}])
+        wrap_icon = IconService.get_icon('wrap')
         self.wrap_action = QAction(wrap_icon, "Wrap", self.main_window)
         edit_menu.addAction(self.wrap_action)
         
         # Flip Submenu
-        flip_icon = qta.icon('fa5s.exchange-alt', options=[{'color': '#4285f4'}])
+        flip_icon = IconService.get_icon('flip')
         flip_menu = edit_menu.addMenu(flip_icon, "Flip")
-        flip_vert_icon = qta.icon('mdi6.flip-vertical', options=[{'color':'#5f6368'}])
-        flip_horz_icon = qta.icon('mdi6.flip-horizontal', options=[{'color':'#5f6368'}])
-        rotate_left_icon = qta.icon('fa5s.undo', options=[{'color':'#4285f4'}])
-        rotate_right_icon = qta.icon('fa5s.redo', options=[{'color':'#4285f4'}])
+        flip_vert_icon = IconService.get_icon('flip-vertical')
+        flip_horz_icon = IconService.get_icon('flip-horizontal')
+        rotate_left_icon = IconService.get_icon('rotate-left')
+        rotate_right_icon = IconService.get_icon('rotate-right')
         self.flip_vert_action = QAction(flip_vert_icon, "Vertical", self.main_window)
         flip_menu.addAction(self.flip_vert_action)
         self.flip_horz_action = QAction(flip_horz_icon, "Horizontal", self.main_window)

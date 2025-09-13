@@ -1,5 +1,5 @@
 from PyQt6.QtGui import QAction
-import qtawesome as qta
+from ..services.icon_service import IconService
 
 class FigureMenu:
     """
@@ -9,18 +9,18 @@ class FigureMenu:
         self.main_window = main_window
         figure_menu = menu_bar.addMenu("&Figure")
 
-        text_figure_icon = qta.icon('fa5s.font', options=[{'color': '#9aa0a6'}])
-        line_figure_icon = qta.icon('fa6s.slash', options=[{'color': '#bbdefb'}])
-        polyline_figure_icon = qta.icon('fa5s.draw-polygon', options=[{'color': '#34a853'}])
-        rectangle_figure_icon = qta.icon('fa5.square', options=[{'color': '#bbdefb'}])
-        polygon_figure_icon = qta.icon('fa6s.shapes', options=[{'color': '#fbbc05'}])
-        circle_figure_icon = qta.icon('fa5.circle', options=[{'color': '#bbdefb'}])
-        arc_figure_icon = qta.icon('fa6s.chart-pie', options=[{'color': '#ea4335',}])
-        sector_figure_icon = qta.icon('fa5s.chart-pie', options=[{'color':'#4285f4'}])
-        table_figure_icon = qta.icon('fa6s.table', options=[{'color': '#bbdefb'}])
-        scale_figure_icon = qta.icon('fa6s.ruler', options=[{'color': '#9aa0a6'}])
-        image_figure_icon = qta.icon('fa5.image', options=[{'color': '#bbdefb'}])
-        dxf_figure_icon = qta.icon('fa5s.file-code', options=[{'color': '#5f6368'}])
+        text_figure_icon = IconService.get_icon('figure-text')
+        line_figure_icon = IconService.get_icon('figure-line')
+        polyline_figure_icon = IconService.get_icon('figure-polyline')
+        rectangle_figure_icon = IconService.get_icon('figure-rectangle')
+        polygon_figure_icon = IconService.get_icon('figure-polygon')
+        circle_figure_icon = IconService.get_icon('figure-circle')
+        arc_figure_icon = IconService.get_icon('figure-arc')
+        sector_figure_icon = IconService.get_icon('figure-sector')
+        table_figure_icon = IconService.get_icon('figure-table')
+        scale_figure_icon = IconService.get_icon('figure-scale')
+        image_figure_icon = IconService.get_icon('figure-image')
+        dxf_figure_icon = IconService.get_icon('figure-dxf')
         
         self.text_action = QAction(text_figure_icon, "Text", self.main_window)
         self.line_action = QAction(line_figure_icon, "Line", self.main_window)

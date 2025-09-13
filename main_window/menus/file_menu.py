@@ -1,5 +1,5 @@
 from PyQt6.QtGui import QAction
-import qtawesome as qta
+from ..services.icon_service import IconService
 
 class FileMenu:
     """
@@ -9,14 +9,14 @@ class FileMenu:
         file_menu = menu_bar.addMenu("&File")
 
         # Create multicolor icons
-        new_icon = qta.icon('fa5s.file-alt', options=[{'color': '#4285f4'}])
-        open_icon = qta.icon('fa5s.folder', options=[{'color': '#fbbc05'}])
-        save_icon = qta.icon('fa5.save', options=[{'color': '#bbdefb'}])
-        save_as_icon = qta.icon('fa5s.save', options=[{'color': '#4285f4'}])
-        run_icon = qta.icon('fa5s.play-circle', options=[{'color': '#34a853'}])
-        close_tab_icon = qta.icon('fa5s.window-maximize', options=[{'color': '#5f6368'}])
-        close_all_tabs_icon = qta.icon('fa5s.window-close', options=[{'color':'#ea4335'}])
-        exit_icon = qta.icon('fa5s.sign-out-alt', options=[{'color': '#ea4335'}])
+        new_icon = IconService.get_icon('file-new')
+        open_icon = IconService.get_icon('folder-open')
+        save_icon = IconService.get_icon('file-save')
+        save_as_icon = IconService.get_icon('file-save-as')
+        run_icon = IconService.get_icon('run')
+        close_tab_icon = IconService.get_icon('window-close')
+        close_all_tabs_icon = IconService.get_icon('windows-close')
+        exit_icon = IconService.get_icon('exit')
 
         # New, Open, Save actions
         new_action = QAction(new_icon,"New", main_window)
@@ -51,4 +51,3 @@ class FileMenu:
         file_menu.addAction(close_all_tabs_action)
         file_menu.addSeparator()
         file_menu.addAction(exit_action)
-

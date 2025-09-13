@@ -1,5 +1,5 @@
 from PyQt6.QtGui import QAction
-import qtawesome as qta
+from ..services.icon_service import IconService
 
 class SearchReplaceMenu:
     """
@@ -8,11 +8,11 @@ class SearchReplaceMenu:
     def __init__(self, main_window, menu_bar):
         search_replace_menu = menu_bar.addMenu("&Search/Replace")
         
-        tag_search_icon = qta.icon('fa5s.tag', 'fa5s.search', options=[{'color': '#34a853'}, {'color': '#4285f4', 'scale_factor': 0.5, 'offset': (0.1, -0.1)}])
-        tag_list_icon = qta.icon('fa5s.tags', options=[{'color': '#34a853'}])
-        text_list_icon = qta.icon('fa5s.list-alt', options=[{'color': '#4285f4'}])
-        data_browser_icon = qta.icon('fa5s.database', 'fa5s.search', options=[{'color': '#5f6368'}, {'color': '#4285f4', 'scale_factor': 0.4, 'offset': (0.1, -0.1)}])
-        ip_address_list_icon = qta.icon('fa5s.ethernet', options=[{'color': '#4285f4'}])
+        tag_search_icon = IconService.get_icon('search-tag')
+        tag_list_icon = IconService.get_icon('search-tag-list')
+        text_list_icon = IconService.get_icon('search-text-list')
+        data_browser_icon = IconService.get_icon('search-data-browser')
+        ip_address_list_icon = IconService.get_icon('search-ip-address-list')
 
         search_replace_menu.addAction(QAction(tag_search_icon,"Tag Search", main_window))
         search_replace_menu.addAction(QAction(tag_list_icon, "Tag List", main_window))
@@ -20,12 +20,12 @@ class SearchReplaceMenu:
         search_replace_menu.addSeparator()
 
         # Batch Edit Submenu
-        batch_edit_icon = qta.icon('fa5s.edit', options=[{'color': '#fbbc05'}])
+        batch_edit_icon = IconService.get_icon('search-batch-edit')
         batch_edit_menu = search_replace_menu.addMenu(batch_edit_icon, "Batch Edit")
-        batch_edit_tags_icon = qta.icon('fa5s.tags', options=[{'color':'#34a853'}])
-        batch_edit_color_icon = qta.icon('fa5s.palette', options=[{'color':'#4285f4'}])
-        batch_edit_shape_icon = qta.icon('fa5s.shapes', options=[{'color':'#ea4335'}])
-        batch_edit_text_icon = qta.icon('fa5s.font', options=[{'color':'#5f6368'}])
+        batch_edit_tags_icon = IconService.get_icon('search-batch-edit-tags')
+        batch_edit_color_icon = IconService.get_icon('search-batch-edit-color')
+        batch_edit_shape_icon = IconService.get_icon('search-batch-edit-shape')
+        batch_edit_text_icon = IconService.get_icon('search-batch-edit-text')
         batch_edit_menu.addAction(QAction(batch_edit_tags_icon, "Tags", main_window))
         batch_edit_menu.addAction(QAction(batch_edit_color_icon, "Color", main_window))
         batch_edit_menu.addAction(QAction(batch_edit_shape_icon, "Shape", main_window))
@@ -33,4 +33,3 @@ class SearchReplaceMenu:
 
         search_replace_menu.addAction(QAction(data_browser_icon,"Data Browser", main_window))
         search_replace_menu.addAction(QAction(ip_address_list_icon,"IP Address List", main_window))
-
