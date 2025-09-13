@@ -1,0 +1,15 @@
+/* Central stylesheet for the HMI Designer Application.
+    This allows for consistent theming and separation of style from logic.
+*/
+
+QToolButton[state="on"] {
+    background-color: #34a853; /* Google Green */
+    color: white;
+    border: 1px solid #2e7d32;
+}
+
+QToolButton[state="off"] {
+    background-color: #fbbc05; /* Google Yellow */
+    color: black;
+    border: 1px solid #f9ab00;
+}

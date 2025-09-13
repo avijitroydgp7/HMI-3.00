@@ -11,6 +11,13 @@ def main():
     app = QApplication(sys.argv)
     # Set the application style to Fusion
     app.setStyle(QStyleFactory.create('Fusion'))
+
+    # Load and apply the stylesheet for custom styling
+    try:
+        with open('stylesheet.qss', 'r') as f:
+            app.setStyleSheet(f.read())
+    except FileNotFoundError:
+        print("stylesheet.qss not found. Using default styles.") # Or handle this more gracefully
     
     # Initialize the settings service
     settings_service = SettingsService('settings.json')

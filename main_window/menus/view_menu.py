@@ -30,12 +30,37 @@ class ViewMenu:
         # Tool Bar Submenu
         tool_bar_icon = qta.icon('fa5s.wrench', 'fa5s.cog', options=[{'color': '#5f6368'}, {'color': '#9aa0a6', 'scale_factor': 0.7, 'offset': (0.2, 0.2)}])
         self.tool_bar_menu = view_menu.addMenu(tool_bar_icon, "Tool Bar")
-        self.create_checkable_toolbar_actions()
+        toolbar_items = [
+            ("Window Display", qta.icon('fa5s.desktop')),
+            ("View", qta.icon('fa5s.eye')),
+            ("Screen", qta.icon('fa5s.columns')),
+            ("Edit", qta.icon('fa5s.edit')),
+            ("Alignment", qta.icon('fa5s.align-center')),
+            ("Figure", qta.icon('fa5s.shapes')),
+            ("Object", qta.icon('fa5s.cube')),
+            ("Debug", qta.icon('fa5s.bug')),
+        ]
+        self._create_checkable_actions(self.tool_bar_menu, toolbar_items)
+
 
         # Docking Window Submenu
         docking_window_icon = qta.icon('fa5.window-restore', 'fa5s.window-restore', options=[{'color': '#bbdefb'}, {'color': '#5f6368'}])
         self.docking_window_menu = view_menu.addMenu(docking_window_icon, "Docking Window")
-        self.create_checkable_docking_actions()
+        docking_items = [
+            ("Project Tree", qta.icon('fa5s.project-diagram')),
+            ("Screen Tree", qta.icon('fa5s.sitemap')),
+            ("System Tree", qta.icon('fa5s.cogs')),
+            ("Tag Search", qta.icon('fa5s.search-location')),
+            ("Data Browser", qta.icon('fa5s.database')),
+            ("Property Tree", qta.icon('fa5s.list-alt')),
+            ("IP Address", qta.icon('fa5s.ethernet')),
+            ("Library", qta.icon('fa5s.book-open')),
+            ("Controller List", qta.icon('fa5s.gamepad')),
+            ("Data View", qta.icon('fa5s.table')),
+            ("Screen Image List", qta.icon('fa5s.images')),
+        ]
+        self._create_checkable_actions(self.docking_window_menu, docking_items)
+
 
         # Display Item Submenu
         display_item_icon = qta.icon('fa5s.paint-brush', options=[{'color':'#4285f4'}])
@@ -96,19 +121,15 @@ class ViewMenu:
             self.zoom_action_group.addAction(action)
             self.zoom_actions.append(action)
 
-    def create_checkable_toolbar_actions(self):
-        """Creates and adds checkable widget actions to the Tool Bar submenu."""
-        toolbar_items = [
-            ("Window Display", qta.icon('fa5s.desktop')),
-            ("View", qta.icon('fa5s.eye')),
-            ("Screen", qta.icon('fa5s.columns')),
-            ("Edit", qta.icon('fa5s.edit')),
-            ("Alignment", qta.icon('fa5s.align-center')),
-            ("Figure", qta.icon('fa5s.shapes')),
-            ("Object", qta.icon('fa5s.cube')),
-            ("Debug", qta.icon('fa5s.bug')),
-        ]
-        for text, icon in toolbar_items:
+    def _create_checkable_actions(self, menu, items):
+        """
+        Generic helper function to create and add checkable widget actions to a menu.
+        
+        Args:
+            menu (QMenu): The parent menu to which actions will be added.
+            items (list of tuples): A list where each tuple contains (text, icon).
+        """
+        for text, icon in items:
             widget_action = QWidgetAction(self.main_window)
             widget_action.setText(text)
             
@@ -121,7 +142,8 @@ class ViewMenu:
             check_box.setChecked(True)
             
             icon_label = QLabel()
-            icon_label.setPixmap(icon.pixmap(16, 16))
+            if icon:
+                icon_label.setPixmap(icon.pixmap(16, 16))
             
             text_label = QLabel(text)
 
@@ -131,45 +153,4 @@ class ViewMenu:
             layout.addStretch()
 
             widget_action.setDefaultWidget(widget)
-            self.tool_bar_menu.addAction(widget_action)
-
-    def create_checkable_docking_actions(self):
-        """Creates and adds checkable widget actions to the Docking Window submenu."""
-        docking_items = [
-            ("Project Tree", qta.icon('fa5s.project-diagram')),
-            ("Screen Tree", qta.icon('fa5s.sitemap')),
-            ("System Tree", qta.icon('fa5s.cogs')),
-            ("Tag Search", qta.icon('fa5s.search-location')),
-            ("Data Browser", qta.icon('fa5s.database')),
-            ("Property Tree", qta.icon('fa5s.list-alt')),
-            ("IP Address", qta.icon('fa5s.ethernet')),
-            ("Library", qta.icon('fa5s.book-open')),
-            ("Controller List", qta.icon('fa5s.gamepad')),
-            ("Data View", qta.icon('fa5s.table')),
-            ("Screen Image List", qta.icon('fa5s.images')),
-        ]
-        for text, icon in docking_items:
-            widget_action = QWidgetAction(self.main_window)
-            widget_action.setText(text)
-
-            widget = QWidget()
-            layout = QHBoxLayout(widget)
-            layout.setContentsMargins(4, 4, 4, 4)
-            layout.setSpacing(10)
-
-            check_box = QCheckBox()
-            check_box.setChecked(True)
-
-            icon_label = QLabel()
-            icon_label.setPixmap(icon.pixmap(16, 16))
-
-            text_label = QLabel(text)
-
-            layout.addWidget(check_box)
-            layout.addWidget(icon_label)
-            layout.addWidget(text_label)
-            layout.addStretch()
-            
-            widget_action.setDefaultWidget(widget)
-            self.docking_window_menu.addAction(widget_action)
-
+            menu.addAction(widget_action)

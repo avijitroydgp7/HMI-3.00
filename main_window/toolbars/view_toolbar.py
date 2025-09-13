@@ -92,19 +92,24 @@ class ViewToolbar(QToolBar):
         # Update the toggle button and menu item based on the current state
         if self.current_state == 0:
             self.state_toggle_button.setText("OFF")
-            self.state_toggle_button.setStyleSheet("QToolButton { background-color: yellow; color: black; }")
+            self.state_toggle_button.setProperty("state", "off")
             self.state_toggle_button.setChecked(False)
             self.view_menu.state_on_off_action.setChecked(False)
         elif self.current_state == 1:
             self.state_toggle_button.setText("ON")
-            self.state_toggle_button.setStyleSheet("QToolButton { background-color: green; color: white; }")
+            self.state_toggle_button.setProperty("state", "on")
             self.state_toggle_button.setChecked(True)
             self.view_menu.state_on_off_action.setChecked(True)
         else:
             self.state_toggle_button.setText("OFF")
-            self.state_toggle_button.setStyleSheet("") # Reset to default style
+            self.state_toggle_button.setProperty("state", "off") # Or a neutral state
             self.state_toggle_button.setChecked(False)
             self.view_menu.state_on_off_action.setChecked(False)
+        
+        # Re-polish the widget to apply the new style
+        self.style().unpolish(self.state_toggle_button)
+        self.style().polish(self.state_toggle_button)
+
 
     def toggle_state(self):
         """Toggles the state between 0 (OFF) and 1 (ON)."""
@@ -129,4 +134,3 @@ class ViewToolbar(QToolBar):
         if 0 <= value < self.max_states:
             self.current_state = value
             self.update_state_ui()
-

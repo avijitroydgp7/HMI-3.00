@@ -5,7 +5,8 @@ import qtawesome as qta
 class DockingToolbar(QToolBar):
     """
     A floating toolbar to control the visibility of docking windows.
-    Its state is synchronized with the View > Docking Window menu.
+    Its state is synchronized with the View > Docking Window menu via a
+    central controller in the MainWindow.
     """
     def __init__(self, main_window, view_menu):
         super().__init__("Window Display", main_window)
@@ -27,29 +28,14 @@ class DockingToolbar(QToolBar):
             ("Data View", qta.icon('fa5s.table')),
         ]
         
-        # Create a mapping from text to icon for easy lookup
-        icon_map = {text: icon for text, icon in docking_items}
-
-        # Find the corresponding QWidgetAction in the menu and link it
-        for menu_action in self.view_menu.docking_window_menu.actions():
-            action_text = menu_action.text()
-            icon = icon_map.get(action_text, qta.icon('fa5s.window-maximize')) # Default icon
-
-            # Create a new, checkable action for the toolbar
-            toolbar_action = QAction(icon, action_text, self)
-            toolbar_action.setCheckable(True)
-            toolbar_action.setToolTip(f"Show/Hide {action_text}")
-
-            # Find the checkbox in the menu's widget action
-            widget = menu_action.defaultWidget()
-            checkbox = widget.findChild(QCheckBox)
-
-            if checkbox:
-                # Sync toolbar action -> menu checkbox
-                toolbar_action.toggled.connect(checkbox.setChecked)
-                # Sync menu checkbox -> toolbar action
-                checkbox.toggled.connect(toolbar_action.setChecked)
-                # Set initial checked state from the checkbox (which is restored from settings)
-                toolbar_action.setChecked(checkbox.isChecked())
+        for text, icon in docking_items:
+            dock_name = text.lower().replace(' ', '_')
             
+            # Create a new, checkable action for the toolbar
+            toolbar_action = QAction(icon, text, self)
+            toolbar_action.setCheckable(True)
+            toolbar_action.setToolTip(f"Show/Hide {text}")
+            # Set a unique object name to find it later
+            toolbar_action.setObjectName(f"toggle_{dock_name}")
+
             self.addAction(toolbar_action)

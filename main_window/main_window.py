@@ -1,6 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit
 from PyQt6.QtCore import Qt, QSize, QByteArray
+from PyQt6.QtGui import QAction
 
 # Import the menu classes from the new modules
 from .menus.file_menu import FileMenu
@@ -158,28 +159,63 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(ip_address, controller_list)
         self.tabifyDockWidget(controller_list, data_view)
 
-        # Connect the toggle actions from the view menu
+        # Connect the toggle actions from the view menu and the docking toolbar
+        # This centralizes the visibility logic
         for action in self.view_menu.docking_window_menu.actions():
-            widget = action.defaultWidget()
-            checkbox = widget.findChild(QCheckBox)
-            if checkbox:
-                # The object name must match the key in the factory's dock dict
-                dock_name = action.text().lower().replace(' ', '_')
-                if self.dock_factory.get_dock(dock_name):
-                    checkbox.toggled.connect(
-                        lambda checked, name=dock_name: self.toggle_dock_widget(checked, name)
+            dock_name = action.text().lower().replace(' ', '_')
+            if self.dock_factory.get_dock(dock_name):
+                # Connect menu checkbox
+                menu_checkbox = action.defaultWidget().findChild(QCheckBox)
+                if menu_checkbox:
+                    menu_checkbox.toggled.connect(
+                        lambda checked, name=dock_name: self.set_dock_widget_visibility(name, checked)
                     )
+                
+                # Connect toolbar action
+                toolbar = self.toolbars.get("Window Display")
+                if toolbar:
+                    toolbar_action = toolbar.findChild(QAction, f"toggle_{dock_name}")
+                    if toolbar_action:
+                        toolbar_action.toggled.connect(
+                             lambda checked, name=dock_name: self.set_dock_widget_visibility(name, checked)
+                        )
+
+    def set_dock_widget_visibility(self, dock_name, visible):
+        """
+        Acts as the central controller for dock widget visibility.
+        Updates the dock, menu checkbox, and toolbar action.
+        """
+        dock = self.dock_factory.get_dock(dock_name)
+        if not dock:
+            return
+
+        # 1. Update the dock widget's visibility
+        if dock.isVisible() != visible:
+            dock.setVisible(visible)
+
+        # 2. Update the menu checkbox state
+        for action in self.view_menu.docking_window_menu.actions():
+            if action.text().lower().replace(' ', '_') == dock_name:
+                checkbox = action.defaultWidget().findChild(QCheckBox)
+                if checkbox and checkbox.isChecked() != visible:
+                    checkbox.blockSignals(True)
+                    checkbox.setChecked(visible)
+                    checkbox.blockSignals(False)
+                break
+        
+        # 3. Update the toolbar action state
+        toolbar = self.toolbars.get("Window Display")
+        if toolbar:
+            toolbar_action = toolbar.findChild(QAction, f"toggle_{dock_name}")
+            if toolbar_action and toolbar_action.isChecked() != visible:
+                toolbar_action.blockSignals(True)
+                toolbar_action.setChecked(visible)
+                toolbar_action.blockSignals(False)
 
     def toggle_toolbar(self, checked, name):
         """Shows or hides the toolbar with the given name."""
         if name in self.toolbars:
             self.toolbars[name].setVisible(checked)
-
-    def toggle_dock_widget(self, checked, name):
-        """Shows or hides the dock widget with the given name."""
-        dock = self.dock_factory.get_dock(name)
-        if dock:
-            dock.setVisible(checked)
 
     def _restore_window_state(self):
         """Restores the window geometry and state from settings."""
@@ -236,19 +272,13 @@ class MainWindow(QMainWindow):
                 checkbox.setChecked(is_visible)
                 checkbox.blockSignals(False)
 
-        # Sync dock widget checkboxes
+        # Sync dock widget checkboxes and toolbar buttons
         for action in self.view_menu.docking_window_menu.actions():
-            widget = action.defaultWidget()
-            checkbox = widget.findChild(QCheckBox)
-            if checkbox:
-                dock_name = action.text().lower().replace(' ', '_')
-                dock = self.dock_factory.get_dock(dock_name)
-                if dock:
-                    # Default to True if the dock is new and not in settings
-                    is_visible = docks_visibility.get(dock_name, True)
-                    checkbox.blockSignals(True)
-                    checkbox.setChecked(is_visible)
-                    checkbox.blockSignals(False)
+            dock_name = action.text().lower().replace(' ', '_')
+            is_visible = docks_visibility.get(dock_name, True)
+            # This will update the dock, the menu checkbox, and the toolbar button
+            self.set_dock_widget_visibility(dock_name, is_visible)
+
 
     def closeEvent(self, event):
         """
@@ -259,5 +289,4 @@ class MainWindow(QMainWindow):
         """
         self.settings_service.save_settings(self)
         super().closeEvent(event)
-
 
