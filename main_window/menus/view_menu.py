@@ -10,7 +10,7 @@ class ViewMenu:
         self.main_window = main_window
         view_menu = menu_bar.addMenu("&View")
         
-        preview_icon = qta.icon('fa5s.eye', 'fa5.eye', options=[{'color': '#bbdefb'}, {'color': '#4285f4'}])
+        preview_icon = qta.icon('fa5s.eye', options=[{'color': '#bbdefb'}])
         
         self.preview_action = QAction(preview_icon,"Preview", self.main_window)
         view_menu.addAction(self.preview_action)
@@ -28,7 +28,7 @@ class ViewMenu:
         state_no_menu.addAction(self.prev_state_action)
 
         # Tool Bar Submenu
-        tool_bar_icon = qta.icon('fa5s.wrench', 'fa5s.cog', options=[{'color': '#5f6368'}, {'color': '#9aa0a6', 'scale_factor': 0.7, 'offset': (0.2, 0.2)}])
+        tool_bar_icon = qta.icon('fa5s.wrench', options=[{'color': '#5f6368'}])
         self.tool_bar_menu = view_menu.addMenu(tool_bar_icon, "Tool Bar")
         toolbar_items = [
             ("Window Display", qta.icon('fa5s.desktop')),
@@ -44,7 +44,7 @@ class ViewMenu:
 
 
         # Docking Window Submenu
-        docking_window_icon = qta.icon('fa5.window-restore', 'fa5s.window-restore', options=[{'color': '#bbdefb'}, {'color': '#5f6368'}])
+        docking_window_icon = qta.icon('fa5.window-restore', options=[{'color': '#bbdefb'}])
         self.docking_window_menu = view_menu.addMenu(docking_window_icon, "Docking Window")
         docking_items = [
             ("Project Tree", qta.icon('fa5s.project-diagram')),

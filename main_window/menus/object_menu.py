@@ -12,8 +12,8 @@ class ObjectMenu:
         # --- Button Submenu ---
         self.button_object_icon = qta.icon('fa5s.hand-pointer', options=[{'color':'#4285f4'}])
         button_menu = object_menu.addMenu(self.button_object_icon, "&Button")
-        push_button_sq_icon = qta.icon('fa5s.stop', 'fa5s.mouse-pointer', options=[{'color':'#4285f4'}, {'color':'white', 'scale_factor':0.5}])
-        push_button_ci_icon = qta.icon('fa5s.circle', 'fa5s.mouse-pointer', options=[{'color':'#4285f4'}, {'color':'white', 'scale_factor':0.5}])
+        push_button_sq_icon = qta.icon('fa5s.stop', options=[{'color':'#4285f4'}])
+        push_button_ci_icon = qta.icon('fa5s.circle', options=[{'color':'#4285f4'}])
         toggle_button_icon = qta.icon('fa5s.toggle-on', options=[{'color': '#34a853'}])
         checkbox_icon = qta.icon('fa5s.check-square', options=[{'color': '#4285f4'}])
         radio_button_icon = qta.icon('fa5s.dot-circle', options=[{'color': '#4285f4'}])

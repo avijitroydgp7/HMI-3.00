@@ -9,13 +9,13 @@ class FileMenu:
         file_menu = menu_bar.addMenu("&File")
 
         # Create multicolor icons
-        new_icon = qta.icon('fa5s.file-alt', 'fa5s.plus-circle', options=[{'color': '#4285f4'}, {'color': '#34a853', 'scale_factor': 0.6}])
-        open_icon = qta.icon('fa5s.folder', 'fa5.folder-open', options=[{'color': '#fbbc05'}, {'color': '#f8991d', 'opacity': 0.8}])
-        save_icon = qta.icon('fa5.save', 'fa5s.save', options=[{'color': '#bbdefb'}, {'color': '#4285f4'}])
-        save_as_icon = qta.icon('fa5s.save', 'fa5s.copy', options=[{'color': '#4285f4', 'offset': (0.15, 0.15), 'opacity': 0.7}, {'color': '#4285f4'}])
+        new_icon = qta.icon('fa5s.file-alt', options=[{'color': '#4285f4'}])
+        open_icon = qta.icon('fa5s.folder', options=[{'color': '#fbbc05'}])
+        save_icon = qta.icon('fa5.save', options=[{'color': '#bbdefb'}])
+        save_as_icon = qta.icon('fa5s.save', options=[{'color': '#4285f4'}])
         run_icon = qta.icon('fa5s.play-circle', options=[{'color': '#34a853'}])
-        close_tab_icon = qta.icon('fa5s.window-maximize', 'fa5s.times', options=[{'color': '#5f6368'}, {'color': '#ea4335', 'scale_factor': 0.5}])
-        close_all_tabs_icon = qta.icon('fa5s.window-close', 'fa5.window-close', options=[{'color':'#ea4335', 'offset':(0.1, -0.1)}, {'color':'#c5221f'}])
+        close_tab_icon = qta.icon('fa5s.window-maximize', options=[{'color': '#5f6368'}])
+        close_all_tabs_icon = qta.icon('fa5s.window-close', options=[{'color':'#ea4335'}])
         exit_icon = qta.icon('fa5s.sign-out-alt', options=[{'color': '#ea4335'}])
 
         # New, Open, Save actions

@@ -10,7 +10,7 @@ class ScreenMenu:
         screen_menu = menu_bar.addMenu("&Screen")
         
         # New Screen Submenu
-        new_screen_icon = qta.icon('fa5s.desktop', 'fa5s.plus', options=[{'color': '#5f6368'}, {'color': '#34a853', 'scale_factor': 0.5}])
+        new_screen_icon = qta.icon('fa5s.desktop', options=[{'color': '#5f6368'}])
         new_screen_menu = screen_menu.addMenu(new_screen_icon, "New Screen")
         self.base_screen_action = QAction(qta.icon('fa5s.file'), "Base Screen", self.main_window)
         new_screen_menu.addAction(self.base_screen_action)
@@ -19,9 +19,9 @@ class ScreenMenu:
         self.report_action = QAction(qta.icon('fa5s.file-invoice'), "Report", self.main_window)
         new_screen_menu.addAction(self.report_action)
 
-        open_screen_icon = qta.icon('fa5s.desktop', 'fa5s.folder-open', options=[{'color': '#5f6368'}, {'color': '#fbbc05', 'scale_factor': 0.5, 'offset': (0.1, 0.1)}])
-        close_screen_icon = qta.icon('fa5s.desktop', 'fa5s.times-circle', options=[{'color': '#5f6368'}, {'color': '#ea4335', 'scale_factor': 0.5}])
-        close_all_screens_icon = qta.icon('fa5.window-close', 'fa5s.window-close', options=[{'color':'#ea4335'}, {'color':'#c5221f'}])
+        open_screen_icon = qta.icon('fa5s.desktop', options=[{'color': '#5f6368'}])
+        close_screen_icon = qta.icon('fa5s.desktop', options=[{'color': '#5f6368'}])
+        close_all_screens_icon = qta.icon('fa5.window-close', options=[{'color':'#ea4335'}])
         screen_design_icon = qta.icon('fa5s.palette', options=[{'color': '#4285f4'}])
         screen_property_icon = qta.icon('fa5s.cog', options=[{'color': '#5f6368'}])
         
