@@ -2,21 +2,259 @@ from PyQt6.QtGui import QIcon
 import os
 
 class IconService:
+    """
+    A centralized service for managing and retrieving icons for the application.
+    It uses a predefined dictionary to map icon names to their file paths,
+    making it easier to manage and update icons.
+    """
     ICON_DIR = os.path.join(os.path.dirname(__file__), "..", "resources", "icons")
+
+    ICONS = {
+        # File Menu Icons
+        "file-new": "streamline-color--new-file-flat.svg",
+        "folder-open": "twemoji--open-file-folder.svg",
+        "file-save": "mynaui--save.svg",
+        "file-save-as": "fluent--save-as-20-filled.svg",
+        "run": "play_circle_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz48.svg",
+        "window-close": "iconoir--web-window-close.svg",
+        "windows-close": "qlementine-icons--close-all-16.svg",
+        "exit": "famicons--exit-outline.svg",
+        
+        # Edit Menu Icons
+        "edit-undo": "undo_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "edit-redo": "redo_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "edit-cut": "content_cut_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "edit-copy": "file_copy_24dp_E3E3E3_FILL1_wght700_GRAD200_opsz24.svg",
+        "edit-paste": "content_paste_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "edit-duplicate": "tab_duplicate_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "edit-delete": "delete_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "edit-consecutive-copy": "copy_all_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "edit-select-all": "select_all_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "stacking-order": "fa7-solid--layer-group.svg",
+        "move-front-layer": "flip_to_front_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "move-back-layer": "flip_to_back_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "move-to-front": "lucide--bring-to-front.svg",
+        "move-to-back": "lucide--send-to-back.svg",
+        "align-center": "align_horizontal_center_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "align-left": "align_horizontal_left_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "align-horizontal-center": "align_horizontal_center_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "align-right": "align_horizontal_right_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "align-top": "align_vertical_top_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "align-middle": "align_vertical_center_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "align-bottom": "align_vertical_bottom_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "distribute-horizontal": "align_justify_space_between_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "distribute-vertical": "align_justify_space_even_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "wrap": "wrap_text_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "flip": "mdi--flip-horizontal.svg",
+        "flip-vertical": "mdi--flip-vertical.svg",
+        "flip-horizontal": "mdi--flip-horizontal.svg",
+        "rotate-left": "mdi--rotate-left-variant.svg",
+        "rotate-right": "mdi--rotate-right-variant.svg",
+        
+        # Search/Replace Menu Icons
+        "search-tag": "mdi--tag-search.svg",
+        "search-tag-list": "mingcute--list-search-fill.svg",
+        "search-text-list": "fluent--text-bullet-list-square-search-20-regular.svg",
+        "search-data-browser": "fluent--database-search-32-filled.svg",
+        "search-ip-address-list": "streamline-freehand--microprocessor-computer-chip-search.svg",
+        "search-batch-edit": "fluent--box-edit-20-filled.svg",
+        "search-batch-edit-tags": "mdi--tag-edit.svg",
+        "search-batch-edit-color": "flat-color-icons--edit-image.svg",
+        "search-batch-edit-shape": "mdi--drawing-box.svg",
+        "search-batch-edit-text": "fluent--text-edit-style-16-filled.svg",
+        
+        # View Menu Icons
+        "view-preview": "ic--baseline-preview.svg",
+        "view-state-number": "typcn--sort-numerically.svg",
+        "view-next-state": "streamline--next-solid.svg",
+        "view-prev-state": "streamline--back-solid.svg",
+        "view-tool-bar": "gg--toolbar-left.svg",
+        "view-window-display": "material-symbols--dual-screen.svg",
+        "view-view": "grommet-icons--view.svg",
+        "view-screen": "jam--screen-f.svg",
+        "view-edit": "hugeicons--file-edit.svg",
+        "view-alignment": "icon-park-outline--alignment-left-top.svg",
+        "view-figure": "hugeicons--drawing-mode.svg",
+        "view-object": "clarity--objects-line.svg",
+        "view-debug": "stash--bug-light.svg",
+        "view-docking-window": "vaadin--panel.svg",
+        "dock-project-tree": "carbon--decision-tree.svg",
+        "dock-screen-tree": "carbon--tree-view-alt.svg",
+        "dock-system-tree": "fluent-mdl2--bulleted-tree-list.svg",
+        "dock-tag-search": "mdi--tag-search.svg",
+        "dock-data-browser": "arcticons--yahoo-japan-browser.svg",
+        "dock-property-tree": "hugeicons--property-new.svg",
+        "dock-ip-address": "streamline-ultimate--ethernet-port.svg",
+        "dock-library": "solar--library-bold.svg",
+        "dock-controller-list": "mynaui--controller-solid.svg",
+        "dock-data-view": "carbon--data-view.svg",
+        "dock-screen-image-list": "heap_snapshot_thumbnail_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "view-display-item": "ic--round-view-quilt.svg",
+        "view-tag": "fluent--tag-add-20-filled.svg",
+        "view-object-id": "streamline-flex--delete-tag-solid.svg",
+        "view-transform-line": "ic--outline-transform.svg",
+        "view-click-area": "clarity--cursor-hand-click-line.svg",
+        "view-object-snap": "fluent--scan-object-24-filled.svg",
+        "view-zoom": "tabler--zoom-in-filled.svg",
+        "view-fit-screen": "material-symbols--fit-screen-rounded.svg",
+        "zoom-in": "tabler--zoom-in-filled.svg",
+        "zoom-out": "mingcute--zoom-out-fill.svg",
+        
+        # Screen Menu Icons
+        "screen-new": "zondicons--window-new.svg",
+        "screen-base": "el--screen-alt.svg",
+        "screen-window": "gala--window.svg",
+        "screen-report": "article_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "screen-open": "mage--folder-open-fill.svg",
+        "screen-close": "material-symbols-light--tab-close-rounded.svg",
+        "screen-close-all": "qlementine-icons--close-all-16.svg",
+        "screen-design": "mdi--design.svg",
+        "screen-property": "hugeicons--property-new.svg",
+
+        # Common Menu Icons
+        "common-environment": "material-symbols--source-environment.svg",
+        "common-screen-switching": "icon-park-outline--switching-done.svg",
+        "common-dialog-window": "solar--dialog-2-bold-duotone.svg",
+        "common-system-information": "pajamas--information.svg",
+        "common-security": "material-symbols--security.svg",
+        "common-ethernet": "fa6-solid--ethernet.svg",
+        "common-controller-setting": "mynaui--controller-solid.svg",
+        "common-peripheral-device": "streamline-freehand--microprocessor-computer-chip-search.svg",
+        "common-barcode": "material-symbols--barcode.svg",
+        "common-rfid": "bx--rfid.svg",
+        "common-servo": "precision_manufacturing_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg",
+        "common-robot": "icon-park-solid--robot-two.svg",
+        "common-camera": "solar--camera-bold.svg",
+        "common-tags": "mdi--tag-plus.svg",
+        "common-folder-open": "proicons--open.svg",
+        "common-new": "hugeicons--new-job.svg",
+        "common-add": "basil--add-solid.svg",
+        "common-edit": "hugeicons--file-edit.svg",
+        "common-remove": "auto_delete_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg",
+        "common-import": "hugeicons--file-import.svg",
+        "common-export": "fa6-solid--file-export.svg",
+        "common-comment": "material-symbols--comment.svg",
+        "common-add-column": "ci--add-column.svg",
+        "common-add-row": "ci--add-row.svg",
+        "common-remove-column": "ci--delete-column.svg",
+        "common-remove-row": "ci--delete-row.svg",
+        "common-find": "ic--twotone-find-in-page.svg",
+        "common-style": "ic--twotone-style.svg",
+        "common-bold": "octicon--bold-16.svg",
+        "common-italic": "majesticons--italic-line.svg",
+        "common-underline": "solar--text-underline-circle-bold.svg",
+        "common-fill": "brush_24dp_E3E3E3_FILL1_wght300_GRAD200_opsz24.svg",
+        "common-alarm": "material-symbols--alarm.svg",
+        "common-user-alarm": "solar--alarm-bold-duotone.svg",
+        "common-system-alarm": "eos-icons--system-ok.svg",
+        "common-popup-alarm": "fluent--window-ad-24-regular.svg",
+        "common-logging": "mage--checklist-note-fill.svg",
+        "common-script": "tdesign--system-code.svg",
+        "common-tags-data-transfer": "mdi--transfer.svg",
+        "common-trigger-action": "grommet-icons--trigger.svg",
+        "common-time-action": "fa7-solid--business-time.svg",
+
+        # Figure Menu Icons
+        "figure-text": "icon-park-solid--text.svg",
+        "figure-line": "uil--line-alt.svg",
+        "figure-polyline": "gis--polyline-pt.svg",
+        "figure-rectangle": "material-symbols--rectangle-rounded.svg",
+        "figure-polygon": "streamline--polygon-solid.svg",
+        "figure-circle": "ic--sharp-circle.svg",
+        "figure-arc": "iconoir--arc-3d.svg",
+        "figure-sector": "mingcute--sector-fill.svg",
+        "figure-table": "bx--table.svg",
+        "figure-scale": "icon-park-outline--scale-one.svg",
+        "figure-image": "material-symbols-light--image.svg",
+        "figure-dxf": "hugeicons--file-view.svg",
+        
+        # Object Menu Icons
+        "object-button": "teenyicons--button-solid.svg",
+        "object-push-button-sq": "mdi--button-outline.svg",
+        "object-push-button-ci": "tabler--circuit-pushbutton.svg",
+        "object-toggle-button": "ion--toggle.svg",
+        "object-checkbox": "tabler--checkbox.svg",
+        "object-radio-button": "ri--radio-button-fill.svg",
+        "object-lamp": "duo-icons--lamp.svg",
+        "object-bit-lamp": "cuida--lamp-outline.svg",
+        "object-word-lamp": "solar--floor-lamp-outline.svg",
+        "object-border-lamp": "ant-design--border-outlined.svg",
+        "object-numerical": "mdi--calculator.svg",
+        "object-calculator": "solar--calculator-bold.svg",
+        "object-spin-box": "streamline--input-box-solid.svg",
+        "object-text-display": "icon-park-twotone--text.svg",
+        "object-datetime": "hugeicons--date-time.svg",
+        "object-date-display": "date_range_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg",
+        "object-time-display": "gridicons--time.svg",
+        "object-datetime-display": "streamline-flex--time-lapse.svg",
+        "object-datetime-picker": "fluent--time-picker-20-filled.svg",
+        "object-comment": "majesticons--comment.svg",
+        "object-bit-comment": "fluent--comment-32-filled.svg",
+        "object-word-comment": "iconamoon--comment-fill.svg",
+        "object-simple-comment": "carbon--document-comment.svg",
+        "object-view-box": "mdi--box-view.svg",
+        "object-combo-box": "vaadin--combobox.svg",
+        "object-check-list-box": "fa6-solid--list-check.svg",
+        "object-side-menu-bar": "system-uicons--side-menu.svg",
+        "object-group-box": "clarity--blocks-group-solid.svg",
+        "object-data-grid": "uim--grid.svg",
+        "object-list-box": "gg--list.svg",
+        "object-splitter-panel": "codicon--layout-panel.svg",
+        "object-status-bar": "fluent--phone-status-bar-24-regular.svg",
+        "object-tab-view": "material-symbols-light--tab-group.svg",
+        "object-tree-view": "vaadin--file-tree-small.svg",
+        "object-scroll-bar": "pajamas--scroll-down.svg",
+        "object-image": "material-symbols-light--image.svg",
+        "object-video": "mynaui--video-solid.svg",
+        "object-animation": "material-symbols--animation.svg",
+        "object-progress-bar": "fa6-solid--bars-progress.svg",
+        "object-tower-light": "arcticons--light-eq.svg",
+        "object-gear": "rivet-icons--gear-solid.svg",
+        "object-robot": "sidekickicons--robot-solid.svg",
+        "object-conveyor": "material-symbols--conveyor-belt-rounded.svg",
+        "object-fan": "fa7-solid--fan.svg",
+        "object-printer": "solar--printer-bold.svg",
+        "object-historical-data": "material-symbols--work-history-rounded.svg",
+        "object-alarm": "solar--alarm-bold.svg",
+        "object-simple-alarm": "solar--alarm-bold.svg",
+        "object-user-alarm": "solar--alarm-bold-duotone.svg",
+        "object-system-alarm": "eos-icons--system-ok.svg",
+        "object-recipe": "stockpot_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg",
+        "object-graph": "tabler--graph-filled.svg",
+        "object-line-graph": "codicon--graph-line.svg",
+        "object-trend-graph": "foundation--graph-trend.svg",
+        "object-bar-graph": "uis--graph-bar.svg",
+        "object-pie-graph": "mdi--graph-pie.svg",
+        "object-scatter-graph": "mdi--graph-scatter-plot.svg",
+        "object-combo-graph": "tdesign--chart-combo-filled.svg",
+        "object-graphical-meter": "ph--speedometer-fill.svg",
+        "object-sector-meter": "mingcute--sector-fill.svg",
+        "object-semi-circle-meter": "qlementine-icons--meter-middle-16.svg",
+        "object-bar-meter": "fluent-mdl2--work-item-bar-solid.svg",
+        "object-slider": "noto-v1--level-slider.svg",
+        "object-document": "famicons--document.svg",
+        "object-web-browser": "ri--firefox-browser-fill.svg",
+    }
 
     @staticmethod
     def get_icon(name: str) -> QIcon:
         """
-        Loads an icon from the resources/icons directory.
+        Loads an icon from the resources/icons directory using a predefined dictionary.
 
         Args:
-            name: The name of the icon to load (without the .svg extension).
+            name: The logical name of the icon to load.
 
         Returns:
-            A QIcon object.
+            A QIcon object. Returns an empty QIcon if the name is not found.
         """
-        path = os.path.join(IconService.ICON_DIR, f"{name}.svg")
-        if not os.path.exists(path):
-            print(f"Warning: Icon '{name}' not found at '{path}'")
+        filename = IconService.ICONS.get(name)
+        if not filename:
+            print(f"Warning: Icon '{name}' not found in the icon dictionary.")
             return QIcon()
+            
+        path = os.path.join(IconService.ICON_DIR, filename)
+        if not os.path.exists(path):
+            print(f"Warning: Icon file '{filename}' for '{name}' not found at '{path}'")
+            return QIcon()
+            
         return QIcon(path)
