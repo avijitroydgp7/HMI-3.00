@@ -1,11 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-	<defs>
-		<mask id="SVGxxe32beK">
-			<g fill="none" stroke="#fff" stroke-linejoin="round" stroke-width="4">
-				<rect width="36" height="36" x="6" y="6" fill="#555555" rx="3" />
-				<path stroke-linecap="round" d="M16 19v-3h16v3M22 34h4m-2-16v16" />
-			</g>
-		</mask>
-	</defs>
-	<path fill="currentColor" d="M0 0h48v48H0z" mask="url(#SVGxxe32beK)" />
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <rect x="6" y="6" width="36" height="36" rx="3" 
+        fill="url(#bgGradient)" 
+        filter="url(#dropShadow)"/>
+
+  <path fill="#ffffff" 
+        d="M16 16h16v4h-6v14h-4V20h-6v-4Z"/>
 </svg>

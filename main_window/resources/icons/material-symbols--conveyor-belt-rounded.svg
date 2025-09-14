@@ -1,3 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-	<path fill="currentColor" d="M5 21q-1.25 0-2.125-.875T2 18t.875-2.125T5 15h14q1.25 0 2.125.875T22 18t-.875 2.125T19 21zm0-2h14q.425 0 .713-.288T20 18t-.288-.712T19 17H5q-.425 0-.712.288T4 18t.288.713T5 19m5-6q-.425 0-.712-.288T9 12V4q0-.425.288-.712T10 3h8q.425 0 .713.288T19 4v8q0 .425-.288.713T18 13zm-7.05-2.05q-.4 0-.675-.288T2 9.976t.288-.675t.687-.275h3q.4 0 .675.275t.275.675t-.275.688t-.675.287zM13 8h2.025q.425 0 .7-.288T16 7t-.275-.7t-.7-.275h-2.05q-.425 0-.7.275T12 7t.288.712T13 8M4.975 8q-.425 0-.7-.288T4 7t.288-.7T5 6.025h.95q.425 0 .7.275t.275.7t-.275.713t-.7.287z" />
+    <defs>
+        <linearGradient id="activeItemGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#3b82f6;" />
+            <stop offset="100%" style="stop-color:#60a5fa;" />
+        </linearGradient>
+        <filter id="listShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="1" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <g filter="url(#listShadow)">
+        <path fill="#e5e7eb"
+              d="M5 21q-1.25 0-2.125-.875T2 18t.875-2.125T5 15h14q1.25 0 2.125.875T22 18t-.875 2.125T19 21Z" />
+        
+        <rect x="9" y="3" width="10" height="10" rx="1" fill="url(#activeItemGradient)"/>
+        
+        <g fill="#9ca3af">
+            <circle cx="5" cy="18" r="1.5"/>
+            <rect x="7.5" y="17.25" width="10" height="1.5" rx="0.75"/>
+        </g>
+
+        <path fill="#f9fafb" 
+              d="M14.5 7.5L12 9V6z" />
+    </g>
 </svg>
+

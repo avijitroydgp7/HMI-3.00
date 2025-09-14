@@ -1,6 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-	<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5">
-		<path d="M16 2v4M8 2v4m13 6c0-3.771 0-5.657-1.172-6.828S16.771 4 13 4h-2C7.229 4 5.343 4 4.172 5.172S3 8.229 3 12v2c0 3.771 0 5.657 1.172 6.828S7.229 22 11 22M3 10h18" />
-		<path d="M18.267 18.701L17 18v-1.733M21 18a4 4 0 1 1-8 0a4 4 0 0 1 8 0" />
-	</g>
+  <defs>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;" />
+      <stop offset="100%" style="stop-color:#2563eb;" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="1" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#dropShadow)">
+    <path fill="#f3f4f6" 
+          d="M3 12v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6H3Z"/>
+    
+    <path fill="url(#blueGradient)" 
+          d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2h18Z"/>
+    
+    <g fill="#9ca3af">
+      <rect x="7" y="1" width="2" height="4" rx="1"/>
+      <rect x="15" y="1" width="2" height="4" rx="1"/>
+    </g>
+  </g>
+  
+  <g>
+    <circle cx="17" cy="18" r="4" fill="url(#blueGradient)"/>
+    <path d="M17 16v2.5h1.5" 
+          fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>

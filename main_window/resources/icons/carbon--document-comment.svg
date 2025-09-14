@@ -1,4 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-	<path fill="currentColor" d="M26 17H16a2.003 2.003 0 0 0-2 2v6a2 2 0 0 0 2 2h4v-2h-4v-6h10v6h-2.535l-2.594 3.89L22.535 30l2-3H26a2 2 0 0 0 2-2v-6a2.003 2.003 0 0 0-2-2" />
-	<path fill="currentColor" d="M22 14h2v-4c0-.3-.1-.5-.3-.7l-7-7c-.2-.2-.4-.3-.7-.3H6c-1.1 0-2 .9-2 2v24c0 1.1.9 2 2 2h6v-2H6V4h8v6c0 1.1.9 2 2 2h6zm-6-4V4.4l5.6 5.6z" />
+    <defs>
+        <!-- A subtle shadow to give the icon a layered, 3D look -->
+        <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="130%">
+            <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <!-- A group to apply the shadow to the entire icon for a cohesive look -->
+    <g filter="url(#dropShadow)">
+        <!-- The background document page -->
+        <path fill="#f9fafb" 
+              d="M10 2h12a2 2 0 0 1 2 2v24a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V8l6-6z" />
+        
+        <!-- The folded corner of the document -->
+        <path fill="#e5e7eb"
+              d="M16 2v6h6l-6-6z"/>
+
+        <!-- The pencil icon, representing the 'edit' or 'as' part of 'Save As' -->
+        <g transform="rotate(45 18 18)">
+             <!-- Pencil Body (Green) -->
+            <path fill="#22c55e" d="M16 12h4v12h-4z" />
+            <!-- Pencil Tip (Wood and Lead) -->
+            <path fill="#fde68a" d="M16 12l2-3l2 3h-4z" />
+            <path fill="#1f2937" d="M18 9l-1 1.5h2L18 9z" />
+            <!-- Eraser (Red) -->
+            <path fill="#f87171" d="M16 24h4v2h-4z" />
+        </g>
+    </g>
 </svg>
+

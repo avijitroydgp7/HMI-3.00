@@ -1,6 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14">
-	<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1">
-		<path d="M10.336 1.45A4.9 4.9 0 0 1 12.152 3m.98 5.5q.117-.703.118-1.5c.001-.797-.04-1.032-.118-1.5m-.743 5.133C11.39 12.335 9.55 13.25 7 13.25C3 13.25.75 11 .75 7S3 .75 7 .75c.323.003 1.073.032 1.492.125" />
-		<path d="M7 4.75v2.5l2.062 2.403" />
-	</g>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+    <!-- 
+        Author: Gemini
+        Date: September 13, 2025
+        Description: A modern icon representing a date and time display, 
+                     featuring a calendar page with a clock overlay.
+    -->
+
+    <defs>
+        <!-- A vibrant gradient for the calendar header -->
+        <linearGradient id="headerGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#3b82f6;"/>
+            <stop offset="100%" style="stop-color:#2563eb;"/>
+        </linearGradient>
+        <!-- A subtle shadow to give the icon a soft, layered look -->
+        <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="130%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <!-- The main calendar page, with a clean off-white fill and shadow -->
+    <g filter="url(#dropShadow)">
+        <path fill="#f9fafb" 
+              d="M5 5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5z"/>
+        
+        <!-- The header of the calendar, styled with the blue gradient -->
+        <path fill="url(#headerGradient)"
+              d="M5 5a2 2 0 0 0-2 2v2h18V7a2 2 0 0 0-2-2H5z"/>
+
+        <!-- Notches for binder rings on the header -->
+        <path fill="#1e40af"
+              d="M8 3h2v4H8V3zm6 0h2v4h-2V3z"/>
+    </g>
+          
+    <!-- The large number representing the day of the month -->
+    <text x="12" y="16.5" 
+          font-family="sans-serif" 
+          font-size="7px" 
+          font-weight="bold" 
+          fill="#374151" 
+          text-anchor="middle">13</text>
+    
+    <!-- The clock overlay element -->
+    <g transform="translate(17.5 17.5)">
+        <!-- Clock face with a border, matching the header -->
+        <circle r="4.5" fill="#f9fafb" stroke="#2563eb" stroke-width="1.5"/>
+        <!-- Clock hands showing 7:30 -->
+        <path d="M0 -2 L0 0 L-1.5 0" 
+              fill="none" 
+              stroke="#374151" 
+              stroke-width="1" 
+              stroke-linecap="round" 
+              stroke-linejoin="round"
+              transform="rotate(225)"/>
+    </g>
 </svg>

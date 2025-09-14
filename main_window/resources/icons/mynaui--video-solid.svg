@@ -1,3 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-	<path fill="currentColor" d="M5 5.5a2.75 2.75 0 0 0-2.75 2.75v7.5A2.75 2.75 0 0 0 5 18.5h8.5a2.75 2.75 0 0 0 2.75-2.75v-1.594l3.419 3.045c.805.717 2.081.145 2.081-.934V7.365c0-1.08-1.276-1.651-2.081-.934L16.25 9.476V8.25A2.75 2.75 0 0 0 13.5 5.5z" />
+    <defs>
+        <radialGradient id="lensGradient" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+            <stop offset="0%" style="stop-color:#a855f7; stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#6d28d9; stop-opacity:1" />
+        </radialGradient>
+        <filter id="cameraShadow" x="-10%" y="-10%" width="120%" height="130%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <g filter="url(#cameraShadow)">
+        <path d="M5 5.5h8.5a2.75 2.75 0 0 1 2.75 2.75v7.5A2.75 2.75 0 0 1 13.5 18.5H5A2.75 2.75 0 0 1 2.25 15.75v-7.5A2.75 2.75 0 0 1 5 5.5z" 
+              fill="#374151"/>
+        
+        <path d="M16.25 9.476V14.524L19.669 17.569c.805.717 2.081.145 2.081-.934V7.365c0-1.08-1.276-1.651-2.081-.934L16.25 9.476z"
+              fill="#4b5563"/>
+    </g>
 </svg>

@@ -1,3 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-	<path fill="currentColor" fill-rule="evenodd" d="M2 1L1 2v12l1 1h12l1-1V2l-1-1zm0 9V2h12v8z" clip-rule="evenodd" />
+    <!-- 
+        Author: Gemini
+        Date: September 13, 2025
+        Description: A modern, multicolor icon representing a desktop application window.
+    -->
+    <defs>
+        <!-- A subtle shadow to give the window a layered, 3D effect -->
+        <filter id="windowShadow" x="-10%" y="-10%" width="120%" height="130%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.2"/>
+        </filter>
+    </defs>
+
+    <!-- The main window component, with the shadow applied -->
+    <g filter="url(#windowShadow)">
+        <!-- The main body of the window, with a clean off-white fill -->
+        <rect x="1" y="1" width="14" height="14" rx="2" fill="#f9fafb"/>
+        
+        <!-- The title bar, in a modern, dark gray -->
+        <path fill="#4b5563" d="M1 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2H1V3z"/>
+        
+        <!-- The window control buttons (close, minimize, maximize) -->
+        <g>
+            <circle cx="3.5" cy="3.5" r="1" fill="#ef4444"/>
+            <circle cx="6" cy="3.5" r="1" fill="#f59e0b"/>
+            <circle cx="8.5" cy="3.5" r="1" fill="#22c55e"/>
+        </g>
+    </g>
 </svg>

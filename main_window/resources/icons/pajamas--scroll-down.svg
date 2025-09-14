@@ -1,3 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-	<path fill="currentColor" fill-rule="evenodd" d="M10 14a2 2 0 1 1-4 0a2 2 0 0 1 4 0m1.78-8.841a.75.75 0 0 0-1.06 0l-1.97 1.97V.75a.75.75 0 0 0-1.5 0v6.379l-1.97-1.97a.75.75 0 0 0-1.06 1.06l3.25 3.25L8 10l.53-.53l3.25-3.25a.75.75 0 0 0 0-1.061" clip-rule="evenodd" />
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+    <!-- 
+        Author: Gemini
+        Date: September 13, 2025
+        Description: A modern, minimalist icon for a vertical scroll bar.
+    -->
+
+    <defs>
+        <!-- A subtle shadow for a modern, 3D effect -->
+        <filter id="scrollShadow" x="-20%" y="-10%" width="140%" height="120%">
+            <feDropShadow dx="1" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <!-- The entire scroll bar component, with shadow applied -->
+    <g filter="url(#scrollShadow)">
+        <!-- The scroll bar track -->
+        <rect x="10" y="2" width="4" height="20" rx="2" fill="#e5e7eb"/>
+        
+        <!-- The scroll bar thumb (the part you drag), in a darker, high-contrast gray -->
+        <rect x="9" y="6" width="6" height="8" rx="3" fill="#9ca3af"/>
+    </g>
 </svg>

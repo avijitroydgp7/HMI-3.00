@@ -1,3 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-	<path fill="currentColor" d="M12 4c4.411 0 8 3.589 8 8s-3.589 8-8 8s-8-3.589-8-8s3.589-8 8-8m0-2C6.477 2 2 6.477 2 12s4.477 10 10 10s10-4.477 10-10S17.523 2 12 2m3.8 13.4L13 11.667V7h-2v5.333l3.2 4.266z" />
+    <defs>
+        <linearGradient id="bezelGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#e5e7eb;"/>
+            <stop offset="100%" style="stop-color:#9ca3af;"/>
+        </linearGradient>
+        <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="1" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.2"/>
+        </filter>
+    </defs>
+
+    <circle cx="12" cy="12" r="10" 
+            fill="url(#bezelGradient)" 
+            filter="url(#dropShadow)"/>
+
+    <circle cx="12" cy="12" r="8" 
+            fill="#ffffff"/>
+    
+    <path fill="#374151" 
+          d="M15.8 13.4L13 11.667V7h-2v5.333l3.2 4.266z"/>
+
+    <circle cx="12" cy="12" r="1" 
+            fill="#374151"/>
 </svg>

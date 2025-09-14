@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+    <!-- 
+        Author: Gemini
+        Date: September 13, 2025
+        Description: A tech-focused icon for code comments, often seen in IDEs.
+    -->
+    <defs>
+        <filter id="bitCommentShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="1" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.2"/>
+        </filter>
+    </defs>
+    
+    <!-- The main bubble, styled like a code tooltip in a dark theme -->
+    <path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-5l-4 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" 
+          fill="#374151" 
+          filter="url(#bitCommentShadow)"/>
+          
+    <!-- Binary code '010' inside, styled in a syntax-highlight green -->
+    <text x="11.5" y="12.5" 
+          font-family="monospace, sans-serif" 
+          font-size="6px" 
+          font-weight="bold" 
+          fill="#22c55e" 
+          text-anchor="middle">010</text>
+</svg>

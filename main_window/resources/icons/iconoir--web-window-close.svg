@@ -1,1 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="#80ffa6" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 7h1"/><path d="M2 17.714V6.286C2 5.023 2.995 4 4.222 4h15.556C21.005 4 22 5.023 22 6.286v11.428C22 18.977 21.005 20 19.778 20H4.222C2.995 20 2 18.977 2 17.714Z"/><path stroke-linecap="round" stroke-linejoin="round" d="m10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="mailGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="crossGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f87171"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#mailGradient)" d="M2 6.286C2 5.023 2.995 4 4.222 4h15.556C21.005 4 22 5.023 22 6.286v11.428C22 18.977 21.005 20 19.778 20H4.222C2.995 20 2 18.977 2 17.714Z"/>
+  <path fill="#e0e7ff" d="M4.222 4C2.995 4 2 5.023 2 6.286l10 6.286l10-6.286C22 5.023 21.005 4 19.778 4H4.222Z"/>
+  <path fill="url(#crossGradient)" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" stroke="url(#crossGradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
