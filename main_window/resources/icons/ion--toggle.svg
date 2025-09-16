@@ -7,16 +7,13 @@
     <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#000" flood-opacity="0.2"/>
     </filter>
-    <filter id="innerShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feComponentTransfer in="SourceAlpha">
-        <feFuncA type="table" tableValues="1 0" />
-      </feComponentTransfer>
-      <feGaussianBlur stdDeviation="4"/>
+        <filter id="innerShadow" x="-20%" y="-20%" width="140%" height="140%">
       <feOffset dx="0" dy="4"/>
-      <feComposite in2="SourceAlpha" operator="out"/>
-      <feFlood flood-color="#000" flood-opacity="0.2"/>
-      <feComposite in2="out" operator="in"/>
-      <feComposite in2="SourceGraphic" operator="over"/>
+      <feGaussianBlur stdDeviation="4" result="offset-blur"/>
+      <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"/>
+      <feFlood flood-color="#000" flood-opacity="0.2" result="color"/>
+      <feComposite operator="in" in="color" in2="inverse" result="shadow"/>
+      <feComposite operator="over" in="shadow" in2="SourceGraphic"/>
     </filter>
   </defs>
 
