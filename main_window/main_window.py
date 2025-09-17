@@ -199,8 +199,11 @@ class MainWindow(QMainWindow):
             return
 
         # 1. Update the dock widget's visibility
-        if dock.isVisible() != visible:
-            dock.setVisible(visible)
+        if visible:
+            dock.show()
+            dock.raise_()
+        else:
+            dock.hide()
 
         # 2. Update the menu checkbox state
         for action in self.view_menu.docking_window_menu.actions():

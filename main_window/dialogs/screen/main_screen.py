@@ -1,4 +1,4 @@
-# main_window/dialogs/screen/main_screen.py
+"main_window/dialogs/screen/main_screen.py"
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox
 
 class MainScreenDialog(QDialog):
