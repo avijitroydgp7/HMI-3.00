@@ -17,8 +17,10 @@ class ScreenMenu:
         new_screen_menu.addAction(self.base_screen_action)
         self.window_screen_action = QAction(IconService.get_icon('screen-window'), "Window Screen", self.main_window)
         new_screen_menu.addAction(self.window_screen_action)
-        self.report_action = QAction(IconService.get_icon('screen-report'), "Report", self.main_window)
-        new_screen_menu.addAction(self.report_action)
+        self.template_screen_action = QAction(IconService.get_icon('screen-template'), "Template Screen", self.main_window)
+        new_screen_menu.addAction(self.template_screen_action)
+        self.widgets_action = QAction(IconService.get_icon('screen-widgets'), "Widgets", self.main_window)
+        new_screen_menu.addAction(self.widgets_action)
 
         open_screen_icon = IconService.get_icon('screen-open')
         close_screen_icon = IconService.get_icon('screen-close')

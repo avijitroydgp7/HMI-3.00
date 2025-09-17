@@ -43,7 +43,11 @@ class ScreenTreeDock(QDockWidget):
         """
         Populates the tree with the initial screen structure.
         """
-        # A single root for all screens
+        # Add Screen Design as a top-level item
+        self.screen_design_item = QTreeWidgetItem(self.tree_widget, ["Screen Design"])
+        self.screen_design_item.setIcon(0, IconService.get_icon('screen-design'))
+
+        # A single root for all other screens
         screens_root = QTreeWidgetItem(self.tree_widget, ["Screens"])
         screens_root.setIcon(0, IconService.get_icon('dock-screen-tree'))
 
@@ -104,7 +108,7 @@ class ScreenTreeDock(QDockWidget):
         """
         Handles double-click events on tree items.
         """
-        if item == self.base_screens_root:
+        if item == self.screen_design_item:
             self.open_screen_design()
 
     def open_screen_design(self):
@@ -154,4 +158,3 @@ class ScreenTreeDock(QDockWidget):
             self.widgets_screen_count += 1
             new_item = QTreeWidgetItem(self.widgets_screens_root, [f"Widget {self.widgets_screen_count}"])
             new_item.setIcon(0, IconService.get_icon('screen-widgets-white'))
-

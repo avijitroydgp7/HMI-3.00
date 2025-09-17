@@ -180,6 +180,14 @@ class MainWindow(QMainWindow):
                         toolbar_action.toggled.connect(
                              lambda checked, name=dock_name: self.set_dock_widget_visibility(name, checked)
                         )
+        
+        # Connect Screen Menu actions to Screen Tree Dock slots
+        if screen_tree:
+            self.screen_menu.base_screen_action.triggered.connect(screen_tree.add_main_screen)
+            self.screen_menu.window_screen_action.triggered.connect(screen_tree.add_window_screen)
+            self.screen_menu.template_screen_action.triggered.connect(screen_tree.add_template_screen)
+            self.screen_menu.widgets_action.triggered.connect(screen_tree.add_widgets_screen)
+            self.screen_menu.screen_design_action.triggered.connect(screen_tree.open_screen_design)
 
     def set_dock_widget_visibility(self, dock_name, visible):
         """
@@ -290,4 +298,3 @@ class MainWindow(QMainWindow):
         """
         self.settings_service.save_settings(self)
         super().closeEvent(event)
-
