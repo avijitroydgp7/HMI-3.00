@@ -1,3 +1,4 @@
+"main_window/menus/search_replace_menu.py"
 from PyQt6.QtGui import QAction
 from ..services.icon_service import IconService
 

@@ -1,3 +1,4 @@
+"main_window/toolbars/figure_toolbar.py"
 from PyQt6.QtWidgets import QToolBar
 
 class FigureToolbar(QToolBar):

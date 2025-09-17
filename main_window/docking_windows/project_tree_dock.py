@@ -1,3 +1,4 @@
+"main_window/docking_windows/project_tree_dock.py"
 from PyQt6.QtWidgets import QDockWidget, QTreeWidget, QTreeWidgetItem
 
 class ProjectTreeDock(QDockWidget):

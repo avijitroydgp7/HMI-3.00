@@ -1,3 +1,4 @@
+"main_window/docking_windows/tag_search_dock.py"
 from PyQt6.QtWidgets import QDockWidget, QTextEdit
 
 class TagSearchDock(QDockWidget):

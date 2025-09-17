@@ -1,3 +1,4 @@
+"main_window/docking_windows/data_browser_dock.py"
 from PyQt6.QtWidgets import QDockWidget, QTextEdit
 
 class DataBrowserDock(QDockWidget):

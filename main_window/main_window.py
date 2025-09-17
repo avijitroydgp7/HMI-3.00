@@ -1,3 +1,4 @@
+"main_window/main_window.py"
 import sys
 from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit
 from PyQt6.QtCore import Qt, QSize, QByteArray

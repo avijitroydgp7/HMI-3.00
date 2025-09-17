@@ -1,3 +1,4 @@
+"main_window/docking_windows/ip_address_dock.py"
 from PyQt6.QtWidgets import QDockWidget, QTextEdit
 
 class IPAddressDock(QDockWidget):

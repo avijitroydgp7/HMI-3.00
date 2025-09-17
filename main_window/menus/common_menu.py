@@ -1,3 +1,4 @@
+"main_window/menus/common_menu.py"
 from PyQt6.QtGui import QAction
 from ..services.icon_service import IconService
 

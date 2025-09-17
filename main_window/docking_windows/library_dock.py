@@ -1,3 +1,4 @@
+"main_window/docking_windows/library_dock.py"
 from PyQt6.QtWidgets import QDockWidget, QTreeWidget, QTreeWidgetItem
 
 class LibraryDock(QDockWidget):

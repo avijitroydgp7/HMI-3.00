@@ -1,3 +1,4 @@
+"main_window/services/icon_service.py"
 from PyQt6.QtGui import QIcon
 import os
 

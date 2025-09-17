@@ -1,3 +1,4 @@
+"main_window/toolbars/view_toolbar.py"
 from PyQt6.QtWidgets import QToolBar, QComboBox, QToolButton, QCheckBox, QSpinBox
 from PyQt6.QtCore import Qt
 from ..services.icon_service import IconService

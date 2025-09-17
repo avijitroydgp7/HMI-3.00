@@ -1,3 +1,4 @@
+"main.py"
 import sys
 from PyQt6.QtWidgets import QApplication, QStyleFactory
 from main_window.main_window import MainWindow

@@ -1,3 +1,4 @@
+"main_window/menus/view_menu.py"
 from PyQt6.QtGui import QAction, QActionGroup
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QCheckBox, QWidgetAction
 from ..services.icon_service import IconService

@@ -1,3 +1,4 @@
+"main_window/docking_windows/dock_widget_factory.py"
 # Import the dock widget classes
 from .project_tree_dock import ProjectTreeDock
 from .screen_tree_dock import ScreenTreeDock
