@@ -105,6 +105,8 @@ class IconService:
         "screen-new": "screen-new.svg",
         "screen-base": "screen-base.svg",
         "screen-window": "screen-window.svg",
+        "screen-template": "screen-template.svg",
+        "screen-widgets" : "screen-widgets.svg",
         "screen-report": "screen-report.svg",
         "screen-open": "screen-open.svg",
         "screen-close": "screen-close.svg",
@@ -235,6 +237,8 @@ class IconService:
         "object-slider": "object-slider.svg",
         "object-document": "object-document.svg",
         "object-web-browser": "object-web-browser.svg",
+        
+
     }
 
     @staticmethod

@@ -64,16 +64,16 @@ class ScreenTreeDock(QDockWidget):
 
         # Child categories from the single root
         self.base_screens_root = QTreeWidgetItem(screens_root, ["Base Screens"])
-        self.base_screens_root.setIcon(0, IconService.get_icon('screen-design'))
+        self.base_screens_root.setIcon(0, IconService.get_icon('screen-base'))
 
         self.window_screens_root = QTreeWidgetItem(screens_root, ["Window Screens"])
         self.window_screens_root.setIcon(0, IconService.get_icon('screen-window'))
 
         self.template_screens_root = QTreeWidgetItem(screens_root, ["Template Screens"])
-        self.template_screens_root.setIcon(0, IconService.get_icon('edit-duplicate')) 
+        self.template_screens_root.setIcon(0, IconService.get_icon('screen-template')) 
 
         self.widgets_screens_root = QTreeWidgetItem(screens_root, ["Widgets"])
-        self.widgets_screens_root.setIcon(0, IconService.get_icon('view-object')) 
+        self.widgets_screens_root.setIcon(0, IconService.get_icon('screen-widgets')) 
         
         # Expand all items to show the structure
         screens_root.setExpanded(True)
