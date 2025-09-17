@@ -1,13 +1,13 @@
 # main_window/docking_windows/screen_tree_dock.py
-from PyQt6.QtWidgets import QDockWidget, QTreeWidget, QTreeWidgetItem, QMenu, QDialog, QStyleFactory
+from PyQt6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPalette, QColor
 from ..dialogs.screen.screen_design import ScreenDesignDialog
 from ..dialogs.screen.main_screen import MainScreenDialog
 from ..dialogs.screen.window_screen import WindowScreenDialog
 from ..dialogs.screen.template_screen import TemplateScreenDialog
 from ..dialogs.screen.widgets_screen import WidgetsScreenDialog
 from ..services.icon_service import IconService
+from ..widgets.tree import CustomTreeWidget
 
 class ScreenTreeDock(QDockWidget):
     """
@@ -23,22 +23,7 @@ class ScreenTreeDock(QDockWidget):
         super().__init__("Screen Tree", main_window)
         self.setObjectName("screen_tree")
 
-        self.tree_widget = QTreeWidget()
-        self.tree_widget.setHeaderHidden(True)
-        
-        # Apply the native Windows style for the classic tree view appearance
-        self.tree_widget.setStyle(QStyleFactory.create("windows"))
-
-        # Create and apply a custom palette for a dark theme with white elements
-        palette = self.tree_widget.palette()
-        palette.setColor(QPalette.ColorRole.WindowText, QColor(255, 255, 255)) # Item text
-        palette.setColor(QPalette.ColorRole.Text, QColor(255, 255, 255))      # Item text
-        palette.setColor(QPalette.ColorRole.Highlight, QColor(74, 105, 189)) # Selection background
-        palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255)) # Selected text
-        # This role controls the color of the branch lines and +/- icons in the 'windows' style
-        palette.setColor(QPalette.ColorRole.Dark, QColor(255, 255, 255))
-        self.tree_widget.setPalette(palette)
-
+        self.tree_widget = CustomTreeWidget()
         self.setWidget(self.tree_widget)
         
         self._populate_tree()
@@ -137,7 +122,7 @@ class ScreenTreeDock(QDockWidget):
         if dialog.exec():
             self.main_screen_count += 1
             new_item = QTreeWidgetItem(self.base_screens_root, [f"Base Screen {self.main_screen_count}"])
-            new_item.setIcon(0, IconService.get_icon('screen-base'))
+            new_item.setIcon(0, IconService.get_icon('screen-base-white'))
             self.base_screens_root.setExpanded(True)
 
     def add_window_screen(self):
@@ -148,7 +133,7 @@ class ScreenTreeDock(QDockWidget):
         if dialog.exec():
             self.window_screen_count += 1
             new_item = QTreeWidgetItem(self.window_screens_root, [f"Window Screen {self.window_screen_count}"])
-            new_item.setIcon(0, IconService.get_icon('screen-window'))
+            new_item.setIcon(0, IconService.get_icon('screen-window-white'))
 
     def add_template_screen(self):
         """
@@ -158,7 +143,7 @@ class ScreenTreeDock(QDockWidget):
         if dialog.exec():
             self.template_screen_count += 1
             new_item = QTreeWidgetItem(self.template_screens_root, [f"Template Screen {self.template_screen_count}"])
-            new_item.setIcon(0, IconService.get_icon('edit-duplicate'))
+            new_item.setIcon(0, IconService.get_icon('screen-template-white'))
 
     def add_widgets_screen(self):
         """
@@ -168,5 +153,5 @@ class ScreenTreeDock(QDockWidget):
         if dialog.exec():
             self.widgets_screen_count += 1
             new_item = QTreeWidgetItem(self.widgets_screens_root, [f"Widget {self.widgets_screen_count}"])
-            new_item.setIcon(0, IconService.get_icon('view-object'))
+            new_item.setIcon(0, IconService.get_icon('screen-widgets-white'))
 

@@ -1,5 +1,6 @@
 "main_window/docking_windows/property_tree_dock.py"
-from PyQt6.QtWidgets import QDockWidget, QTreeWidget, QTreeWidgetItem
+from PyQt6.QtWidgets import QDockWidget
+from ..widgets.tree import CustomTreeWidget
 
 class PropertyTreeDock(QDockWidget):
     """
@@ -16,4 +17,4 @@ class PropertyTreeDock(QDockWidget):
         self.setObjectName("property_tree")
 
         # Set a central widget to avoid rendering glitches.
-        self.setWidget(QTreeWidget())
+        self.setWidget(CustomTreeWidget())

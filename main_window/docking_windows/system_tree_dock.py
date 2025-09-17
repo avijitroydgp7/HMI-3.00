@@ -1,5 +1,6 @@
 "main_window/docking_windows/system_tree_dock.py"
-from PyQt6.QtWidgets import QDockWidget, QTreeWidget, QTreeWidgetItem
+from PyQt6.QtWidgets import QDockWidget
+from ..widgets.tree import CustomTreeWidget
 
 class SystemTreeDock(QDockWidget):
     """
@@ -16,4 +17,4 @@ class SystemTreeDock(QDockWidget):
         self.setObjectName("system_tree")
         
         # Set a central widget to avoid rendering glitches.
-        self.setWidget(QTreeWidget())
+        self.setWidget(CustomTreeWidget())

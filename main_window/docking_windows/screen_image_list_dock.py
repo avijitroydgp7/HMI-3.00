@@ -1,5 +1,6 @@
 "main_window/docking_windows/screen_image_list_dock.py"
-from PyQt6.QtWidgets import QDockWidget, QTreeWidget, QTreeWidgetItem
+from PyQt6.QtWidgets import QDockWidget
+from ..widgets.tree import CustomTreeWidget
 
 class ScreenImageListDock(QDockWidget):
     """
@@ -16,4 +17,4 @@ class ScreenImageListDock(QDockWidget):
         self.setObjectName("screen_image_list")
 
         # Set a central widget to avoid rendering glitches.
-        self.setWidget(QTreeWidget())
+        self.setWidget(CustomTreeWidget())

@@ -113,7 +113,12 @@ class IconService:
         "screen-close-all": "screen-close-all.svg",
         "screen-design": "screen-design.svg",
         "screen-property": "screen-property.svg",
-
+        
+        "screen-base-white": "screen-base-white.svg",
+        "screen-window-white": "screen-window-white.svg",
+        "screen-template-white": "screen-template-white.svg",
+        "screen-widgets-white": "screen-widgets-white.svg",
+        
         # Common Menu Icons
         "common-environment": "common-environment.svg",
         "common-screen-switching": "common-screen-switching.svg",
