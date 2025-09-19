@@ -183,6 +183,7 @@ class IconService:
         "object-toggle-button": "object-toggle-button.svg",
         "object-checkbox": "object-checkbox.svg",
         "object-radio-button": "object-radio-button.svg",
+        "object-selector-switch": "object-selector-switch.svg",
         "object-lamp": "object-lamp.svg",
         "object-bit-lamp": "object-bit-lamp.svg",
         "object-word-lamp": "object-word-lamp.svg",

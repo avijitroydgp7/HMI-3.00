@@ -18,12 +18,14 @@ class ObjectMenu:
         toggle_button_icon = IconService.get_icon('object-toggle-button')
         checkbox_icon = IconService.get_icon('object-checkbox')
         radio_button_icon = IconService.get_icon('object-radio-button')
+        selector_switch_icon = IconService.get_icon('object-selector-switch')
         self.push_button_sq_action = QAction(push_button_sq_icon, "Push Button Square", self.main_window)
         self.push_button_ci_action = QAction(push_button_ci_icon, "Push Button Circle", self.main_window)
         self.toggle_button_action = QAction(toggle_button_icon, "Toggle Button", self.main_window)
         self.checkbox_action = QAction(checkbox_icon, "Check Box", self.main_window)
         self.radio_button_action = QAction(radio_button_icon, "Radio Button", self.main_window)
-        self.button_actions = [self.push_button_sq_action, self.push_button_ci_action, self.toggle_button_action, self.checkbox_action, self.radio_button_action]
+        self.selector_switch_action = QAction(selector_switch_icon, "Selector Switch", self.main_window)
+        self.button_actions = [self.push_button_sq_action, self.push_button_ci_action, self.toggle_button_action, self.checkbox_action, self.radio_button_action, self.selector_switch_action]
         button_menu.addActions(self.button_actions)
         
         # --- Lamp Submenu ---
