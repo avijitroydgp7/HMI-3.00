@@ -11,6 +11,9 @@ class IconService:
     ICON_DIR = os.path.join(os.path.dirname(__file__), "..", "resources", "icons")
 
     ICONS = {
+        # Modern Icon
+        "HMI-Designer-icon": "HMI-Designer-icon.svg",
+        
         # File Menu Icons
         "file-new": "file-new.svg",
         "folder-open": "folder-open.svg",

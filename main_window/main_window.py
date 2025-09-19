@@ -26,6 +26,7 @@ from .toolbars.debug_toolbar import DebugToolbar
 
 # Import the dock widget factory
 from .docking_windows.dock_widget_factory import DockWidgetFactory
+from .services.icon_service import IconService
 
 class MainWindow(QMainWindow):
     """
@@ -41,6 +42,9 @@ class MainWindow(QMainWindow):
 
         # Set the window title
         self.setWindowTitle("HMI Designer")
+
+        # Set the window icon
+        self.setWindowIcon(IconService.get_icon("HMI-Designer-icon"))
 
         # Set the initial size of the window (width, height)
         self.setGeometry(0, 0, 1200, 720)

@@ -1,8 +1,9 @@
-"main.py"
 import sys
 from PyQt6.QtWidgets import QApplication, QStyleFactory
+from PyQt6.QtGui import QIcon
 from main_window.main_window import MainWindow
 from main_window.services.settings_service import SettingsService
+from main_window.services.icon_service import IconService
 
 def main():
     """
@@ -10,6 +11,10 @@ def main():
     """
     # Create an instance of QApplication
     app = QApplication(sys.argv)
+    
+    # Set the application icon
+    app.setWindowIcon(IconService.get_icon("HMI-Designer-icon"))
+
     # Set the application style to Fusion
     app.setStyle(QStyleFactory.create('Fusion'))
 
