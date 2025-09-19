@@ -2,7 +2,7 @@
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QGridLayout, QPushButton, QVBoxLayout,
-    QHBoxLayout, QLabel, QFrame
+    QHBoxLayout, QLabel, QFrame, QDialog
 )
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtCore import pyqtSignal, QSize
@@ -133,3 +133,7 @@ class ColorSwatchWidget(QWidget):
         color = ColorSelector.getColor(parent=self)
         if color.isValid():
             self.color_selected.emit(color)
+            # Close the parent dialog (the swatch dialog) automatically
+            parent = self.parent()
+            if parent and isinstance(parent, QDialog):
+                parent.accept()

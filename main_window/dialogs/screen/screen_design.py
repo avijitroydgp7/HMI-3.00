@@ -68,9 +68,6 @@ class ScreenDesignDialog(QDialog):
     def _create_fill_color_widget(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        
-        swatch = ColorSwatchWidget()
-        swatch.color_selected.connect(self.set_color_preview)
 
         self.color_preview = QLabel("Selected Color")
         self.color_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -78,8 +75,11 @@ class ScreenDesignDialog(QDialog):
         self.color_preview.setAutoFillBackground(True)
         self.set_color_preview(QColor("#FFFFFF"))
 
+        select_color_button = QPushButton("Select Colour")
+        select_color_button.clicked.connect(self._open_color_swatch_dialog)
+
         layout.addWidget(self.color_preview)
-        layout.addWidget(swatch)
+        layout.addWidget(select_color_button)
         layout.addStretch()
         return widget
 
@@ -90,6 +90,16 @@ class ScreenDesignDialog(QDialog):
         # Set text color based on background luminance
         text_color = "black" if color.lightness() > 127 else "white"
         self.color_preview.setStyleSheet(f"color: {text_color}; border: 1px solid grey; border-radius: 4px;")
+
+    def _open_color_swatch_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Select Color")
+        layout = QVBoxLayout(dialog)
+        swatch = ColorSwatchWidget()
+        swatch.color_selected.connect(self.set_color_preview)
+        swatch.color_selected.connect(dialog.accept)
+        layout.addWidget(swatch)
+        dialog.exec()
 
     def _create_gradient_color_widget(self):
         return GradientWidget(self)
