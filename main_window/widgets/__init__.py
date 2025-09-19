@@ -1,1 +1,1 @@
-# main_window/widgets/__init__.py
+"main_window/widgets/__init__.py"

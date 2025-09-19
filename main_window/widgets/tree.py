@@ -1,4 +1,4 @@
-# main_window/widgets/tree.py
+"main_window/widgets/tree.py"
 from PyQt6.QtWidgets import QTreeWidget, QStyleFactory
 from PyQt6.QtGui import QPalette, QColor
 
