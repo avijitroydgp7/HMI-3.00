@@ -1,4 +1,3 @@
-"main_window/widgets/gradient_widget.py"
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -89,7 +88,8 @@ class GradientWidget(QWidget):
 
         # Color Selection
         color_group = QGroupBox("Color")
-        color_layout = QGridLayout(color_group)
+        color_layout = QGridLayout()
+        color_group.setLayout(color_layout)
         self.color1_button = ColorPickerButton(QColor("#D0CECE"))
         self.color2_button = ColorPickerButton(QColor("#596978"))
         color_layout.addWidget(QLabel("Color1"), 0, 0)
@@ -114,7 +114,8 @@ class GradientWidget(QWidget):
         bottom_layout.addWidget(gradation_group)
         
         variation_group = QGroupBox("Variation")
-        variation_layout = QGridLayout(variation_group)
+        variation_layout = QGridLayout()
+        variation_group.setLayout(variation_layout)
         
         c1 = self.color1_button.color()
         c2 = self.color2_button.color()

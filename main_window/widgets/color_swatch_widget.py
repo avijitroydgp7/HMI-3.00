@@ -48,17 +48,18 @@ class ColorSwatchWidget(QWidget):
         self.layout.setContentsMargins(10, 10, 10, 10)
         self.layout.setSpacing(10)
 
+        # UI Setup
+        self._setup_ui()
+
+    def _setup_ui(self):
+        """Initializes the UI components of the widget."""
         # Theme Colors
-        theme_label = QLabel("Theme Colors")
-        self.layout.addWidget(theme_label)
-        self.theme_colors_grid = self._create_theme_colors()
-        self.layout.addLayout(self.theme_colors_grid)
+        self.layout.addWidget(QLabel("Theme Colors"))
+        self.layout.addLayout(self._create_theme_colors_grid())
 
         # Standard Colors
-        standard_label = QLabel("Standard Colors")
-        self.layout.addWidget(standard_label)
-        self.standard_colors_grid = self._create_standard_colors()
-        self.layout.addLayout(self.standard_colors_grid)
+        self.layout.addWidget(QLabel("Standard Colors"))
+        self.layout.addLayout(self._create_standard_colors_row())
         
         # Separator Line
         separator = QFrame()
@@ -67,18 +68,35 @@ class ColorSwatchWidget(QWidget):
         self.layout.addWidget(separator)
 
         # Additional Buttons
-        buttons_layout = QHBoxLayout()
-        self.no_fill_button = QPushButton("No Fill")
-        self.no_fill_button.clicked.connect(lambda: self.color_selected.emit(QColor("transparent")))
+        self.layout.addLayout(self._create_action_buttons())
+
+    def _create_color_button(self, color):
+        """Factory method for creating and connecting a ColorButton."""
+        button = ColorButton(color)
+        button.color_clicked.connect(self.color_selected)
+        return button
+
+    def _generate_shades(self, base_hex):
+        """Generates a list of 5 shades for a given base color."""
+        shades = []
+        base_color = QColor(base_hex)
         
-        self.more_colors_button = QPushButton("More Colors...")
-        self.more_colors_button.clicked.connect(self.open_color_selector)
+        for i in range(1, 6):
+            if base_hex == "#FFFFFF":
+                lightness = 255 - (i * 25)
+                shades.append(QColor(lightness, lightness, lightness))
+            elif base_hex == "#000000":
+                lightness = i * 25
+                shades.append(QColor(lightness, lightness, lightness))
+            else:
+                h, s, l, a = base_color.getHslF()
+                lightness_factor = 1 - (i * 0.15)
+                new_l = max(0, l * lightness_factor)
+                shades.append(QColor.fromHslF(h, s, new_l, a))
+        return shades
 
-        buttons_layout.addWidget(self.no_fill_button)
-        buttons_layout.addWidget(self.more_colors_button)
-        self.layout.addLayout(buttons_layout)
-
-    def _create_theme_colors(self):
+    def _create_theme_colors_grid(self):
+        """Creates the grid layout for theme colors and their shades."""
         grid = QGridLayout()
         grid.setSpacing(2)
         
@@ -89,29 +107,17 @@ class ColorSwatchWidget(QWidget):
         ]
 
         for col, base_hex in enumerate(base_colors):
-            base_color = QColor(base_hex)
-            
             # Add base color button
-            button = ColorButton(base_hex)
-            button.color_clicked.connect(self.color_selected)
-            grid.addWidget(button, 0, col)
+            grid.addWidget(self._create_color_button(base_hex), 0, col)
             
-            for row in range(1, 6):
-                lightness = 1 - (row * 0.15) 
-                if base_hex == "#FFFFFF": # Handle white column separately
-                    new_color = base_color.darker(100 + row * 10)
-                else:
-                    h, s, l, a = base_color.getHslF()
-                    new_color = QColor.fromHslF(h, s, l * lightness)
-
-                # Add theme color variant button
-                button = ColorButton(new_color)
-                button.color_clicked.connect(self.color_selected)
-                grid.addWidget(button, row, col)
+            # Add shades
+            for row, shade_color in enumerate(self._generate_shades(base_hex), 1):
+                grid.addWidget(self._create_color_button(shade_color), row, col)
         
         return grid
 
-    def _create_standard_colors(self):
+    def _create_standard_colors_row(self):
+        """Creates the horizontal layout for standard colors."""
         layout = QHBoxLayout()
         layout.setSpacing(2)
         
@@ -121,19 +127,31 @@ class ColorSwatchWidget(QWidget):
             "#002060", "#7030A0"
         ]
 
-        for color in colors:
-            button = ColorButton(color)
-            button.color_clicked.connect(self.color_selected)
-            layout.addWidget(button)
+        for color_hex in colors:
+            layout.addWidget(self._create_color_button(color_hex))
         layout.addStretch()
 
         return layout
 
+    def _create_action_buttons(self):
+        """Creates the layout for the 'No Fill' and 'More Colors' buttons."""
+        buttons_layout = QHBoxLayout()
+        no_fill_button = QPushButton("No Fill")
+        no_fill_button.clicked.connect(lambda: self.color_selected.emit(QColor("transparent")))
+        
+        more_colors_button = QPushButton("More Colors...")
+        more_colors_button.clicked.connect(self.open_color_selector)
+
+        buttons_layout.addWidget(no_fill_button)
+        buttons_layout.addWidget(more_colors_button)
+        return buttons_layout
+
     def open_color_selector(self):
+        """Opens the advanced color selector dialog."""
         color = ColorSelector.getColor(parent=self)
         if color.isValid():
             self.color_selected.emit(color)
-            # Close the parent dialog (the swatch dialog) automatically
             parent = self.parent()
-            if parent and isinstance(parent, QDialog):
+            if isinstance(parent, QDialog):
                 parent.accept()
+

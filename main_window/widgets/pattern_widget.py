@@ -1,4 +1,3 @@
-"main_window/widgets/pattern_widget.py"
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -73,7 +72,8 @@ class PatternWidget(QWidget):
         
         # Color selection
         color_group = QGroupBox("Color")
-        color_layout = QGridLayout(color_group)
+        color_layout = QGridLayout()
+        color_group.setLayout(color_layout)
         self.fg_color_button = ColorPickerButton(QColor("black"))
         self.bg_color_button = ColorPickerButton(QColor("white"))
         color_layout.addWidget(QLabel("Foreground Color"), 0, 0)
@@ -84,7 +84,8 @@ class PatternWidget(QWidget):
 
         # Pattern selection
         pattern_group = QGroupBox("Pattern")
-        self.pattern_grid = QGridLayout(pattern_group)
+        self.pattern_grid = QGridLayout()
+        pattern_group.setLayout(self.pattern_grid)
         self.pattern_grid.setSpacing(5)
         self.pattern_buttons = []
 

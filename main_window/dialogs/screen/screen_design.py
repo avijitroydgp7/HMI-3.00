@@ -22,6 +22,9 @@ class ScreenDesignDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Screen Design Template")
         
+        # Initialize a property to hold the selected color
+        self.selected_color = QColor("#FFFFFF")
+
         main_layout = QVBoxLayout(self)
         
         # --- Radio buttons for fill style ---
@@ -68,36 +71,43 @@ class ScreenDesignDialog(QDialog):
     def _create_fill_color_widget(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
-
-        self.color_preview = QLabel("Selected Color")
-        self.color_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.color_preview.setMinimumHeight(40)
-        self.color_preview.setAutoFillBackground(True)
-        self.set_color_preview(QColor("#FFFFFF"))
-
-        select_color_button = QPushButton("Select Colour")
-        select_color_button.clicked.connect(self._open_color_swatch_dialog)
-
-        layout.addWidget(self.color_preview)
-        layout.addWidget(select_color_button)
-        layout.addStretch()
+        # Use a QPushButton styled to look like a color preview area
+        self.color_preview_button = QPushButton()
+        self.color_preview_button.setMinimumHeight(40)
+        self.set_color_preview(self.selected_color)  # Set initial style
+        self.color_preview_button.clicked.connect(self._open_color_swatch_dialog)
+        layout.addWidget(self.color_preview_button)
+        layout.addStretch()  # Pushes the button to the top
         return widget
 
     def set_color_preview(self, color):
-        palette = self.color_preview.palette()
-        palette.setColor(self.color_preview.backgroundRole(), color)
-        self.color_preview.setPalette(palette)
-        # Set text color based on background luminance
-        text_color = "black" if color.lightness() > 127 else "white"
-        self.color_preview.setStyleSheet(f"color: {text_color}; border: 1px solid grey; border-radius: 4px;")
+        """Updates the appearance of the color preview button."""
+        self.selected_color = color
+        text_color = "black" if color.lightnessF() > 0.5 else "white"
+        hex_code = color.name(QColor.NameFormat.HexRgb).upper()
+        self.color_preview_button.setText(f"{hex_code}\nClick to change")
+        self.color_preview_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {color.name()};
+                color: {text_color};
+                border: 1px solid grey;
+                border-radius: 4px;
+                text-align: center;
+                padding: 5px;
+            }}
+            QPushButton:hover {{
+                border: 2px solid #5B9BD5;
+            }}
+        """)
 
     def _open_color_swatch_dialog(self):
+        """Opens a dialog containing the ColorSwatchWidget."""
         dialog = QDialog(self)
         dialog.setWindowTitle("Select Color")
         layout = QVBoxLayout(dialog)
         swatch = ColorSwatchWidget()
         swatch.color_selected.connect(self.set_color_preview)
-        swatch.color_selected.connect(dialog.accept)
+        swatch.color_selected.connect(dialog.accept)  # Close swatch dialog on selection
         layout.addWidget(swatch)
         dialog.exec()
 
@@ -142,3 +152,4 @@ class ScreenDesignDialog(QDialog):
                 Qt.AspectRatioMode.KeepAspectRatio, 
                 Qt.TransformationMode.SmoothTransformation
             ))
+
