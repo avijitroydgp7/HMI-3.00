@@ -16,7 +16,12 @@ def calculate_harmonies(base_color):
     h = h * 360
 
     def create_color(new_hue, new_s, new_v):
-        color = QColor.fromHsvF(new_hue, new_s, new_v)
+        # Clamp values to the valid [0.0, 1.0] range to prevent floating point errors
+        safe_hue = max(0.0, min(1.0, new_hue))
+        safe_s = max(0.0, min(1.0, new_s))
+        safe_v = max(0.0, min(1.0, new_v))
+        
+        color = QColor.fromHsvF(safe_hue, safe_s, safe_v)
         color.setAlphaF(base_alpha)
         return color
 
@@ -301,6 +306,8 @@ class ColorSelector(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Select Color")
         self.setFixedSize(600, 480)
+        self.setStyleSheet("")
+        
         self.swatch_buttons = [] # To keep track of swatch buttons
         self._color = initial_color
 
@@ -528,7 +535,14 @@ class ColorSelector(QDialog):
         
     @staticmethod
     def getColor(initial=QColor("white"), parent=None):
-        dialog = ColorSelector(initial, parent)
+        # Traverse up the widget hierarchy to find the top-level window (the true parent)
+        # This prevents the dialog from inheriting stylesheets from intermediate widgets like QPushButtons.
+        true_parent = parent
+        if true_parent:
+            while true_parent.parent():
+                true_parent = true_parent.parent()
+
+        dialog = ColorSelector(initial, true_parent)
         if dialog.exec():
             return dialog.currentColor()
         return initial
