@@ -28,6 +28,7 @@ from .toolbars.debug_toolbar import DebugToolbar
 from .docking_windows.dock_widget_factory import DockWidgetFactory
 from .services.icon_service import IconService
 from .services.project_service import ProjectService
+from .services.edit_service import EditService
 
 class MainWindow(QMainWindow):
     """
@@ -41,6 +42,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.settings_service = settings_service
         self.project_service = ProjectService()
+        self.edit_service = EditService()
 
         # Set the window title
         self.update_window_title()
@@ -182,6 +184,7 @@ class MainWindow(QMainWindow):
         elif reply == QMessageBox.StandardButton.Cancel:
             return False
         return True
+        self.project_service.is_saved = False
 
     def _create_menu_bar(self):
         """
@@ -199,6 +202,17 @@ class MainWindow(QMainWindow):
         self.common_menu = CommonMenu(self, menu_bar)
         self.figure_menu = FigureMenu(self, menu_bar)
         self.object_menu = ObjectMenu(self, menu_bar)
+
+        # Connect EditMenu actions to the EditService
+        self.edit_menu.undo_action.triggered.connect(lambda: self.edit_service.undo(self.central_widget))
+        self.edit_menu.redo_action.triggered.connect(lambda: self.edit_service.redo(self.central_widget))
+        self.edit_menu.cut_action.triggered.connect(lambda: self.edit_service.cut(self.central_widget))
+        self.edit_menu.copy_action.triggered.connect(lambda: self.edit_service.copy(self.central_widget))
+        self.edit_menu.paste_action.triggered.connect(lambda: self.edit_service.paste(self.central_widget))
+        # For QTextEdit, selectAll is a built-in slot
+        self.edit_menu.select_all_action.triggered.connect(self.central_widget.selectAll)
+        # For delete, we can remove selected text from the text cursor
+        self.edit_menu.delete_action.triggered.connect(lambda: self.central_widget.textCursor().removeSelectedText())
 
     def _create_toolbars(self):
         """Creates the toolbars for the main window."""
