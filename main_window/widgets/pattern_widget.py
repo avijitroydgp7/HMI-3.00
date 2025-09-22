@@ -1,3 +1,4 @@
+"main_window/widgets/pattern_widget.py"
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
