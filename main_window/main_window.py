@@ -1,6 +1,6 @@
 "main_window/main_window.py"
 import sys
-from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit
+from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog
 from PyQt6.QtCore import Qt, QSize, QByteArray
 from PyQt6.QtGui import QAction
 
@@ -27,6 +27,7 @@ from .toolbars.debug_toolbar import DebugToolbar
 # Import the dock widget factory
 from .docking_windows.dock_widget_factory import DockWidgetFactory
 from .services.icon_service import IconService
+from .services.project_service import ProjectService
 
 class MainWindow(QMainWindow):
     """
@@ -39,9 +40,10 @@ class MainWindow(QMainWindow):
         """
         super().__init__()
         self.settings_service = settings_service
+        self.project_service = ProjectService()
 
         # Set the window title
-        self.setWindowTitle("HMI Designer")
+        self.update_window_title()
 
         # Set the window icon
         self.setWindowIcon(IconService.get_icon("HMI-Designer-icon"))
@@ -52,7 +54,9 @@ class MainWindow(QMainWindow):
         self.setIconSize(QSize(24, 24))
         
         # Set the central widget
-        self.setCentralWidget(QTextEdit("Central Workspace"))
+        self.central_widget = QTextEdit("Central Workspace")
+        self.central_widget.document().contentsChanged.connect(self.project_modified)
+        self.setCentralWidget(self.central_widget)
 
         # Allow nested docks and tabbed docks
         self.setDockNestingEnabled(True)
@@ -72,6 +76,112 @@ class MainWindow(QMainWindow):
 
         # Restore other UI settings from the settings file
         self._restore_ui_settings()
+        
+        self.new_project()
+
+    def update_window_title(self):
+        """Updates the window title based on the project state."""
+        title = "HMI Designer"
+        project_name = "untitled.hmi"
+        if self.project_service.file_path:
+            project_name = self.project_service.file_path.split('/')[-1]
+        
+        if not self.project_service.is_saved:
+            project_name += "*"
+            
+        self.setWindowTitle(f"{title} - {project_name}")
+
+    def project_modified(self):
+        """Slot to handle modifications to the project."""
+        self.project_service.mark_as_unsaved()
+        self.update_window_title()
+
+    def get_project_content(self):
+        """Gets the current project content from the central widget."""
+        if self.central_widget:
+            return self.central_widget.toPlainText()
+        return ""
+
+    def set_project_content(self, content):
+        """Sets the project content in the central widget."""
+        if self.central_widget:
+            self.central_widget.setPlainText(content)
+
+    def new_project(self):
+        if not self.prompt_to_save():
+            return
+        self.project_service.new_project()
+        self.central_widget.clear()
+        self.update_window_title()
+
+    def prepare_project_data(self):
+        """Prepares project data for saving."""
+        return {
+            'content': self.get_project_content(),
+            'central_widget_content': self.get_project_content()
+        }
+
+    def open_project(self):
+        """Opens a project from a file."""
+        if not self.prompt_to_save():
+            return
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Project", "", "HMI Project Files (*.hmi)")
+        if file_path:
+            success, message = self.project_service.load_project(file_path)
+            if success:
+                # Restore project content to central widget
+                project_data = self.project_service.project_data
+                if project_data and 'content' in project_data:
+                    self.set_project_content(project_data['content'])
+                self.update_window_title()
+            else:
+                QMessageBox.warning(self, "Load Error", message)
+
+    def save_project(self):
+        """Saves the current project."""
+        if not self.project_service.file_path:
+            return self.save_project_as()
+        else:
+            # Prepare project data before saving
+            self.project_service.project_data = self.prepare_project_data()
+
+            success, message = self.project_service.save_project()
+            if success:
+                self.update_window_title()
+                return True
+            else:
+                QMessageBox.warning(self, "Save Error", message)
+                return False
+
+    def save_project_as(self):
+        """Saves the project with a new file name."""
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save Project As", "", "HMI Project Files (*.hmi)")
+        if file_path:
+            # Prepare project data before saving
+            self.project_service.project_data = self.prepare_project_data()
+
+            success, message = self.project_service.save_project(file_path)
+            if success:
+                self.update_window_title()
+                return True
+            else:
+                QMessageBox.warning(self, "Save Error", message)
+                return False
+        return False
+
+    def prompt_to_save(self):
+        if self.project_service.is_saved:
+            return True
+        
+        reply = QMessageBox.question(self, 'Save Project',
+                                     "You have unsaved changes. Would you like to save them?",
+                                     QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel)
+
+        if reply == QMessageBox.StandardButton.Save:
+            return self.save_project()
+        elif reply == QMessageBox.StandardButton.Cancel:
+            return False
+        return True
 
     def _create_menu_bar(self):
         """
@@ -303,5 +413,8 @@ class MainWindow(QMainWindow):
         Args:
             event (QCloseEvent): The close event.
         """
-        self.settings_service.save_settings(self)
-        super().closeEvent(event)
+        if self.prompt_to_save():
+            self.settings_service.save_settings(self)
+            event.accept()
+        else:
+            event.ignore()
