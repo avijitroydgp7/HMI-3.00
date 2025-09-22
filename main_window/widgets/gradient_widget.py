@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QGroupBox, QRadioButton, QPushButton, QLabel
+    QGroupBox, QRadioButton, QPushButton, QLabel, QButtonGroup
 )
 from PyQt6.QtGui import QColor, QPainter, QLinearGradient, QBrush
 from PyQt6.QtCore import pyqtSignal, QPointF, Qt
@@ -107,6 +107,13 @@ class GradientWidget(QWidget):
         self.radio_up_diagonal = QRadioButton("Up Diagonal")
         self.radio_down_diagonal = QRadioButton("Down Diagonal")
         self.radio_horizontal.setChecked(True)
+        
+        self.gradation_type_group = QButtonGroup(self)
+        self.gradation_type_group.addButton(self.radio_horizontal)
+        self.gradation_type_group.addButton(self.radio_vertical)
+        self.gradation_type_group.addButton(self.radio_up_diagonal)
+        self.gradation_type_group.addButton(self.radio_down_diagonal)
+
         gradation_layout.addWidget(self.radio_horizontal)
         gradation_layout.addWidget(self.radio_vertical)
         gradation_layout.addWidget(self.radio_up_diagonal)
@@ -135,16 +142,39 @@ class GradientWidget(QWidget):
         # Connections
         self.color1_button.color_changed.connect(self.update_previews)
         self.color2_button.color_changed.connect(self.update_previews)
-        self.radio_horizontal.toggled.connect(self.update_previews)
-        self.radio_vertical.toggled.connect(self.update_previews)
-        self.radio_up_diagonal.toggled.connect(self.update_previews)
-        self.radio_down_diagonal.toggled.connect(self.update_previews)
+        self.radio_horizontal.toggled.connect(self.on_gradation_type_changed)
+        self.radio_vertical.toggled.connect(self.on_gradation_type_changed)
+        self.radio_up_diagonal.toggled.connect(self.on_gradation_type_changed)
+        self.radio_down_diagonal.toggled.connect(self.on_gradation_type_changed)
+
+        self.update_previews()
+
+    def on_gradation_type_changed(self, checked):
+        if checked:
+            self.update_previews()
 
     def update_previews(self):
         """Updates all gradient previews based on current selections."""
         c1 = self.color1_button.color()
         c2 = self.color2_button.color()
-        self.preview1.set_gradient(c1, c2, "Horizontal")
-        self.preview2.set_gradient(c1, c2, "Vertical")
-        self.preview3.set_gradient(c1, c2, "Up Diagonal")
-        self.preview4.set_gradient(c1, c2, "Down Diagonal")
+
+        if self.radio_horizontal.isChecked():
+            self.preview1.set_gradient(c1, c2, "Horizontal")
+            self.preview2.set_gradient(c2, c1, "Horizontal")
+            self.preview3.set_gradient(c1, c2, "Down Diagonal")
+            self.preview4.set_gradient(c2, c1, "Down Diagonal")
+        elif self.radio_vertical.isChecked():
+            self.preview1.set_gradient(c1, c2, "Vertical")
+            self.preview2.set_gradient(c2, c1, "Vertical")
+            self.preview3.set_gradient(c1, c2, "Up Diagonal")
+            self.preview4.set_gradient(c2, c1, "Up Diagonal")
+        elif self.radio_up_diagonal.isChecked():
+            self.preview1.set_gradient(c1, c2, "Up Diagonal")
+            self.preview2.set_gradient(c2, c1, "Up Diagonal")
+            self.preview3.set_gradient(c1, c2, "Vertical")
+            self.preview4.set_gradient(c2, c1, "Vertical")
+        elif self.radio_down_diagonal.isChecked():
+            self.preview1.set_gradient(c1, c2, "Down Diagonal")
+            self.preview2.set_gradient(c2, c1, "Down Diagonal")
+            self.preview3.set_gradient(c1, c2, "Horizontal")
+            self.preview4.set_gradient(c2, c1, "Horizontal")
