@@ -1,4 +1,4 @@
-"main_window/dialogs/screen/screen_design.py"
+# main_window/dialogs/screen/screen_design.py
 import sys
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QDialogButtonBox,
@@ -9,7 +9,7 @@ from PyQt6.QtGui import QColor, QPixmap
 from PyQt6.QtCore import Qt
 
 # Import the refactored widgets
-from ...widgets.color_swatch_widget import ColorSwatchWidget
+from ...widgets.color_selector import ColorSelector
 from ...widgets.gradient_widget import GradientWidget
 from ...widgets.pattern_widget import PatternWidget
 
@@ -75,7 +75,7 @@ class ScreenDesignDialog(QDialog):
         self.color_preview_button = QPushButton()
         self.color_preview_button.setMinimumHeight(40)
         self.set_color_preview(self.selected_color)  # Set initial style
-        self.color_preview_button.clicked.connect(self._open_color_swatch_dialog)
+        self.color_preview_button.clicked.connect(self._open_color_selector_dialog)
         layout.addWidget(self.color_preview_button)
         layout.addStretch()  # Pushes the button to the top
         return widget
@@ -100,16 +100,11 @@ class ScreenDesignDialog(QDialog):
             }}
         """)
 
-    def _open_color_swatch_dialog(self):
-        """Opens a dialog containing the ColorSwatchWidget."""
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Select Color")
-        layout = QVBoxLayout(dialog)
-        swatch = ColorSwatchWidget()
-        swatch.color_selected.connect(self.set_color_preview)
-        swatch.color_selected.connect(dialog.accept)  # Close swatch dialog on selection
-        layout.addWidget(swatch)
-        dialog.exec()
+    def _open_color_selector_dialog(self):
+        """Opens the advanced ColorSelector dialog."""
+        color = ColorSelector.getColor(self.selected_color, self)
+        if color.isValid():
+            self.set_color_preview(color)
 
     def _create_gradient_color_widget(self):
         return GradientWidget(self)
@@ -152,4 +147,3 @@ class ScreenDesignDialog(QDialog):
                 Qt.AspectRatioMode.KeepAspectRatio, 
                 Qt.TransformationMode.SmoothTransformation
             ))
-

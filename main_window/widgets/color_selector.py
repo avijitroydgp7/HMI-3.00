@@ -1,8 +1,9 @@
-"main_window/widgets/color_selector.py"
+# main_window/widgets/color_selector.py
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QDialog, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
-    QPushButton, QDialogButtonBox, QLineEdit, QSlider, QFrame, QComboBox
+    QPushButton, QDialogButtonBox, QLineEdit, QSlider, QFrame, QComboBox, QTabWidget,
+    QGroupBox
 )
 from PyQt6.QtGui import QColor, QPainter, QLinearGradient, QPen, QBrush, QFont, QFontMetrics
 from PyQt6.QtCore import Qt, pyqtSignal, QPointF, QRectF
@@ -246,6 +247,52 @@ class PaletteWidget(QWidget):
     def _get_text_color(self, bg_color):
         return QColor("white") if bg_color.lightnessF() < 0.5 else QColor("black")
 
+class ColorButton(QPushButton):
+    """A button that displays a color and emits a signal when clicked."""
+    color_clicked = pyqtSignal(QColor)
+
+    def __init__(self, color, parent=None):
+        super().__init__(parent)
+        if isinstance(color, str):
+            self._color = QColor(color)
+        else:
+            self._color = color
+        
+        self.setFixedSize(24, 24)
+        self._is_selected = False
+        self._update_style()
+        self.clicked.connect(self._emit_color)
+
+    def color(self):
+        """Returns the QColor of the button."""
+        return self._color
+
+    def setColor(self, color):
+        """Sets a new color for the button and updates its appearance."""
+        if isinstance(color, str):
+            self._color = QColor(color)
+        else:
+            self._color = color
+        self._update_style()
+    
+    def set_selected(self, selected):
+        """Sets the visual selection state of the button."""
+        if self._is_selected != selected:
+            self._is_selected = selected
+            self._update_style()
+
+    def _update_style(self):
+        """Updates the stylesheet based on the color and selection state."""
+        if self._is_selected:
+            # A prominent blue border for selection
+            style = f"background-color: {self._color.name()}; border: 2px solid #0078D7; border-radius: 2px;"
+        else:
+            style = f"background-color: {self._color.name()}; border: 1px solid lightgrey;"
+        self.setStyleSheet(style)
+
+    def _emit_color(self):
+        self.color_clicked.emit(self._color)
+
 class ColorSelector(QDialog):
     """A modern dialog for selecting a color, inspired by the screenshot."""
     color_selected = pyqtSignal(QColor)
@@ -253,11 +300,46 @@ class ColorSelector(QDialog):
     def __init__(self, initial_color=QColor("white"), parent=None):
         super().__init__(parent)
         self.setWindowTitle("Select Color")
-        self.setFixedSize(600, 420)
+        self.setFixedSize(600, 480)
+        self.swatch_buttons = [] # To keep track of swatch buttons
         self._color = initial_color
 
         main_layout = QVBoxLayout(self)
         
+        # --- Tab Widget for different selection modes ---
+        tab_widget = QTabWidget()
+        custom_color_tab = self._create_custom_color_tab()
+        swatches_tab = self._create_swatches_tab()
+        
+        tab_widget.addTab(custom_color_tab, "Custom Color")
+        tab_widget.addTab(swatches_tab, "Swatches")
+
+        # --- Dialog Buttons ---
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        no_fill_button = buttons.addButton("No Fill", QDialogButtonBox.ButtonRole.ActionRole)
+        no_fill_button.clicked.connect(self._select_no_fill)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        main_layout.addWidget(tab_widget)
+        main_layout.addWidget(buttons)
+
+        self.update_ui_from_color(self._color)
+
+        # --- Signal Connections ---
+        self.color_square.color_changed.connect(self.update_ui_from_color)
+        self.hue_slider.hue_changed.connect(self.update_from_hue_slider)
+        self.alpha_slider.alpha_changed.connect(self.update_from_alpha_slider)
+        self.hex_input_line.textChanged.connect(self.update_from_hex)
+        self.hex_display.textChanged.connect(self.update_from_hex)
+        self.harmony_combo.currentTextChanged.connect(lambda: self.update_ui_from_color(self._color))
+        self.palette_widget.color_clicked.connect(self.update_ui_from_color)
+
+    def _create_custom_color_tab(self):
+        """Creates the widget for the 'Custom Color' tab."""
+        custom_tab_widget = QWidget()
+        main_layout = QVBoxLayout(custom_tab_widget)
+
         top_bar = QHBoxLayout()
         self.hex_display = QLineEdit()
         self.rgba_display = QLabel()
@@ -306,23 +388,85 @@ class ColorSelector(QDialog):
         content_layout.addLayout(picker_layout, 2)
         content_layout.addWidget(palette_container, 1)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-
         main_layout.addLayout(top_bar)
         main_layout.addLayout(content_layout)
-        main_layout.addWidget(buttons)
+        
+        return custom_tab_widget
 
-        self.update_ui_from_color(self._color)
+    def _create_swatches_tab(self):
+        """Creates the widget for the 'Swatches' tab."""
+        swatch_widget = QWidget()
+        layout = QVBoxLayout(swatch_widget)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
-        self.color_square.color_changed.connect(self.update_ui_from_color)
-        self.hue_slider.hue_changed.connect(self.update_from_hue_slider)
-        self.alpha_slider.alpha_changed.connect(self.update_from_alpha_slider)
-        self.hex_input_line.textChanged.connect(self.update_from_hex)
-        self.hex_display.textChanged.connect(self.update_from_hex)
-        self.harmony_combo.currentTextChanged.connect(lambda: self.update_ui_from_color(self._color))
-        self.palette_widget.color_clicked.connect(self.update_ui_from_color)
+        layout.addWidget(QLabel("Theme Colors"))
+        layout.addLayout(self._create_theme_colors_grid())
+
+        layout.addWidget(QLabel("Standard Colors"))
+        layout.addLayout(self._create_standard_colors_row())
+        
+        layout.addStretch()
+        return swatch_widget
+
+    def _create_color_button(self, color):
+        """Factory method for creating and connecting a ColorButton for swatches."""
+        button = ColorButton(color)
+        button.color_clicked.connect(self.update_ui_from_color)
+        self.swatch_buttons.append(button)
+        return button
+
+    def _generate_shades(self, base_hex):
+        """Generates a list of 5 shades for a given base color."""
+        shades = []
+        base_color = QColor(base_hex)
+        
+        for i in range(1, 6):
+            if base_hex == "#FFFFFF":
+                lightness = 255 - (i * 25)
+                shades.append(QColor(lightness, lightness, lightness))
+            elif base_hex == "#000000":
+                lightness = i * 25
+                shades.append(QColor(lightness, lightness, lightness))
+            else:
+                h, s, l, a = base_color.getHslF()
+                lightness_factor = 1 - (i * 0.15)
+                new_l = max(0, l * lightness_factor)
+                shades.append(QColor.fromHslF(h, s, new_l, a))
+        return shades
+
+    def _create_theme_colors_grid(self):
+        """Creates the grid layout for theme colors and their shades."""
+        grid = QGridLayout()
+        grid.setSpacing(2)
+        
+        base_colors = [
+            "#FFFFFF", "#000000", "#E7E6E6", "#44546A",
+            "#5B9BD5", "#ED7D31", "#A5A5A5", "#FFC000",
+            "#4472C4", "#70AD47"
+        ]
+
+        for col, base_hex in enumerate(base_colors):
+            grid.addWidget(self._create_color_button(base_hex), 0, col)
+            for row, shade_color in enumerate(self._generate_shades(base_hex), 1):
+                grid.addWidget(self._create_color_button(shade_color), row, col)
+        return grid
+
+    def _create_standard_colors_row(self):
+        """Creates the horizontal layout for standard colors."""
+        layout = QHBoxLayout()
+        layout.setSpacing(2)
+        
+        colors = [
+            "#C00000", "#FF0000", "#FFC000", "#FFFF00",
+            "#92D050", "#00B050", "#00B0F0", "#0070C0",
+            "#002060", "#7030A0"
+        ]
+
+        for color_hex in colors:
+            layout.addWidget(self._create_color_button(color_hex))
+        layout.addStretch()
+        return layout
 
     def currentColor(self):
         return self._color
@@ -334,6 +478,10 @@ class ColorSelector(QDialog):
     def update_ui_from_color(self, color):
         self.block_all_signals(True)
         self._color = color
+        
+        # Update selection state for swatch buttons
+        for button in self.swatch_buttons:
+            button.set_selected(button.color() == self._color)
         
         palette = self.preview.palette()
         palette.setColor(self.preview.backgroundRole(), color)
@@ -369,6 +517,10 @@ class ColorSelector(QDialog):
             new_color = QColor(text)
             if self._color != new_color:
                 self.update_ui_from_color(new_color)
+
+    def _select_no_fill(self):
+        self._color = QColor("transparent")
+        self.accept()
         
     def accept(self):
         self.color_selected.emit(self._color)
@@ -380,3 +532,4 @@ class ColorSelector(QDialog):
         if dialog.exec():
             return dialog.currentColor()
         return initial
+
