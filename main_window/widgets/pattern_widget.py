@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QGroupBox, QPushButton, QLabel, QFrame
 )
-from PyQt6.QtGui import QColor, QPainter, QBrush
+from PyQt6.QtGui import QColor, QPainter, QBrush, QPen
 from PyQt6.QtCore import pyqtSignal, Qt
 
 from .color_selector import ColorSelector
@@ -43,17 +43,28 @@ class ColorPickerButton(QPushButton):
 
 class PatternPreviewWidget(QWidget):
     """A widget to display a single fill pattern."""
+    clicked = pyqtSignal()
+
     def __init__(self, pattern, fg_color, bg_color, parent=None):
         super().__init__(parent)
         self.setFixedSize(40, 40)
         self.pattern = pattern
         self.fg_color = fg_color
         self.bg_color = bg_color
+        self.is_selected = False
+
+    def set_selected(self, selected):
+        self.is_selected = selected
+        self.update()
 
     def set_colors(self, fg_color, bg_color):
         self.fg_color = fg_color
         self.bg_color = bg_color
         self.update()
+        
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+        super().mousePressEvent(event)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -62,14 +73,21 @@ class PatternPreviewWidget(QWidget):
         brush = QBrush(self.fg_color, self.pattern)
         painter.fillRect(self.rect(), self.bg_color)
         painter.fillRect(self.rect(), brush)
-        painter.setPen(QColor("grey"))
-        painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
+
+        if self.is_selected:
+            pen = QPen(QColor("#0078D7"), 2)
+            painter.setPen(pen)
+        else:
+            painter.setPen(QColor("grey"))
+            
+        painter.drawRect(self.rect().adjusted(1, 1, -1, -1))
 
 class PatternWidget(QWidget):
     """A widget for selecting colors and a fill pattern."""
     def __init__(self, parent=None):
         super().__init__(parent)
         main_layout = QVBoxLayout(self)
+        self.selected_pattern_preview = None
         
         # Color selection
         color_group = QGroupBox("Color")
@@ -88,7 +106,6 @@ class PatternWidget(QWidget):
         self.pattern_grid = QGridLayout()
         pattern_group.setLayout(self.pattern_grid)
         self.pattern_grid.setSpacing(5)
-        self.pattern_buttons = []
 
         patterns = [
             Qt.BrushStyle.SolidPattern, Qt.BrushStyle.Dense1Pattern, Qt.BrushStyle.Dense2Pattern,
@@ -102,14 +119,29 @@ class PatternWidget(QWidget):
         for i, pattern in enumerate(patterns):
             row, col = divmod(i, 6)
             preview = PatternPreviewWidget(pattern, self.fg_color_button.color(), self.bg_color_button.color())
+            preview.clicked.connect(self.select_pattern_slot)
             self.pattern_grid.addWidget(preview, row, col)
             self.pattern_previews.append(preview)
+
+        if self.pattern_previews:
+            self.select_pattern(self.pattern_previews[0])
 
         main_layout.addWidget(pattern_group)
 
         # Connections
         self.fg_color_button.color_changed.connect(self.update_pattern_colors)
         self.bg_color_button.color_changed.connect(self.update_pattern_colors)
+
+    def select_pattern_slot(self):
+        clicked_preview = self.sender()
+        self.select_pattern(clicked_preview)
+
+    def select_pattern(self, preview_to_select):
+        if self.selected_pattern_preview:
+            self.selected_pattern_preview.set_selected(False)
+        self.selected_pattern_preview = preview_to_select
+        if self.selected_pattern_preview:
+            self.selected_pattern_preview.set_selected(True)
 
     def update_pattern_colors(self):
         fg_color = self.fg_color_button.color()

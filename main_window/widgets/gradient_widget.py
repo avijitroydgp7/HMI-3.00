@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QGroupBox, QRadioButton, QPushButton, QLabel, QButtonGroup
 )
-from PyQt6.QtGui import QColor, QPainter, QLinearGradient, QBrush
+from PyQt6.QtGui import QColor, QPainter, QLinearGradient, QBrush, QPen
 from PyQt6.QtCore import pyqtSignal, QPointF, Qt
 
 from .color_selector import ColorSelector
@@ -42,18 +42,29 @@ class ColorPickerButton(QPushButton):
 
 class GradientPreviewWidget(QWidget):
     """A widget to display a single gradient preview."""
+    clicked = pyqtSignal()
+
     def __init__(self, color1, color2, stops, parent=None):
         super().__init__(parent)
         self.setFixedSize(100, 100)
         self.color1 = color1
         self.color2 = color2
         self.stops = stops
+        self.is_selected = False
+
+    def set_selected(self, selected):
+        self.is_selected = selected
+        self.update()
 
     def set_gradient(self, color1, color2, stops):
         self.color1 = color1
         self.color2 = color2
         self.stops = stops
         self.update()
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+        super().mousePressEvent(event)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -78,14 +89,21 @@ class GradientPreviewWidget(QWidget):
         gradient.setColorAt(1, self.color2)
         
         painter.fillRect(rect, QBrush(gradient))
-        painter.setPen(QColor("grey"))
-        painter.drawRect(rect.adjusted(0, 0, -1, -1))
+        
+        if self.is_selected:
+            pen = QPen(QColor("#0078D7"), 2)
+            painter.setPen(pen)
+        else:
+            painter.setPen(QColor("grey"))
+            
+        painter.drawRect(rect.adjusted(1, 1, -1, -1))
 
 class GradientWidget(QWidget):
     """A widget for selecting and previewing gradient colors."""
     def __init__(self, parent=None):
         super().__init__(parent)
         main_layout = QVBoxLayout(self)
+        self.selected_preview = None
 
         # Color Selection
         color_group = QGroupBox("Color")
@@ -132,6 +150,8 @@ class GradientWidget(QWidget):
         self.preview3 = GradientPreviewWidget(c1, c2, "Up Diagonal")
         self.preview4 = GradientPreviewWidget(c1, c2, "Down Diagonal")
         
+        self.previews = [self.preview1, self.preview2, self.preview3, self.preview4]
+
         variation_layout.addWidget(self.preview1, 0, 0)
         variation_layout.addWidget(self.preview2, 0, 1)
         variation_layout.addWidget(self.preview3, 1, 0)
@@ -148,7 +168,25 @@ class GradientWidget(QWidget):
         self.radio_up_diagonal.toggled.connect(self.on_gradation_type_changed)
         self.radio_down_diagonal.toggled.connect(self.on_gradation_type_changed)
 
+        for preview in self.previews:
+            preview.clicked.connect(self.select_preview_slot)
+            
+        self.select_preview(self.preview1)
         self.update_previews()
+
+    def select_preview_slot(self):
+        """Slot to handle a preview click."""
+        clicked_preview = self.sender()
+        self.select_preview(clicked_preview)
+
+    def select_preview(self, preview_to_select):
+        """Handles the selection of a gradient preview widget."""
+        if self.selected_preview:
+            self.selected_preview.set_selected(False)
+        
+        self.selected_preview = preview_to_select
+        if self.selected_preview:
+            self.selected_preview.set_selected(True)
 
     def on_gradation_type_changed(self, checked):
         if checked:
