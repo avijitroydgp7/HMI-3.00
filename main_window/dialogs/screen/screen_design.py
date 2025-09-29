@@ -3,7 +3,7 @@ import sys
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QDialogButtonBox,
     QRadioButton, QButtonGroup, QStackedWidget, QWidget, QGroupBox,
-    QPushButton, QFileDialog
+    QPushButton, QFileDialog, QLineEdit
 )
 from PyQt6.QtGui import (
     QColor, QPixmap, QIcon, QPainter, QLinearGradient, QBrush
@@ -192,20 +192,14 @@ class ScreenDesignDialog(QDialog):
                     "bg_color": preview.bg_color
                 }
                 
-                # --- START FIX ---
-                # Create a fixed-size pixmap to render the pattern into.
-                # This prevents the button from resizing.
                 icon_pixmap = QPixmap(150, 32)
                 icon_pixmap.fill(Qt.GlobalColor.transparent)
 
                 painter = QPainter(icon_pixmap)
                 
-                # The brush combines the foreground color and pattern style.
                 pattern_brush = QBrush(preview.fg_color, preview.pattern)
                 
-                # Fill the pixmap first with the background color.
                 painter.fillRect(icon_pixmap.rect(), preview.bg_color)
-                # Then, paint the pattern on top.
                 painter.fillRect(icon_pixmap.rect(), pattern_brush)
                 painter.end()
                 
@@ -213,7 +207,6 @@ class ScreenDesignDialog(QDialog):
                 self.pattern_preview_button.setIcon(QIcon(icon_pixmap))
                 self.pattern_preview_button.setIconSize(icon_pixmap.size())
                 
-                # Apply a simple border, letting the icon handle the fill.
                 self.pattern_preview_button.setStyleSheet("""
                     QPushButton {
                         border: 1px solid grey;
@@ -223,37 +216,34 @@ class ScreenDesignDialog(QDialog):
                         border: 2px solid #5B9BD5;
                     }
                 """)
-                # --- END FIX ---
 
     def _create_image_widget(self):
         widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        main_layout = QVBoxLayout(widget)
+        main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.image_preview = QLabel("Double-click to select image")
-        self.image_preview.setMinimumSize(200, 200)
-        self.image_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_preview.setStyleSheet("border: 1px solid #ccc; border-radius: 4px; background-color: white;")
-        self.image_preview.installEventFilter(self)
+        # Horizontal layout for the file path and browse button
+        hbox = QHBoxLayout()
         
-        browse_button = QPushButton("Browse Image...")
+        # Label to show the file path
+        self.image_path_label = QLineEdit()
+        self.image_path_label.setPlaceholderText("No image selected")
+        self.image_path_label.setReadOnly(True) # Make it non-editable
+        
+        # Browse button
+        browse_button = QPushButton("Browse...")
         browse_button.clicked.connect(self.open_image_dialog)
         
-        hbox = QHBoxLayout()
-        hbox.addStretch()
+        # Add widgets to the horizontal layout
+        hbox.addWidget(self.image_path_label)
         hbox.addWidget(browse_button)
-        hbox.addStretch()
         
-        layout.addLayout(hbox)
-        layout.addWidget(self.image_preview, 0, Qt.AlignmentFlag.AlignCenter)
-        layout.addStretch()
-        return widget
+        # Add the horizontal layout to the main vertical layout
+        main_layout.addLayout(hbox)
+        
+        main_layout.addStretch() # Pushes the hbox to the top
 
-    def eventFilter(self, source, event):
-        if source is self.image_preview and event.type() == QEvent.Type.MouseButtonDblClick:
-            self.open_image_dialog()
-            return True
-        return super().eventFilter(source, event)
+        return widget
 
     def open_image_dialog(self):
         file_name, _ = QFileDialog.getOpenFileName(
@@ -262,10 +252,4 @@ class ScreenDesignDialog(QDialog):
         )
         if file_name:
             self.selected_image = file_name
-            pixmap = QPixmap(file_name)
-            self.image_preview.setPixmap(pixmap.scaled(
-                self.image_preview.size(), 
-                Qt.AspectRatioMode.KeepAspectRatio, 
-                Qt.TransformationMode.SmoothTransformation
-            ))
-
+            self.image_path_label.setText(file_name)
