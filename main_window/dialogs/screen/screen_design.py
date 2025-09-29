@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import (
     QColor, QPixmap, QIcon, QPainter, QLinearGradient, QBrush
 )
-from PyQt6.QtCore import Qt, QEvent, QPointF
+from PyQt6.QtCore import Qt, QEvent, QPointF, QSize
 
 # Import the refactored widgets
 from ...widgets.color_selector import ColorSelector
@@ -77,7 +77,7 @@ class ScreenDesignDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         self.color_preview_button = QPushButton()
-        self.color_preview_button.setMinimumHeight(40)
+        self.color_preview_button.setFixedHeight(40)
         self.set_color_preview(self.selected_color)
         self.color_preview_button.clicked.connect(self._open_color_selector_dialog)
         layout.addWidget(self.color_preview_button)
@@ -112,7 +112,7 @@ class ScreenDesignDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         self.gradient_preview_button = QPushButton("Click to select gradient")
-        self.gradient_preview_button.setMinimumHeight(40)
+        self.gradient_preview_button.setFixedHeight(40)
         self.gradient_preview_button.clicked.connect(self._open_gradient_selector_dialog)
         layout.addWidget(self.gradient_preview_button)
         layout.addStretch()
@@ -138,40 +138,35 @@ class ScreenDesignDialog(QDialog):
                     "stops": preview.stops
                 }
                 
-                pixmap = QPixmap(self.gradient_preview_button.size())
-                pixmap.fill(Qt.GlobalColor.transparent)
-                painter = QPainter(pixmap)
-                rect = pixmap.rect()
+                color1_hex = preview.color1.name()
+                color2_hex = preview.color2.name()
                 
-                gradient = QLinearGradient()
                 if preview.stops == "Horizontal":
-                    gradient.setStart(QPointF(rect.left(), rect.center().y()))
-                    gradient.setFinalStop(QPointF(rect.right(), rect.center().y()))
+                    gradient_stops = "x1: 0, y1: 0, x2: 1, y2: 0"
                 elif preview.stops == "Vertical":
-                    gradient.setStart(QPointF(rect.center().x(), rect.top()))
-                    gradient.setFinalStop(QPointF(rect.center().x(), rect.bottom()))
+                    gradient_stops = "x1: 0, y1: 0, x2: 0, y2: 1"
                 elif preview.stops == "Up Diagonal":
-                    gradient.setStart(QPointF(rect.bottomLeft()))
-                    gradient.setFinalStop(QPointF(rect.topRight()))
-                elif preview.stops == "Down Diagonal":
-                    gradient.setStart(QPointF(rect.topLeft()))
-                    gradient.setFinalStop(QPointF(rect.bottomRight()))
+                    gradient_stops = "x1: 0, y1: 1, x2: 1, y2: 0"
+                else: # Down Diagonal
+                    gradient_stops = "x1: 0, y1: 0, x2: 1, y2: 1"
 
-                gradient.setColorAt(0, preview.color1)
-                gradient.setColorAt(1, preview.color2)
-                
-                painter.fillRect(rect, QBrush(gradient))
-                painter.end()
-                
-                self.gradient_preview_button.setIcon(QIcon(pixmap))
-                self.gradient_preview_button.setIconSize(self.gradient_preview_button.size())
                 self.gradient_preview_button.setText("")
+                self.gradient_preview_button.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: qlineargradient({gradient_stops}, stop: 0 {color1_hex}, stop: 1 {color2_hex});
+                        border: 1px solid grey;
+                        border-radius: 4px;
+                    }}
+                    QPushButton:hover {{
+                        border: 2px solid #5B9BD5;
+                    }}
+                """)
 
     def _create_pattern_widget(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         self.pattern_preview_button = QPushButton("Click to select pattern")
-        self.pattern_preview_button.setMinimumHeight(40)
+        self.pattern_preview_button.setFixedHeight(40)
         self.pattern_preview_button.clicked.connect(self._open_pattern_selector_dialog)
         layout.addWidget(self.pattern_preview_button)
         layout.addStretch()
@@ -197,18 +192,38 @@ class ScreenDesignDialog(QDialog):
                     "bg_color": preview.bg_color
                 }
                 
-                pixmap = QPixmap(self.pattern_preview_button.size())
-                pixmap.fill(Qt.GlobalColor.transparent)
-                painter = QPainter(pixmap)
+                # --- START FIX ---
+                # Create a fixed-size pixmap to render the pattern into.
+                # This prevents the button from resizing.
+                icon_pixmap = QPixmap(150, 32)
+                icon_pixmap.fill(Qt.GlobalColor.transparent)
+
+                painter = QPainter(icon_pixmap)
                 
-                brush = QBrush(preview.fg_color, preview.pattern)
-                painter.fillRect(pixmap.rect(), preview.bg_color)
-                painter.fillRect(pixmap.rect(), brush)
+                # The brush combines the foreground color and pattern style.
+                pattern_brush = QBrush(preview.fg_color, preview.pattern)
+                
+                # Fill the pixmap first with the background color.
+                painter.fillRect(icon_pixmap.rect(), preview.bg_color)
+                # Then, paint the pattern on top.
+                painter.fillRect(icon_pixmap.rect(), pattern_brush)
                 painter.end()
                 
-                self.pattern_preview_button.setIcon(QIcon(pixmap))
-                self.pattern_preview_button.setIconSize(self.pattern_preview_button.size())
                 self.pattern_preview_button.setText("")
+                self.pattern_preview_button.setIcon(QIcon(icon_pixmap))
+                self.pattern_preview_button.setIconSize(icon_pixmap.size())
+                
+                # Apply a simple border, letting the icon handle the fill.
+                self.pattern_preview_button.setStyleSheet("""
+                    QPushButton {
+                        border: 1px solid grey;
+                        border-radius: 4px;
+                    }
+                    QPushButton:hover {
+                        border: 2px solid #5B9BD5;
+                    }
+                """)
+                # --- END FIX ---
 
     def _create_image_widget(self):
         widget = QWidget()
