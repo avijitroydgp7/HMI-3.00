@@ -1,4 +1,4 @@
-# main_window/docking_windows/screen_tree_dock.py
+"main_window/docking_windows/screen_tree_dock.py"
 from PyQt6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog
 from PyQt6.QtCore import Qt
 from ..dialogs.screen.screen_design import ScreenDesignDialog
@@ -34,7 +34,6 @@ class ScreenTreeDock(QDockWidget):
         self.tree_widget.itemDoubleClicked.connect(self.handle_double_click)
         
         # Counters for new items
-        self.main_screen_count = 0
         self.window_screen_count = 0
         self.template_screen_count = 0
         self.widgets_screen_count = 0
@@ -118,14 +117,35 @@ class ScreenTreeDock(QDockWidget):
         dialog = ScreenDesignDialog(self)
         dialog.exec()
 
+    def get_existing_screen_numbers(self):
+        """
+        Retrieves all existing screen numbers from the data stored in the tree items.
+        """
+        numbers = []
+        for i in range(self.base_screens_root.childCount()):
+            child_item = self.base_screens_root.child(i)
+            item_data = child_item.data(0, Qt.ItemDataRole.UserRole)
+            if isinstance(item_data, dict) and "number" in item_data:
+                numbers.append(item_data["number"])
+        return numbers
+
     def add_main_screen(self):
         """
-        Opens a dialog and adds a new base screen as a child of "Base Screens".
+        Opens a dialog to get screen details and adds a new base screen to the tree.
         """
-        dialog = BaseScreenDialog(self)
+        existing_numbers = self.get_existing_screen_numbers()
+        dialog = BaseScreenDialog(self, existing_screen_numbers=existing_numbers)
+        
         if dialog.exec():
-            self.main_screen_count += 1
-            new_item = QTreeWidgetItem(self.base_screens_root, [f"Base Screen {self.main_screen_count}"])
+            data = dialog.get_screen_data()
+            
+            # Create the display text for the tree item
+            new_item_text = f"{data['name']} ({data['number']})"
+            new_item = QTreeWidgetItem(self.base_screens_root, [new_item_text])
+            
+            # Store the dictionary of screen data with the tree item
+            new_item.setData(0, Qt.ItemDataRole.UserRole, data)
+            
             new_item.setIcon(0, IconService.get_icon('screen-base-white'))
             self.base_screens_root.setExpanded(True)
 

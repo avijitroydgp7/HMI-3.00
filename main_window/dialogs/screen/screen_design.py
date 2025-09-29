@@ -253,3 +253,21 @@ class ScreenDesignDialog(QDialog):
         if file_name:
             self.selected_image = file_name
             self.image_path_label.setText(file_name)
+    
+    def get_design_details(self):
+        """
+        Gathers the selected design details and returns them in a dictionary.
+        """
+        selected_id = self.radio_button_group.checkedId()
+        if selected_id == 0: # Fill Colour
+            return {"type": "color", "color": self.selected_color}
+        elif selected_id == 1: # Gradient Colour
+             if self.selected_gradient:
+                return {"type": "gradient", "gradient": self.selected_gradient}
+        elif selected_id == 2: # Fill Pattern
+            if self.selected_pattern:
+                return {"type": "pattern", "pattern": self.selected_pattern}
+        elif selected_id == 3: # Fill Image
+            if self.selected_image:
+                return {"type": "image", "image_path": self.selected_image}
+        return None
