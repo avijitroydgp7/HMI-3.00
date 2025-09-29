@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QFileDialog
 )
 from PyQt6.QtGui import QColor, QPixmap
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QEvent
 
 # Import the refactored widgets
 from ...widgets.color_selector import ColorSelector
@@ -22,8 +22,11 @@ class ScreenDesignDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Screen Design Template")
         
-        # Initialize a property to hold the selected color
+        # Initialize properties to hold the selected fill style
         self.selected_color = QColor("#FFFFFF")
+        self.selected_gradient = None
+        self.selected_pattern = None
+        self.selected_image = None
 
         main_layout = QVBoxLayout(self)
         
@@ -71,17 +74,15 @@ class ScreenDesignDialog(QDialog):
     def _create_fill_color_widget(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        # Use a QPushButton styled to look like a color preview area
         self.color_preview_button = QPushButton()
         self.color_preview_button.setMinimumHeight(40)
-        self.set_color_preview(self.selected_color)  # Set initial style
+        self.set_color_preview(self.selected_color)
         self.color_preview_button.clicked.connect(self._open_color_selector_dialog)
         layout.addWidget(self.color_preview_button)
-        layout.addStretch()  # Pushes the button to the top
+        layout.addStretch()
         return widget
 
     def set_color_preview(self, color):
-        """Updates the appearance of the color preview button."""
         self.selected_color = color
         text_color = "black" if color.lightnessF() > 0.5 else "white"
         hex_code = color.name(QColor.NameFormat.HexRgb).upper()
@@ -101,26 +102,82 @@ class ScreenDesignDialog(QDialog):
         """)
 
     def _open_color_selector_dialog(self):
-        """Opens the advanced ColorSelector dialog."""
         color = ColorSelector.getColor(self.selected_color, self)
         if color.isValid():
             self.set_color_preview(color)
 
     def _create_gradient_color_widget(self):
-        return GradientWidget(self)
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        self.gradient_preview_button = QPushButton("Click to select gradient")
+        self.gradient_preview_button.setMinimumHeight(40)
+        self.gradient_preview_button.clicked.connect(self._open_gradient_selector_dialog)
+        layout.addWidget(self.gradient_preview_button)
+        layout.addStretch()
+        return widget
+
+    def _open_gradient_selector_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Select Gradient")
+        layout = QVBoxLayout(dialog)
+        gradient_widget = GradientWidget()
+        layout.addWidget(gradient_widget)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        if dialog.exec():
+            preview = gradient_widget.selected_preview
+            if preview:
+                self.selected_gradient = {
+                    "color1": preview.color1,
+                    "color2": preview.color2,
+                    "stops": preview.stops
+                }
+                self.gradient_preview_button.setText("Gradient selected")
 
     def _create_pattern_widget(self):
-        return PatternWidget(self)
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        self.pattern_preview_button = QPushButton("Click to select pattern")
+        self.pattern_preview_button.setMinimumHeight(40)
+        self.pattern_preview_button.clicked.connect(self._open_pattern_selector_dialog)
+        layout.addWidget(self.pattern_preview_button)
+        layout.addStretch()
+        return widget
+
+    def _open_pattern_selector_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Select Pattern")
+        layout = QVBoxLayout(dialog)
+        pattern_widget = PatternWidget()
+        layout.addWidget(pattern_widget)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        if dialog.exec():
+            preview = pattern_widget.selected_pattern_preview
+            if preview:
+                self.selected_pattern = {
+                    "pattern": preview.pattern,
+                    "fg_color": preview.fg_color,
+                    "bg_color": preview.bg_color
+                }
+                self.pattern_preview_button.setText("Pattern selected")
 
     def _create_image_widget(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.image_preview = QLabel("No Image Selected")
+        self.image_preview = QLabel("Double-click to select image")
         self.image_preview.setMinimumSize(200, 200)
         self.image_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_preview.setStyleSheet("border: 1px solid #ccc; border-radius: 4px;")
+        self.image_preview.setStyleSheet("border: 1px solid #ccc; border-radius: 4px; background-color: white;")
+        self.image_preview.installEventFilter(self)
         
         browse_button = QPushButton("Browse Image...")
         browse_button.clicked.connect(self.open_image_dialog)
@@ -135,12 +192,19 @@ class ScreenDesignDialog(QDialog):
         layout.addStretch()
         return widget
 
+    def eventFilter(self, source, event):
+        if source is self.image_preview and event.type() == QEvent.Type.MouseButtonDblClick:
+            self.open_image_dialog()
+            return True
+        return super().eventFilter(source, event)
+
     def open_image_dialog(self):
         file_name, _ = QFileDialog.getOpenFileName(
             self, "Select an Image", "", 
             "Image Files (*.png *.jpg *.jpeg *.bmp *.svg)"
         )
         if file_name:
+            self.selected_image = file_name
             pixmap = QPixmap(file_name)
             self.image_preview.setPixmap(pixmap.scaled(
                 self.image_preview.size(), 
