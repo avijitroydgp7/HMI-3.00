@@ -1,4 +1,4 @@
-"main_window/widgets/pattern_widget.py"
+# main_window/widgets/pattern_widget.py
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -84,7 +84,7 @@ class PatternPreviewWidget(QWidget):
 
 class PatternWidget(QWidget):
     """A widget for selecting colors and a fill pattern."""
-    def __init__(self, parent=None):
+    def __init__(self, initial_pattern=None, parent=None):
         super().__init__(parent)
         main_layout = QVBoxLayout(self)
         self.selected_pattern_preview = None
@@ -107,6 +107,10 @@ class PatternWidget(QWidget):
         pattern_group.setLayout(self.pattern_grid)
         self.pattern_grid.setSpacing(5)
 
+        if initial_pattern:
+            self.fg_color_button.set_color(initial_pattern["fg_color"])
+            self.bg_color_button.set_color(initial_pattern["bg_color"])
+
         patterns = [
             Qt.BrushStyle.SolidPattern, Qt.BrushStyle.Dense1Pattern, Qt.BrushStyle.Dense2Pattern,
             Qt.BrushStyle.Dense3Pattern, Qt.BrushStyle.Dense4Pattern, Qt.BrushStyle.Dense5Pattern,
@@ -123,8 +127,15 @@ class PatternWidget(QWidget):
             self.pattern_grid.addWidget(preview, row, col)
             self.pattern_previews.append(preview)
 
-        if self.pattern_previews:
-            self.select_pattern(self.pattern_previews[0])
+        if initial_pattern:
+            initial_pattern_style = initial_pattern["pattern"]
+            for preview in self.pattern_previews:
+                if preview.pattern == initial_pattern_style:
+                    self.select_pattern(preview)
+                    break
+        else:
+            if self.pattern_previews:
+                self.select_pattern(self.pattern_previews[0])
 
         main_layout.addWidget(pattern_group)
 

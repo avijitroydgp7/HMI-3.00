@@ -1,4 +1,4 @@
-"main_window/widgets/gradient_widget.py"
+# main_window/widgets/gradient_widget.py
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -71,7 +71,7 @@ class GradientPreviewWidget(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = self.rect()
         
-        gradient = QLinearGradient(QPointF(rect.topLeft()), QPointF(rect.bottomRight()))
+        gradient = QLinearGradient()
         if self.stops == "Horizontal":
             gradient.setStart(QPointF(rect.left(), rect.center().y()))
             gradient.setFinalStop(QPointF(rect.right(), rect.center().y()))
@@ -100,7 +100,7 @@ class GradientPreviewWidget(QWidget):
 
 class GradientWidget(QWidget):
     """A widget for selecting and previewing gradient colors."""
-    def __init__(self, parent=None):
+    def __init__(self, initial_gradient=None, parent=None):
         super().__init__(parent)
         main_layout = QVBoxLayout(self)
         self.selected_preview = None
@@ -125,7 +125,6 @@ class GradientWidget(QWidget):
         self.radio_vertical = QRadioButton("Vertical")
         self.radio_up_diagonal = QRadioButton("Up Diagonal")
         self.radio_down_diagonal = QRadioButton("Down Diagonal")
-        self.radio_horizontal.setChecked(True)
         
         self.gradation_type_group = QButtonGroup(self)
         self.gradation_type_group.addButton(self.radio_horizontal)
@@ -159,6 +158,23 @@ class GradientWidget(QWidget):
         bottom_layout.addWidget(variation_group)
         
         main_layout.addLayout(bottom_layout)
+
+        # Set initial state if provided
+        if initial_gradient:
+            self.color1_button.set_color(initial_gradient["color1"])
+            self.color2_button.set_color(initial_gradient["color2"])
+
+            stops = initial_gradient.get("stops", "Horizontal")
+            if stops == "Horizontal":
+                self.radio_horizontal.setChecked(True)
+            elif stops == "Vertical":
+                self.radio_vertical.setChecked(True)
+            elif stops == "Up Diagonal":
+                self.radio_up_diagonal.setChecked(True)
+            elif stops == "Down Diagonal":
+                self.radio_down_diagonal.setChecked(True)
+        else:
+            self.radio_horizontal.setChecked(True)
 
         # Connections
         self.color1_button.color_changed.connect(self.update_previews)

@@ -1,12 +1,14 @@
-"main_window/dialogs/screen/screen_design.py"
+# main_window/dialogs/screen/screen_design.py
 import sys
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QDialogButtonBox,
     QRadioButton, QButtonGroup, QStackedWidget, QWidget, QGroupBox,
     QPushButton, QFileDialog
 )
-from PyQt6.QtGui import QColor, QPixmap
-from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtGui import (
+    QColor, QPixmap, QIcon, QPainter, QLinearGradient, QBrush
+)
+from PyQt6.QtCore import Qt, QEvent, QPointF
 
 # Import the refactored widgets
 from ...widgets.color_selector import ColorSelector
@@ -120,7 +122,7 @@ class ScreenDesignDialog(QDialog):
         dialog = QDialog(self)
         dialog.setWindowTitle("Select Gradient")
         layout = QVBoxLayout(dialog)
-        gradient_widget = GradientWidget()
+        gradient_widget = GradientWidget(self.selected_gradient)
         layout.addWidget(gradient_widget)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
@@ -135,7 +137,35 @@ class ScreenDesignDialog(QDialog):
                     "color2": preview.color2,
                     "stops": preview.stops
                 }
-                self.gradient_preview_button.setText("Gradient selected")
+                
+                pixmap = QPixmap(self.gradient_preview_button.size())
+                pixmap.fill(Qt.GlobalColor.transparent)
+                painter = QPainter(pixmap)
+                rect = pixmap.rect()
+                
+                gradient = QLinearGradient()
+                if preview.stops == "Horizontal":
+                    gradient.setStart(QPointF(rect.left(), rect.center().y()))
+                    gradient.setFinalStop(QPointF(rect.right(), rect.center().y()))
+                elif preview.stops == "Vertical":
+                    gradient.setStart(QPointF(rect.center().x(), rect.top()))
+                    gradient.setFinalStop(QPointF(rect.center().x(), rect.bottom()))
+                elif preview.stops == "Up Diagonal":
+                    gradient.setStart(QPointF(rect.bottomLeft()))
+                    gradient.setFinalStop(QPointF(rect.topRight()))
+                elif preview.stops == "Down Diagonal":
+                    gradient.setStart(QPointF(rect.topLeft()))
+                    gradient.setFinalStop(QPointF(rect.bottomRight()))
+
+                gradient.setColorAt(0, preview.color1)
+                gradient.setColorAt(1, preview.color2)
+                
+                painter.fillRect(rect, QBrush(gradient))
+                painter.end()
+                
+                self.gradient_preview_button.setIcon(QIcon(pixmap))
+                self.gradient_preview_button.setIconSize(self.gradient_preview_button.size())
+                self.gradient_preview_button.setText("")
 
     def _create_pattern_widget(self):
         widget = QWidget()
@@ -151,7 +181,7 @@ class ScreenDesignDialog(QDialog):
         dialog = QDialog(self)
         dialog.setWindowTitle("Select Pattern")
         layout = QVBoxLayout(dialog)
-        pattern_widget = PatternWidget()
+        pattern_widget = PatternWidget(self.selected_pattern)
         layout.addWidget(pattern_widget)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
@@ -166,7 +196,19 @@ class ScreenDesignDialog(QDialog):
                     "fg_color": preview.fg_color,
                     "bg_color": preview.bg_color
                 }
-                self.pattern_preview_button.setText("Pattern selected")
+                
+                pixmap = QPixmap(self.pattern_preview_button.size())
+                pixmap.fill(Qt.GlobalColor.transparent)
+                painter = QPainter(pixmap)
+                
+                brush = QBrush(preview.fg_color, preview.pattern)
+                painter.fillRect(pixmap.rect(), preview.bg_color)
+                painter.fillRect(pixmap.rect(), brush)
+                painter.end()
+                
+                self.pattern_preview_button.setIcon(QIcon(pixmap))
+                self.pattern_preview_button.setIconSize(self.pattern_preview_button.size())
+                self.pattern_preview_button.setText("")
 
     def _create_image_widget(self):
         widget = QWidget()
@@ -211,3 +253,4 @@ class ScreenDesignDialog(QDialog):
                 Qt.AspectRatioMode.KeepAspectRatio, 
                 Qt.TransformationMode.SmoothTransformation
             ))
+
