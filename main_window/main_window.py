@@ -27,8 +27,8 @@ from .toolbars.debug_toolbar import DebugToolbar
 # Import the dock widget factory
 from .docking_windows.dock_widget_factory import DockWidgetFactory
 from .services.icon_service import IconService
-from .services.project_service import ProjectService
-from .services.edit_service import EditService
+from services.project_service import ProjectService
+from services.edit_service import EditService
 
 class MainWindow(QMainWindow):
     """

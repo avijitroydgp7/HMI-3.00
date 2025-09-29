@@ -1,4 +1,4 @@
-"main_window/services/project_service.py"
+"services/project_service.py"
 import json
 import os
 from PyQt6.QtWidgets import QMessageBox

@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import QApplication, QStyleFactory
 from PyQt6.QtGui import QIcon
 from main_window.main_window import MainWindow
-from main_window.services.settings_service import SettingsService
+from services.settings_service import SettingsService
 from main_window.services.icon_service import IconService
 
 def main():
