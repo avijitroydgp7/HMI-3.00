@@ -1,16 +1,16 @@
-"main_window/dialogs/screen/main_screen.py"
+"main_window/dialogs/screen/base_screen.py"
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox
 
-class MainScreenDialog(QDialog):
+class BaseScreenDialog(QDialog):
     """
-    A dialog window for adding a new main screen.
+    A dialog window for adding a new base screen.
     This is currently a placeholder.
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Add New Main Screen")
+        self.setWindowTitle("Add New Base Screen")
         self.layout = QVBoxLayout(self)
-        self.label = QLabel("This is the Add New Main Screen Dialog.")
+        self.label = QLabel("This is the Add New Base Screen Dialog.")
         self.layout.addWidget(self.label)
 
         # Add OK and Cancel buttons

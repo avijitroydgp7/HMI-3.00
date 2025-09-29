@@ -2,7 +2,7 @@
 from PyQt6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog
 from PyQt6.QtCore import Qt
 from ..dialogs.screen.screen_design import ScreenDesignDialog
-from ..dialogs.screen.main_screen import MainScreenDialog
+from ..dialogs.screen.base_screen import BaseScreenDialog
 from ..dialogs.screen.window_screen import WindowScreenDialog
 from ..dialogs.screen.template_screen import TemplateScreenDialog
 from ..dialogs.screen.widgets_screen import WidgetsScreenDialog
@@ -122,7 +122,7 @@ class ScreenTreeDock(QDockWidget):
         """
         Opens a dialog and adds a new base screen as a child of "Base Screens".
         """
-        dialog = MainScreenDialog(self)
+        dialog = BaseScreenDialog(self)
         if dialog.exec():
             self.main_screen_count += 1
             new_item = QTreeWidgetItem(self.base_screens_root, [f"Base Screen {self.main_screen_count}"])
