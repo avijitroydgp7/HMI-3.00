@@ -102,7 +102,7 @@ class BaseScreenDialog(QDialog):
 
     def _open_screen_design_dialog(self):
         """Opens the screen design dialog and updates the preview."""
-        dialog = ScreenDesignDialog(self)
+        dialog = ScreenDesignDialog(self, initial_data=self.screen_design_data)
         if dialog.exec():
             self.screen_design_data = dialog.get_design_details()
             self._update_design_preview()
@@ -117,15 +117,18 @@ class BaseScreenDialog(QDialog):
         style_type = self.screen_design_data.get("type")
         
         if style_type == "color":
-            color = self.screen_design_data.get("color", QColor("white"))
+            color_str = self.screen_design_data.get("color", "#FFFFFF")
+            color = QColor(color_str)
             text_color = "black" if color.lightnessF() > 0.5 else "white"
             self.design_preview_button.setText(f"Solid Color: {color.name()}")
             self.design_preview_button.setStyleSheet(f"background-color: {color.name()}; color: {text_color};")
         elif style_type == "gradient":
             grad = self.screen_design_data.get("gradient")
             if grad:
-                c1_hex = grad['color1'].name()
-                c2_hex = grad['color2'].name()
+                c1 = QColor(grad['color1'])
+                c2 = QColor(grad['color2'])
+                c1_hex = c1.name()
+                c2_hex = c2.name()
                 self.design_preview_button.setText(f"Gradient: {grad['stops']}")
                 self.design_preview_button.setStyleSheet(f"background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {c1_hex}, stop:1 {c2_hex});")
         elif style_type == "pattern":

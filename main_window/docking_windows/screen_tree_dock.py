@@ -140,7 +140,7 @@ class ScreenTreeDock(QDockWidget):
             data = dialog.get_screen_data()
             
             # Create the display text for the tree item
-            new_item_text = f"{data['name']} ({data['number']})"
+            new_item_text = f"[B] - {data['number']} - {data['name']}"
             new_item = QTreeWidgetItem(self.base_screens_root, [new_item_text])
             
             # Store the dictionary of screen data with the tree item
