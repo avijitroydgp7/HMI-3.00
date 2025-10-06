@@ -1,4 +1,4 @@
-"main_window/dialogs/project_tree/recipe_dialog.py"
+# main_window\dialogs\project_tree\recipe_dialog.py
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel
 
 class RecipeDialog(QDialog):

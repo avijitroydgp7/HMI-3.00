@@ -1,4 +1,4 @@
-"main_window/toolbars/debug_toolbar.py"
+# main_window\toolbars\debug_toolbar.py
 from PyQt6.QtWidgets import QToolBar
 
 class DebugToolbar(QToolBar):

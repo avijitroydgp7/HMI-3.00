@@ -1,1 +1,1 @@
-"main_window/docking_windows/__init__.py"
+# main_window\docking_windows\__init__.py

@@ -1,4 +1,4 @@
-"main_window/menus/file_menu.py"
+# main_window\menus\file_menu.py
 from PyQt6.QtGui import QAction
 from ..services.icon_service import IconService
 

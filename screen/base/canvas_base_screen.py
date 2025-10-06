@@ -1,4 +1,4 @@
-# screen/base/canvas_base_screen.py
+# screen\base\canvas_base_screen.py
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsWidget, QVBoxLayout, QLabel
 from PyQt6.QtGui import QPainter, QColor, QBrush, QLinearGradient, QPixmap, QPen, QFont
 from PyQt6.QtCore import Qt, QRectF, pyqtSignal

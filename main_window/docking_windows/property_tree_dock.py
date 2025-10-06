@@ -1,4 +1,4 @@
-"main_window/docking_windows/property_tree_dock.py"
+# main_window\docking_windows\property_tree_dock.py
 from PyQt6.QtWidgets import QDockWidget
 from ..widgets.tree import CustomTreeWidget
 

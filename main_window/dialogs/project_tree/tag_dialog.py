@@ -1,4 +1,4 @@
-"main_window/dialogs/project_tree/tag_dialog.py"
+# main_window\dialogs\project_tree\tag_dialog.py
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel
 
 class TagDialog(QDialog):

@@ -1,4 +1,4 @@
-"main_window/docking_windows/screen_tree_dock.py"
+# main_window\docking_windows\screen_tree_dock.py
 from PyQt6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog
 from PyQt6.QtCore import Qt
 from ..dialogs.screen.screen_design import ScreenDesignDialog

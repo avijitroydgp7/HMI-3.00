@@ -1,4 +1,4 @@
-"main_window/docking_windows/screen_image_list_dock.py"
+# main_window\docking_windows\screen_image_list_dock.py
 from PyQt6.QtWidgets import QDockWidget
 from ..widgets.tree import CustomTreeWidget
 

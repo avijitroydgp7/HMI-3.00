@@ -1,4 +1,4 @@
-"main_window/toolbars/alignment_toolbar.py"
+# main_window\toolbars\alignment_toolbar.py
 from PyQt6.QtWidgets import QToolBar
 
 class AlignmentToolbar(QToolBar):

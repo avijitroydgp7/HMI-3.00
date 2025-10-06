@@ -1,3 +1,4 @@
+# main_window\toolbars\object_toolbar.py
 from PyQt6.QtWidgets import QToolBar, QToolButton, QMenu
 from PyQt6.QtCore import Qt
 

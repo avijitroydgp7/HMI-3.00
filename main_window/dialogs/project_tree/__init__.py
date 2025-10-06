@@ -1,1 +1,1 @@
-"main_window/dialogs/project_tree/__init__.py"
+# main_window\dialogs\project_tree\__init__.py"
