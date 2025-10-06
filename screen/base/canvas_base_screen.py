@@ -60,15 +60,6 @@ class CanvasWidget(QGraphicsWidget):
                         x = rect.x() + (rect.width() - scaled_pixmap.width()) / 2
                         y = rect.y() + (rect.height() - scaled_pixmap.height()) / 2
                         painter.drawPixmap(int(x), int(y), scaled_pixmap)
-        
-        # Draw screen name
-        painter.setPen(QPen(QColor("black")))
-        font = QFont()
-        font.setPointSize(16)
-        painter.setFont(font)
-        text = f"Screen: {self.screen_data.get('name', 'N/A')}"
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
-
 
 class CanvasBaseScreen(QGraphicsView):
     """
@@ -174,4 +165,3 @@ class CanvasBaseScreen(QGraphicsView):
         self.fitInView(self.canvas_widget.boundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.zoom_factor = self.transform().m11()
         self.zoom_changed.emit(self.zoom_factor)
-

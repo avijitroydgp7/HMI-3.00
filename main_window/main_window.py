@@ -202,7 +202,8 @@ class MainWindow(QMainWindow):
 
         sub_window = QMdiSubWindow()
         sub_window.setWidget(screen_widget)
-        sub_window.setWindowTitle(f"Screen: {screen_data.get('number')} - {screen_data.get('name')}")
+        sub_window.setWindowTitle(f"[B] - {screen_data.get('number')} - {screen_data.get('name')}")
+        sub_window.setWindowIcon(IconService.get_icon("screen-base"))
         sub_window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # When the sub_window is destroyed (closed), remove it from our tracking dictionary
