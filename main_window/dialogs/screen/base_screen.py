@@ -2,7 +2,7 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLabel, QDialogButtonBox,
     QSpinBox, QLineEdit, QTextEdit, QCheckBox, QPushButton, QMessageBox,
-    QWidget, QHBoxLayout, QApplication
+    QWidget, QHBoxLayout, QApplication, QGroupBox
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QBrush, QPainter, QPixmap
@@ -17,7 +17,6 @@ class BaseScreenDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Add New Base Screen")
         
-
         # Store data from the dialog
         self.existing_screen_numbers = existing_screen_numbers if existing_screen_numbers is not None else []
         self.screen_design_data = None
@@ -25,9 +24,12 @@ class BaseScreenDialog(QDialog):
 
         # Main layout
         main_layout = QVBoxLayout(self)
+
+        # --- Screen Properties GroupBox ---
+        screen_properties_group = QGroupBox("Screen Properties")
         form_layout = QFormLayout()
         form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-        form_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
+        screen_properties_group.setLayout(form_layout)
 
         # --- Screen Number ---
         self.screen_number_spinbox = QSpinBox()
@@ -48,20 +50,26 @@ class BaseScreenDialog(QDialog):
         self.description_char_count = QLabel("0/500")
         self.description_char_count.setAlignment(Qt.AlignmentFlag.AlignRight)
         
-        # Use a widget to contain the text edit and character count
         description_widget = QWidget()
         description_layout = QVBoxLayout(description_widget)
         description_layout.setContentsMargins(0,0,0,0)
         description_layout.setSpacing(2)
         description_layout.addWidget(self.description_input)
         description_layout.addWidget(self.description_char_count)
-        form_layout.addRow(QLabel("Detail Description:"), description_widget)
+        form_layout.addRow(QLabel("Description:"), description_widget)
+
+        main_layout.addWidget(screen_properties_group)
+
+        # --- Other Settings GroupBox ---
+        other_settings_group = QGroupBox("Other Settings")
+        other_form_layout = QFormLayout()
+        other_settings_group.setLayout(other_form_layout)
 
         # --- Security ---
         self.security_spinbox = QSpinBox()
-        self.security_spinbox.setRange(0, 255)  # Default range, can be adjusted
+        self.security_spinbox.setRange(0, 255)
         self.security_spinbox.setToolTip("Set the security level for this screen (0-255).")
-        form_layout.addRow(QLabel("Security:"), self.security_spinbox)
+        other_form_layout.addRow(QLabel("Security:"), self.security_spinbox)
         
         # --- Individual Screen Design ---
         self.design_checkbox = QCheckBox("Individual Set Screen Design")
@@ -73,9 +81,10 @@ class BaseScreenDialog(QDialog):
         self.design_preview_button.clicked.connect(self._open_screen_design_dialog)
         self.design_checkbox.toggled.connect(self._toggle_design_options)
         
-        form_layout.addRow(self.design_checkbox, self.design_preview_button)
+        other_form_layout.addRow(self.design_checkbox, self.design_preview_button)
 
-        main_layout.addLayout(form_layout)
+        main_layout.addWidget(other_settings_group)
+        main_layout.addStretch()
 
         # --- Dialog Buttons ---
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -83,7 +92,7 @@ class BaseScreenDialog(QDialog):
         buttons.rejected.connect(self.reject)
         main_layout.addWidget(buttons)
         
-        self.setFixedSize(500, 350)
+        self.resize(500, 450)
 
     def check_description_length(self):
         """Updates the character count label for the description."""
@@ -182,7 +191,8 @@ class BaseScreenDialog(QDialog):
             "height": height,
             "description": self.description_input.toPlainText(),
             "security": self.security_spinbox.value(),
-            "design": self.screen_design_data if self.design_checkbox.isChecked() else None
+            "design": self.screen_design_data if self.design_checkbox.isChecked() else None,
+            "type": "base"
         }
         
         # Call the parent's accept() method to close the dialog with an accepted result

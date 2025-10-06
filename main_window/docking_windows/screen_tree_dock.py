@@ -35,7 +35,6 @@ class ScreenTreeDock(QDockWidget):
         self.tree_widget.itemDoubleClicked.connect(self.handle_double_click)
         
         # Counters for new items
-        self.window_screen_count = 0
         self.template_screen_count = 0
         self.widgets_screen_count = 0
 
@@ -130,11 +129,13 @@ class ScreenTreeDock(QDockWidget):
         Retrieves all existing screen numbers from the data stored in the tree items.
         """
         numbers = []
-        for i in range(self.base_screens_root.childCount()):
-            child_item = self.base_screens_root.child(i)
-            item_data = child_item.data(0, Qt.ItemDataRole.UserRole)
-            if isinstance(item_data, dict) and "number" in item_data:
-                numbers.append(item_data["number"])
+        roots = [self.base_screens_root, self.window_screens_root, self.template_screens_root, self.widgets_screens_root]
+        for root in roots:
+            for i in range(root.childCount()):
+                child_item = root.child(i)
+                item_data = child_item.data(0, Qt.ItemDataRole.UserRole)
+                if isinstance(item_data, dict) and "number" in item_data:
+                    numbers.append(item_data["number"])
         return numbers
 
     def add_main_screen(self):
@@ -146,6 +147,7 @@ class ScreenTreeDock(QDockWidget):
         
         if dialog.exec():
             data = dialog.get_screen_data()
+            if not data: return
             
             # Create the display text for the tree item
             new_item_text = f"[B] - {data['number']} - {data['name']}"
@@ -164,11 +166,19 @@ class ScreenTreeDock(QDockWidget):
         """
         Opens a dialog and adds a new window screen as a child of "Window Screens".
         """
-        dialog = WindowScreenDialog(self)
+        existing_numbers = self.get_existing_screen_numbers()
+        dialog = WindowScreenDialog(self, existing_screen_numbers=existing_numbers)
         if dialog.exec():
-            self.window_screen_count += 1
-            new_item = QTreeWidgetItem(self.window_screens_root, [f"Window Screen {self.window_screen_count}"])
+            data = dialog.get_screen_data()
+            if not data: return
+
+            new_item_text = f"[W] - {data['number']} - {data['name']}"
+            new_item = QTreeWidgetItem(self.window_screens_root, [new_item_text])
+            new_item.setData(0, Qt.ItemDataRole.UserRole, data)
             new_item.setIcon(0, IconService.get_icon('screen-window-white'))
+            self.window_screens_root.setExpanded(True)
+            
+            # self.main_window.open_screen(data) # Decide if window screens should open immediately
 
     def add_template_screen(self):
         """
