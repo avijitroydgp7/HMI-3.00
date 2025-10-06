@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
         self.settings_service = settings_service
         self.project_service = ProjectService()
         self.edit_service = EditService()
-        self.open_screens = {} # Dictionary to track open screens {screen_number: widget}
+        self.open_screens = {} # Dictionary to track open screens {(type, number): widget}
 
         # Set the window title
         self.update_window_title()
@@ -182,30 +182,54 @@ class MainWindow(QMainWindow):
         if not screen_data:
             return
 
-        if 'width' not in screen_data:
-            screen_data['width'] = 1024
-        if 'height' not in screen_data:
-            screen_data['height'] = 768
-
+        screen_type = screen_data.get('type')
         screen_number = screen_data.get('number')
-        if screen_number is None:
+        
+        if not screen_type or screen_number is None:
             return
 
-        if screen_number in self.open_screens:
-            widget_to_activate = self.open_screens.get(screen_number)
+        screen_id = (screen_type, screen_number)
+
+        if screen_id in self.open_screens:
+            widget_to_activate = self.open_screens.get(screen_id)
             if widget_to_activate:
                 self.central_widget.setCurrentWidget(widget_to_activate)
             return
 
         screen_widget = CanvasBaseScreen(screen_data)
         screen_widget.zoom_changed.connect(lambda zf, sw=screen_widget: self.sync_zoom_controls(sw))
+        
+        if screen_type == 'base':
+            tab_title = f"[B] - {screen_number} - {screen_data.get('name')}"
+            icon = IconService.get_icon("screen-base")
+        elif screen_type == 'window':
+            tab_title = f"[W] - {screen_number} - {screen_data.get('name')}"
+            icon = IconService.get_icon("screen-window")
+        else:
+            return # Don't open unsupported types for now
 
-        tab_title = f"[B] - {screen_data.get('number')} - {screen_data.get('name')}"
         index = self.central_widget.addTab(screen_widget, tab_title)
-        self.central_widget.setTabIcon(index, IconService.get_icon("screen-base"))
+        self.central_widget.setTabIcon(index, icon)
 
-        self.open_screens[screen_number] = screen_widget
+        self.open_screens[screen_id] = screen_widget
         self.central_widget.setCurrentWidget(screen_widget)
+
+    def is_screen_open(self, screen_id):
+        return screen_id in self.open_screens
+
+    def close_screen_by_id(self, screen_id):
+        if screen_id in self.open_screens:
+            widget_to_close = self.open_screens[screen_id]
+            index = self.central_widget.indexOf(widget_to_close)
+            if index != -1:
+                self.central_widget.removeTab(index)
+            del self.open_screens[screen_id]
+
+    def get_screen_id_for_widget(self, widget):
+        for screen_id, screen_widget in self.open_screens.items():
+            if screen_widget is widget:
+                return screen_id
+        return None
 
     def close_screen_tab(self, index):
         """Closes a screen tab."""
@@ -213,14 +237,10 @@ class MainWindow(QMainWindow):
         if not widget:
             return
 
-        screen_number_to_remove = None
-        for number, screen_widget in self.open_screens.items():
-            if screen_widget is widget:
-                screen_number_to_remove = number
-                break
+        screen_id_to_remove = self.get_screen_id_for_widget(widget)
         
-        if screen_number_to_remove is not None:
-            del self.open_screens[screen_number_to_remove]
+        if screen_id_to_remove is not None:
+            del self.open_screens[screen_id_to_remove]
 
         self.central_widget.removeTab(index)
             
@@ -632,3 +652,4 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+

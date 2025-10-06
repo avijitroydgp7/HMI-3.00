@@ -8,18 +8,17 @@ from PyQt6.QtCore import Qt
 
 class WindowScreenDialog(QDialog):
     """
-    A dialog window for adding a new window screen with position and size properties.
+    A dialog window for adding or editing a new window screen with position and size properties.
     """
-    def __init__(self, parent=None, existing_screen_numbers=None):
+    def __init__(self, parent=None, existing_screen_numbers=None, initial_data=None):
         super().__init__(parent)
-        self.setWindowTitle("Add New Window Screen")
+        self.setWindowTitle("Window Screen Properties")
 
         self.existing_screen_numbers = existing_screen_numbers if existing_screen_numbers is not None else []
         self.screen_data = {}
 
         main_layout = QVBoxLayout(self)
 
-        # --- Screen Properties GroupBox ---
         screen_properties_group = QGroupBox("Screen Properties")
         screen_form_layout = QFormLayout()
         screen_properties_group.setLayout(screen_form_layout)
@@ -38,7 +37,6 @@ class WindowScreenDialog(QDialog):
 
         main_layout.addWidget(screen_properties_group)
 
-        # --- Window Properties GroupBox ---
         window_properties_group = QGroupBox("Window Properties")
         window_form_layout = QFormLayout()
         window_properties_group.setLayout(window_form_layout)
@@ -73,19 +71,32 @@ class WindowScreenDialog(QDialog):
         main_layout.addWidget(window_properties_group)
         main_layout.addStretch()
 
-        # Add OK and Cancel buttons
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         main_layout.addWidget(buttons)
         
         self.resize(400, 380)
+
+        if initial_data:
+            self.load_screen_data(initial_data)
         
+    def load_screen_data(self, data):
+        self.screen_number_spinbox.setValue(data.get("number", 1))
+        self.screen_number_spinbox.setEnabled(False) # Don't allow editing number
+        self.screen_name_input.setText(data.get("name", ""))
+        self.description_input.setPlainText(data.get("description", ""))
+        self.x_spinbox.setValue(data.get("x", 0))
+        self.y_spinbox.setValue(data.get("y", 0))
+        self.width_spinbox.setValue(data.get("width", 640))
+        self.height_spinbox.setValue(data.get("height", 480))
+
     def accept(self):
-        screen_number = self.screen_number_spinbox.value()
-        if screen_number in self.existing_screen_numbers:
-            QMessageBox.warning(self, "Input Error", f"Screen number {screen_number} already exists.")
-            return
+        if self.screen_number_spinbox.isEnabled():
+            screen_number = self.screen_number_spinbox.value()
+            if screen_number in self.existing_screen_numbers:
+                QMessageBox.warning(self, "Input Error", f"Screen number {screen_number} already exists.")
+                return
 
         if not self.screen_name_input.text().strip():
             QMessageBox.warning(self, "Input Error", "Screen name cannot be empty.")
@@ -105,3 +116,4 @@ class WindowScreenDialog(QDialog):
 
     def get_screen_data(self):
         return self.screen_data
+

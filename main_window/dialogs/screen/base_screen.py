@@ -11,39 +11,33 @@ from .screen_design import ScreenDesignDialog
 
 class BaseScreenDialog(QDialog):
     """
-    A dialog window for adding a new base screen with detailed options.
+    A dialog window for adding or editing a new base screen with detailed options.
     """
-    def __init__(self, parent=None, existing_screen_numbers=None):
+    def __init__(self, parent=None, existing_screen_numbers=None, initial_data=None):
         super().__init__(parent)
-        self.setWindowTitle("Add New Base Screen")
+        self.setWindowTitle("Base Screen Properties")
         
-        # Store data from the dialog
         self.existing_screen_numbers = existing_screen_numbers if existing_screen_numbers is not None else []
         self.screen_design_data = None
         self.screen_data = {}
 
-        # Main layout
         main_layout = QVBoxLayout(self)
 
-        # --- Screen Properties GroupBox ---
         screen_properties_group = QGroupBox("Screen Properties")
         form_layout = QFormLayout()
         form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
         screen_properties_group.setLayout(form_layout)
 
-        # --- Screen Number ---
         self.screen_number_spinbox = QSpinBox()
         self.screen_number_spinbox.setRange(1, 64000)
         self.screen_number_spinbox.setToolTip("Enter a unique screen number between 1 and 64000.")
         form_layout.addRow(QLabel("Screen Number:"), self.screen_number_spinbox)
 
-        # --- Screen Name ---
         self.screen_name_input = QLineEdit()
         self.screen_name_input.setMaxLength(50)
         self.screen_name_input.setToolTip("Enter a descriptive name for the screen (max 50 characters).")
         form_layout.addRow(QLabel("Screen Name:"), self.screen_name_input)
 
-        # --- Detail Description ---
         self.description_input = QTextEdit()
         self.description_input.setPlaceholderText("Maximum 500 characters")
         self.description_input.textChanged.connect(self.check_description_length)
@@ -60,18 +54,15 @@ class BaseScreenDialog(QDialog):
 
         main_layout.addWidget(screen_properties_group)
 
-        # --- Other Settings GroupBox ---
         other_settings_group = QGroupBox("Other Settings")
         other_form_layout = QFormLayout()
         other_settings_group.setLayout(other_form_layout)
 
-        # --- Security ---
         self.security_spinbox = QSpinBox()
         self.security_spinbox.setRange(0, 255)
         self.security_spinbox.setToolTip("Set the security level for this screen (0-255).")
         other_form_layout.addRow(QLabel("Security:"), self.security_spinbox)
         
-        # --- Individual Screen Design ---
         self.design_checkbox = QCheckBox("Individual Set Screen Design")
         self.design_checkbox.setToolTip("Enable to set a custom design for this screen.")
         
@@ -86,13 +77,28 @@ class BaseScreenDialog(QDialog):
         main_layout.addWidget(other_settings_group)
         main_layout.addStretch()
 
-        # --- Dialog Buttons ---
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         main_layout.addWidget(buttons)
         
         self.resize(500, 450)
+
+        if initial_data:
+            self.load_screen_data(initial_data)
+
+    def load_screen_data(self, data):
+        self.screen_number_spinbox.setValue(data.get("number", 1))
+        self.screen_number_spinbox.setEnabled(False) # Don't allow editing number
+        self.screen_name_input.setText(data.get("name", ""))
+        self.description_input.setPlainText(data.get("description", ""))
+        self.security_spinbox.setValue(data.get("security", 0))
+        
+        design_data = data.get("design")
+        if design_data:
+            self.screen_design_data = design_data
+            self.design_checkbox.setChecked(True)
+            self._update_design_preview()
 
     def check_description_length(self):
         """Updates the character count label for the description."""
@@ -156,34 +162,29 @@ class BaseScreenDialog(QDialog):
         """
         Validates the inputs, gathers the data, and then closes the dialog.
         """
-        # Validate Screen Number uniqueness
-        screen_number = self.screen_number_spinbox.value()
-        if screen_number in self.existing_screen_numbers:
-            QMessageBox.warning(self, "Input Error", f"Screen number {screen_number} already exists. Please choose a unique number.")
-            return
+        # Validate Screen Number uniqueness if it's enabled (i.e., a new screen)
+        if self.screen_number_spinbox.isEnabled():
+            screen_number = self.screen_number_spinbox.value()
+            if screen_number in self.existing_screen_numbers:
+                QMessageBox.warning(self, "Input Error", f"Screen number {screen_number} already exists. Please choose a unique number.")
+                return
 
-        # Validate Screen Name is not empty
         if not self.screen_name_input.text().strip():
             QMessageBox.warning(self, "Input Error", "Screen name cannot be empty.")
             return
             
-        # Validate Description Length
         if len(self.description_input.toPlainText()) > 500:
             QMessageBox.warning(self, "Input Error", "The detail description cannot exceed 500 characters.")
             return
 
-        # Get screen dimensions from primary display
         screen = QApplication.primaryScreen()
+        width = 1920
+        height = 1080
         if screen:
             screen_geometry = screen.geometry()
             width = screen_geometry.width()
             height = screen_geometry.height()
-        else: # Fallback if no primary screen is found
-            width = 1920
-            height = 1080
 
-
-        # If validation passes, gather data into the instance variable
         self.screen_data = {
             "number": self.screen_number_spinbox.value(),
             "name": self.screen_name_input.text().strip(),
@@ -195,9 +196,9 @@ class BaseScreenDialog(QDialog):
             "type": "base"
         }
         
-        # Call the parent's accept() method to close the dialog with an accepted result
         super().accept()
         
     def get_screen_data(self):
         """Returns the screen data that was gathered when the dialog was accepted."""
         return self.screen_data
+

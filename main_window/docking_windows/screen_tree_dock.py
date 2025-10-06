@@ -1,5 +1,6 @@
 # main_window\docking_windows\screen_tree_dock.py
-from PyQt6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog
+import copy
+from PyQt6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog, QMessageBox
 from PyQt6.QtCore import Qt
 from ..dialogs.screen.screen_design import ScreenDesignDialog
 from ..dialogs.screen.base_screen import BaseScreenDialog
@@ -23,6 +24,7 @@ class ScreenTreeDock(QDockWidget):
         super().__init__("Screen Tree", main_window)
         self.main_window = main_window
         self.setObjectName("screen_tree")
+        self._clipboard = None
 
         self.tree_widget = CustomTreeWidget()
         self.setWidget(self.tree_widget)
@@ -80,25 +82,43 @@ class ScreenTreeDock(QDockWidget):
 
         menu = QMenu()
         
-        # Context menu for "Base Screens" category
+        parent = item.parent()
+        is_screen_item = parent in [self.base_screens_root, self.window_screens_root]
+
         if item == self.base_screens_root:
             add_main_screen_action = menu.addAction("Add New Base Screen")
             add_main_screen_action.triggered.connect(self.add_main_screen)
         
-        # Context menu for "Window Screens" category
         elif item == self.window_screens_root:
             add_window_screen_action = menu.addAction("Add New Window Screen")
             add_window_screen_action.triggered.connect(self.add_window_screen)
 
-        # Context menu for "Template Screens" category
         elif item == self.template_screens_root:
             add_template_screen_action = menu.addAction("Add New Template Screen")
             add_template_screen_action.triggered.connect(self.add_template_screen)
             
-        # Context menu for "Widgets" category
         elif item == self.widgets_screens_root:
             add_widgets_screen_action = menu.addAction("Add New Widgets Screen")
             add_widgets_screen_action.triggered.connect(self.add_widgets_screen)
+
+        elif is_screen_item:
+            open_action = menu.addAction(IconService.get_icon('screen-open'), "Open")
+            open_action.triggered.connect(lambda: self.open_selected_screen(item))
+            menu.addSeparator()
+            cut_action = menu.addAction(IconService.get_icon('edit-cut'), "Cut")
+            cut_action.triggered.connect(lambda: self.cut_screen(item))
+            copy_action = menu.addAction(IconService.get_icon('edit-copy'), "Copy")
+            copy_action.triggered.connect(lambda: self.copy_screen(item))
+            paste_action = menu.addAction(IconService.get_icon('edit-paste'), "Paste")
+            paste_action.setEnabled(self._clipboard is not None)
+            paste_action.triggered.connect(lambda: self.paste_screen(item))
+            menu.addSeparator()
+            properties_action = menu.addAction(IconService.get_icon('screen-property'), "Properties")
+            properties_action.triggered.connect(lambda: self.show_screen_properties(item))
+            menu.addSeparator()
+            delete_action = menu.addAction(IconService.get_icon('edit-delete'), "Delete")
+            delete_action.triggered.connect(lambda: self.delete_screen(item))
+
 
         if menu.actions():
             menu.exec(self.tree_widget.viewport().mapToGlobal(position))
@@ -109,10 +129,15 @@ class ScreenTreeDock(QDockWidget):
         """
         if item == self.screen_design_item:
             self.open_screen_design()
-        
-        # Check if the double-clicked item is a screen (a child of one of the root nodes)
+        else:
+            self.open_selected_screen(item)
+
+    def open_selected_screen(self, item):
+        if not item or not item.parent():
+            return
+            
         parent = item.parent()
-        if parent in [self.base_screens_root, self.window_screens_root, self.template_screens_root, self.widgets_screens_root]:
+        if parent in [self.base_screens_root, self.window_screens_root]:
             screen_data = item.data(0, Qt.ItemDataRole.UserRole)
             if screen_data:
                 self.main_window.open_screen(screen_data)
@@ -124,61 +149,136 @@ class ScreenTreeDock(QDockWidget):
         dialog = ScreenDesignDialog(self)
         dialog.exec()
 
-    def get_existing_screen_numbers(self):
+    def get_existing_screen_numbers(self, screen_type):
         """
-        Retrieves all existing screen numbers from the data stored in the tree items.
+        Retrieves all existing screen numbers for a specific screen type ('base' or 'window').
         """
         numbers = []
-        roots = [self.base_screens_root, self.window_screens_root, self.template_screens_root, self.widgets_screens_root]
-        for root in roots:
-            for i in range(root.childCount()):
-                child_item = root.child(i)
+        root_item = None
+        if screen_type == 'base':
+            root_item = self.base_screens_root
+        elif screen_type == 'window':
+            root_item = self.window_screens_root
+        
+        if root_item:
+            for i in range(root_item.childCount()):
+                child_item = root_item.child(i)
                 item_data = child_item.data(0, Qt.ItemDataRole.UserRole)
                 if isinstance(item_data, dict) and "number" in item_data:
                     numbers.append(item_data["number"])
         return numbers
 
+
     def add_main_screen(self):
         """
         Opens a dialog to get screen details and adds a new base screen to the tree.
         """
-        existing_numbers = self.get_existing_screen_numbers()
-        dialog = BaseScreenDialog(self, existing_screen_numbers=existing_numbers)
-        
-        if dialog.exec():
-            data = dialog.get_screen_data()
-            if not data: return
-            
-            # Create the display text for the tree item
-            new_item_text = f"[B] - {data['number']} - {data['name']}"
-            new_item = QTreeWidgetItem(self.base_screens_root, [new_item_text])
-            
-            # Store the dictionary of screen data with the tree item
-            new_item.setData(0, Qt.ItemDataRole.UserRole, data)
-            
-            new_item.setIcon(0, IconService.get_icon('screen-base-white'))
-            self.base_screens_root.setExpanded(True)
-
-            # Open the new screen in the main canvas
-            self.main_window.open_screen(data)
+        self._add_screen(BaseScreenDialog, self.base_screens_root, 'screen-base-white', "[B]", screen_type='base')
 
     def add_window_screen(self):
         """
         Opens a dialog and adds a new window screen as a child of "Window Screens".
         """
-        existing_numbers = self.get_existing_screen_numbers()
-        dialog = WindowScreenDialog(self, existing_screen_numbers=existing_numbers)
-        if dialog.exec():
-            data = dialog.get_screen_data()
-            if not data: return
+        self._add_screen(WindowScreenDialog, self.window_screens_root, 'screen-window-white', "[W]", screen_type='window')
 
-            new_item_text = f"[W] - {data['number']} - {data['name']}"
-            new_item = QTreeWidgetItem(self.window_screens_root, [new_item_text])
-            new_item.setData(0, Qt.ItemDataRole.UserRole, data)
-            new_item.setIcon(0, IconService.get_icon('screen-window-white'))
-            self.window_screens_root.setExpanded(True)
+    def _add_screen(self, dialog_class, parent_item, icon_name, prefix, screen_type, data_to_add=None):
+        if data_to_add is None:
+            existing_numbers = self.get_existing_screen_numbers(screen_type)
+            dialog = dialog_class(self, existing_screen_numbers=existing_numbers)
+            if not dialog.exec():
+                return
+            data = dialog.get_screen_data()
+        else:
+            data = data_to_add
+        
+        if not data: return
+        
+        new_item_text = f"{prefix} - {data['number']} - {data['name']}"
+        new_item = QTreeWidgetItem(parent_item, [new_item_text])
+        
+        new_item.setData(0, Qt.ItemDataRole.UserRole, data)
+        new_item.setIcon(0, IconService.get_icon(icon_name))
+        parent_item.setExpanded(True)
+
+        if data_to_add is None: # Only open if it's a new screen, not a paste
+            self.main_window.open_screen(data)
             
-            # self.main_window.open_screen(data) # Decide if window screens should open immediately
+    def cut_screen(self, item):
+        self.copy_screen(item)
+        self.delete_screen(item, confirm=False)
+
+    def copy_screen(self, item):
+        screen_data = item.data(0, Qt.ItemDataRole.UserRole)
+        if screen_data:
+            self._clipboard = copy.deepcopy(screen_data)
+
+    def paste_screen(self, item):
+        if not self._clipboard:
+            return
+            
+        pasted_data = copy.deepcopy(self._clipboard)
+        screen_type = pasted_data.get('type')
+        
+        # Find a new unique screen number within the correct category
+        existing_numbers = self.get_existing_screen_numbers(screen_type)
+        new_number = pasted_data['number']
+        while new_number in existing_numbers:
+            new_number += 1
+        pasted_data['number'] = new_number
+        pasted_data['name'] += " (copy)"
+        
+        if screen_type == 'base':
+            self._add_screen(BaseScreenDialog, self.base_screens_root, 'screen-base-white', "[B]", screen_type, pasted_data)
+        elif screen_type == 'window':
+             self._add_screen(WindowScreenDialog, self.window_screens_root, 'screen-window-white', "[W]", screen_type, pasted_data)
+             
+    def show_screen_properties(self, item):
+        screen_data = item.data(0, Qt.ItemDataRole.UserRole)
+        if not screen_data:
+            return
+        
+        screen_type = screen_data.get('type')
+        existing_numbers = self.get_existing_screen_numbers(screen_type)
+        current_number = screen_data.get("number")
+        # Allow the current number to be "valid" for editing
+        editable_numbers = [num for num in existing_numbers if num != current_number]
+
+        dialog_class = BaseScreenDialog if screen_type == 'base' else WindowScreenDialog
+        dialog = dialog_class(self, existing_screen_numbers=editable_numbers, initial_data=screen_data)
+
+        if dialog.exec():
+            updated_data = dialog.get_screen_data()
+            item.setData(0, Qt.ItemDataRole.UserRole, updated_data)
+            prefix = "[B]" if updated_data.get('type') == 'base' else "[W]"
+            item.setText(0, f"{prefix} - {updated_data['number']} - {updated_data['name']}")
+            
+            screen_id = (screen_type, current_number)
+            if self.main_window.is_screen_open(screen_id):
+                self.main_window.close_screen_by_id(screen_id)
+                self.main_window.open_screen(updated_data)
+
+    def delete_screen(self, item, confirm=True):
+        if not item or not item.parent():
+            return
+
+        screen_data = item.data(0, Qt.ItemDataRole.UserRole)
+        if not screen_data:
+            return
+
+        reply = QMessageBox.StandardButton.Yes
+        if confirm:
+            reply = QMessageBox.question(self, "Delete Screen", 
+                                         f"Are you sure you want to delete '{screen_data.get('name')}'?",
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            screen_number = screen_data.get('number')
+            screen_type = screen_data.get('type')
+            screen_id = (screen_type, screen_number)
+            item.parent().removeChild(item)
+            if screen_id is not None:
+                self.main_window.close_screen_by_id(screen_id)
+
 
     def add_template_screen(self):
         """
