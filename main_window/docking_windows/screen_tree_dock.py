@@ -21,6 +21,7 @@ class ScreenTreeDock(QDockWidget):
             main_window (QMainWindow): The main window instance.
         """
         super().__init__("Screen Tree", main_window)
+        self.main_window = main_window
         self.setObjectName("screen_tree")
 
         self.tree_widget = CustomTreeWidget()
@@ -105,10 +106,17 @@ class ScreenTreeDock(QDockWidget):
 
     def handle_double_click(self, item, column):
         """
-        Handles double-click events on tree items.
+        Handles double-click events on tree items to open screens.
         """
         if item == self.screen_design_item:
             self.open_screen_design()
+        
+        # Check if the double-clicked item is a screen (a child of one of the root nodes)
+        parent = item.parent()
+        if parent in [self.base_screens_root, self.window_screens_root, self.template_screens_root, self.widgets_screens_root]:
+            screen_data = item.data(0, Qt.ItemDataRole.UserRole)
+            if screen_data:
+                self.main_window.open_screen(screen_data)
 
     def open_screen_design(self):
         """
@@ -149,6 +157,9 @@ class ScreenTreeDock(QDockWidget):
             new_item.setIcon(0, IconService.get_icon('screen-base-white'))
             self.base_screens_root.setExpanded(True)
 
+            # Open the new screen in the main canvas
+            self.main_window.open_screen(data)
+
     def add_window_screen(self):
         """
         Opens a dialog and adds a new window screen as a child of "Window Screens".
@@ -178,3 +189,4 @@ class ScreenTreeDock(QDockWidget):
             self.widgets_screen_count += 1
             new_item = QTreeWidgetItem(self.widgets_screens_root, [f"Widget {self.widgets_screen_count}"])
             new_item.setIcon(0, IconService.get_icon('screen-widgets-white'))
+

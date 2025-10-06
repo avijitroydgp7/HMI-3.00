@@ -1,6 +1,6 @@
 "main_window/main_window.py"
 import sys
-from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog
+from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog, QMdiArea, QMdiSubWindow
 from PyQt6.QtCore import Qt, QSize, QByteArray
 from PyQt6.QtGui import QAction
 
@@ -29,6 +29,7 @@ from .docking_windows.dock_widget_factory import DockWidgetFactory
 from .services.icon_service import IconService
 from services.project_service import ProjectService
 from services.edit_service import EditService
+from screen.base.canvas_base_screen import CanvasBaseScreen
 
 class MainWindow(QMainWindow):
     """
@@ -55,9 +56,8 @@ class MainWindow(QMainWindow):
         
         self.setIconSize(QSize(24, 24))
         
-        # Set the central widget
-        self.central_widget = QTextEdit("Central Workspace")
-        self.central_widget.document().contentsChanged.connect(self.project_modified)
+        # Set the central widget to an MDI area for multiple screens
+        self.central_widget = QMdiArea()
         self.setCentralWidget(self.central_widget)
 
         # Allow nested docks and tabbed docks
@@ -99,28 +99,25 @@ class MainWindow(QMainWindow):
         self.update_window_title()
 
     def get_project_content(self):
-        """Gets the current project content from the central widget."""
-        if self.central_widget:
-            return self.central_widget.toPlainText()
+        """Gets the current project content. (Placeholder for multi-screen)"""
         return ""
 
     def set_project_content(self, content):
-        """Sets the project content in the central widget."""
-        if self.central_widget:
-            self.central_widget.setPlainText(content)
+        """Sets the project content. (Placeholder for multi-screen)"""
+        pass
 
     def new_project(self):
         if not self.prompt_to_save():
             return
         self.project_service.new_project()
-        self.central_widget.clear()
+        self.central_widget.closeAllSubWindows()
         self.update_window_title()
 
     def prepare_project_data(self):
         """Prepares project data for saving."""
+        # This will need to be updated to serialize all open screens
         return {
             'content': self.get_project_content(),
-            'central_widget_content': self.get_project_content()
         }
 
     def open_project(self):
@@ -171,6 +168,19 @@ class MainWindow(QMainWindow):
                 return False
         return False
 
+    def open_screen(self, screen_data):
+        """Creates and opens a new screen in the central MDI area."""
+        if not screen_data:
+            return
+
+        screen_widget = CanvasBaseScreen(screen_data)
+        sub_window = QMdiSubWindow()
+        sub_window.setWidget(screen_widget)
+        sub_window.setWindowTitle(f"Screen: {screen_data.get('number')} - {screen_data.get('name')}")
+        sub_window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.central_widget.addSubWindow(sub_window)
+        sub_window.show()
+
     def prompt_to_save(self):
         if self.project_service.is_saved:
             return True
@@ -184,7 +194,50 @@ class MainWindow(QMainWindow):
         elif reply == QMessageBox.StandardButton.Cancel:
             return False
         return True
-        self.project_service.is_saved = False
+
+    def get_active_screen_widget(self):
+        """Returns the widget from the currently active MDI sub-window."""
+        active_sub_window = self.central_widget.activeSubWindow()
+        if active_sub_window:
+            return active_sub_window.widget()
+        return None
+
+    def undo_active_widget(self):
+        widget = self.get_active_screen_widget()
+        if widget:
+            self.edit_service.undo(widget)
+
+    def redo_active_widget(self):
+        widget = self.get_active_screen_widget()
+        if widget:
+            self.edit_service.redo(widget)
+
+    def cut_active_widget(self):
+        widget = self.get_active_screen_widget()
+        if widget:
+            self.edit_service.cut(widget)
+
+    def copy_active_widget(self):
+        widget = self.get_active_screen_widget()
+        if widget:
+            self.edit_service.copy(widget)
+
+    def paste_active_widget(self):
+        widget = self.get_active_screen_widget()
+        if widget:
+            self.edit_service.paste(widget)
+            
+    def delete_in_active_widget(self):
+        widget = self.get_active_screen_widget()
+        if hasattr(widget, 'delete_selection'):
+             widget.delete_selection()
+        elif hasattr(widget, 'textCursor'):
+            widget.textCursor().removeSelectedText()
+
+    def select_all_in_active_widget(self):
+        widget = self.get_active_screen_widget()
+        if hasattr(widget, 'selectAll'):
+            widget.selectAll()
 
     def _create_menu_bar(self):
         """
@@ -203,16 +256,14 @@ class MainWindow(QMainWindow):
         self.figure_menu = FigureMenu(self, menu_bar)
         self.object_menu = ObjectMenu(self, menu_bar)
 
-        # Connect EditMenu actions to the EditService
-        self.edit_menu.undo_action.triggered.connect(lambda: self.edit_service.undo(self.central_widget))
-        self.edit_menu.redo_action.triggered.connect(lambda: self.edit_service.redo(self.central_widget))
-        self.edit_menu.cut_action.triggered.connect(lambda: self.edit_service.cut(self.central_widget))
-        self.edit_menu.copy_action.triggered.connect(lambda: self.edit_service.copy(self.central_widget))
-        self.edit_menu.paste_action.triggered.connect(lambda: self.edit_service.paste(self.central_widget))
-        # For QTextEdit, selectAll is a built-in slot
-        self.edit_menu.select_all_action.triggered.connect(self.central_widget.selectAll)
-        # For delete, we can remove selected text from the text cursor
-        self.edit_menu.delete_action.triggered.connect(lambda: self.central_widget.textCursor().removeSelectedText())
+        # Connect EditMenu actions to operate on the active widget
+        self.edit_menu.undo_action.triggered.connect(self.undo_active_widget)
+        self.edit_menu.redo_action.triggered.connect(self.redo_active_widget)
+        self.edit_menu.cut_action.triggered.connect(self.cut_active_widget)
+        self.edit_menu.copy_action.triggered.connect(self.copy_active_widget)
+        self.edit_menu.paste_action.triggered.connect(self.paste_active_widget)
+        self.edit_menu.select_all_action.triggered.connect(self.select_all_in_active_widget)
+        self.edit_menu.delete_action.triggered.connect(self.delete_in_active_widget)
 
     def _create_toolbars(self):
         """Creates the toolbars for the main window."""
@@ -432,3 +483,4 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+

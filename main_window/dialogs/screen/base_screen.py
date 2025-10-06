@@ -83,7 +83,7 @@ class BaseScreenDialog(QDialog):
         buttons.rejected.connect(self.reject)
         main_layout.addWidget(buttons)
         
-        self.resize(500, 400)
+        self.setFixedSize(500, 400)
 
     def check_description_length(self):
         """Updates the character count label for the description."""
@@ -178,4 +178,3 @@ class BaseScreenDialog(QDialog):
     def get_screen_data(self):
         """Returns the screen data that was gathered when the dialog was accepted."""
         return self.screen_data
-
