@@ -1,6 +1,6 @@
 # main_window\main_window.py
 import sys
-from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog, QMdiArea, QMdiSubWindow
+from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog, QTabWidget
 from PyQt6.QtCore import Qt, QSize, QByteArray
 from PyQt6.QtGui import QAction
 
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
         self.settings_service = settings_service
         self.project_service = ProjectService()
         self.edit_service = EditService()
-        self.open_screens = {} # Dictionary to track open screens {screen_number: sub_window}
+        self.open_screens = {} # Dictionary to track open screens {screen_number: widget}
 
         # Set the window title
         self.update_window_title()
@@ -57,9 +57,12 @@ class MainWindow(QMainWindow):
         
         self.setIconSize(QSize(24, 24))
         
-        # Set the central widget to an MDI area for multiple screens
-        self.central_widget = QMdiArea()
-        self.central_widget.subWindowActivated.connect(self.on_sub_window_activated)
+        # Set the central widget to a tab widget for multiple screens
+        self.central_widget = QTabWidget()
+        self.central_widget.setTabsClosable(True)
+        self.central_widget.setMovable(True)
+        self.central_widget.currentChanged.connect(self.on_tab_changed)
+        self.central_widget.tabCloseRequested.connect(self.close_screen_tab)
         self.setCentralWidget(self.central_widget)
 
         # Allow nested docks and tabbed docks
@@ -115,7 +118,8 @@ class MainWindow(QMainWindow):
         if not self.prompt_to_save():
             return
         self.project_service.new_project()
-        self.central_widget.closeAllSubWindows()
+        self.central_widget.clear()
+        self.open_screens.clear()
         self.update_window_title()
 
     def prepare_project_data(self):
@@ -174,49 +178,51 @@ class MainWindow(QMainWindow):
         return False
 
     def open_screen(self, screen_data):
-        """Creates and opens a new screen, or activates an existing one."""
+        """Creates and opens a new screen in a tab, or activates an existing one."""
         if not screen_data:
             return
 
-        # Ensure screen data has dimensions, providing defaults if not.
-        # This makes the application robust to older project files.
         if 'width' not in screen_data:
-            screen_data['width'] = 1024  # Default width
+            screen_data['width'] = 1024
         if 'height' not in screen_data:
-            screen_data['height'] = 768   # Default height
+            screen_data['height'] = 768
 
         screen_number = screen_data.get('number')
         if screen_number is None:
             return
 
-        # If screen is already open, just activate its window
         if screen_number in self.open_screens:
-            sub_window = self.open_screens.get(screen_number)
-            if sub_window:
-                self.central_widget.setActiveSubWindow(sub_window)
-                return
+            widget_to_activate = self.open_screens.get(screen_number)
+            if widget_to_activate:
+                self.central_widget.setCurrentWidget(widget_to_activate)
+            return
 
-        # If not open, create a new one
         screen_widget = CanvasBaseScreen(screen_data)
         screen_widget.zoom_changed.connect(lambda zf, sw=screen_widget: self.sync_zoom_controls(sw))
 
-        sub_window = QMdiSubWindow()
-        sub_window.setWidget(screen_widget)
-        sub_window.setWindowTitle(f"[B] - {screen_data.get('number')} - {screen_data.get('name')}")
-        sub_window.setWindowIcon(IconService.get_icon("screen-base"))
-        sub_window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        tab_title = f"[B] - {screen_data.get('number')} - {screen_data.get('name')}"
+        index = self.central_widget.addTab(screen_widget, tab_title)
+        self.central_widget.setTabIcon(index, IconService.get_icon("screen-base"))
 
-        # When the sub_window is destroyed (closed), remove it from our tracking dictionary
-        sub_window.destroyed.connect(lambda: self.on_screen_closed(screen_number))
+        self.open_screens[screen_number] = screen_widget
+        self.central_widget.setCurrentWidget(screen_widget)
 
-        self.central_widget.addSubWindow(sub_window)
-        self.open_screens[screen_number] = sub_window # Add to tracker
-        sub_window.show()
+    def close_screen_tab(self, index):
+        """Closes a screen tab."""
+        widget = self.central_widget.widget(index)
+        if not widget:
+            return
 
-    def on_screen_closed(self, screen_number):
-        """Removes a screen from the tracking dictionary when its window is closed."""
-        if screen_number in self.open_screens:
-            del self.open_screens[screen_number]
+        screen_number_to_remove = None
+        for number, screen_widget in self.open_screens.items():
+            if screen_widget is widget:
+                screen_number_to_remove = number
+                break
+        
+        if screen_number_to_remove is not None:
+            del self.open_screens[screen_number_to_remove]
+
+        self.central_widget.removeTab(index)
             
     def prompt_to_save(self):
         if self.project_service.is_saved:
@@ -300,21 +306,16 @@ class MainWindow(QMainWindow):
                         )
 
     def get_active_screen_widget(self):
-        """Returns the widget from the currently active MDI sub-window."""
-        active_sub_window = self.central_widget.activeSubWindow()
-        if active_sub_window:
-            return active_sub_window.widget()
-        return None
+        """Returns the widget from the currently active tab."""
+        return self.central_widget.currentWidget()
 
-    def on_sub_window_activated(self, sub_window):
-        """Handles syncing UI when a sub-window is activated."""
-        if sub_window:
-            widget = sub_window.widget()
-            if isinstance(widget, CanvasBaseScreen):
-                # Sync the zoom controls to the newly activated window's state
-                self.sync_zoom_controls(widget)
+    def on_tab_changed(self, index):
+        """Handles syncing UI when the current tab is changed."""
+        widget = self.central_widget.widget(index)
+        if isinstance(widget, CanvasBaseScreen):
+            self.sync_zoom_controls(widget)
         else:
-            # Optional: handle case where no window is active (e.g., disable zoom controls)
+            # No screen active, maybe disable some controls. For now, pass.
             pass
             
     # --- Zoom Handlers ---
@@ -631,4 +632,3 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
-

@@ -12,7 +12,9 @@ class CanvasWidget(QGraphicsWidget):
     def __init__(self, screen_data):
         super().__init__()
         self.screen_data = screen_data
-        self.setMinimumSize(1920, 1080)  # Default size for a new screen
+        width = self.screen_data.get("width", 1920)
+        height = self.screen_data.get("height", 1080)
+        self.setGeometry(0, 0, width, height)
         self.update_background()
 
     def update_background(self):
