@@ -1,4 +1,4 @@
-"main_window/dialogs/screen/base_screen.py"
+# main_window\dialogs\screen\base_screen.py
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLabel, QDialogButtonBox,
     QSpinBox, QLineEdit, QTextEdit, QCheckBox, QPushButton, QMessageBox,
@@ -40,6 +40,27 @@ class BaseScreenDialog(QDialog):
         self.screen_name_input.setMaxLength(50)
         self.screen_name_input.setToolTip("Enter a descriptive name for the screen (max 50 characters).")
         form_layout.addRow(QLabel("Screen Name:"), self.screen_name_input)
+
+        # --- Screen Dimensions ---
+        self.width_spinbox = QSpinBox()
+        self.width_spinbox.setRange(100, 8000)
+        self.width_spinbox.setValue(1024)
+        self.width_spinbox.setToolTip("Set the width of the screen in pixels.")
+        self.height_spinbox = QSpinBox()
+        self.height_spinbox.setRange(100, 8000)
+        self.height_spinbox.setValue(768)
+        self.height_spinbox.setToolTip("Set the height of the screen in pixels.")
+        
+        dim_layout = QHBoxLayout()
+        dim_layout.addWidget(QLabel("Width:"))
+        dim_layout.addWidget(self.width_spinbox)
+        dim_layout.addSpacing(20)
+        dim_layout.addWidget(QLabel("Height:"))
+        dim_layout.addWidget(self.height_spinbox)
+        
+        dim_widget = QWidget()
+        dim_widget.setLayout(dim_layout)
+        form_layout.addRow(QLabel("Screen Dimensions:"), dim_widget)
 
         # --- Detail Description ---
         self.description_input = QTextEdit()
@@ -83,7 +104,7 @@ class BaseScreenDialog(QDialog):
         buttons.rejected.connect(self.reject)
         main_layout.addWidget(buttons)
         
-        self.setFixedSize(500, 400)
+        self.setFixedSize(500, 450)
 
     def check_description_length(self):
         """Updates the character count label for the description."""
@@ -167,6 +188,8 @@ class BaseScreenDialog(QDialog):
         self.screen_data = {
             "number": self.screen_number_spinbox.value(),
             "name": self.screen_name_input.text().strip(),
+            "width": self.width_spinbox.value(),
+            "height": self.height_spinbox.value(),
             "description": self.description_input.toPlainText(),
             "security": self.security_spinbox.value(),
             "design": self.screen_design_data if self.design_checkbox.isChecked() else None

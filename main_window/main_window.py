@@ -1,4 +1,4 @@
-"main_window/main_window.py"
+# main_window\main_window.py
 import sys
 from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog, QMdiArea, QMdiSubWindow
 from PyQt6.QtCore import Qt, QSize, QByteArray
@@ -44,6 +44,7 @@ class MainWindow(QMainWindow):
         self.settings_service = settings_service
         self.project_service = ProjectService()
         self.edit_service = EditService()
+        self.open_screens = {} # Dictionary to track open screens {screen_number: sub_window}
 
         # Set the window title
         self.update_window_title()
@@ -58,6 +59,7 @@ class MainWindow(QMainWindow):
         
         # Set the central widget to an MDI area for multiple screens
         self.central_widget = QMdiArea()
+        self.central_widget.subWindowActivated.connect(self.on_sub_window_activated)
         self.setCentralWidget(self.central_widget)
 
         # Allow nested docks and tabbed docks
@@ -69,6 +71,9 @@ class MainWindow(QMainWindow):
         self._create_toolbars()
         # Create the dock widgets
         self._create_dock_widgets()
+        
+        # Connect UI signals to slots
+        self._connect_signals()
         
         # Restore window state from settings
         self._restore_window_state()
@@ -169,18 +174,49 @@ class MainWindow(QMainWindow):
         return False
 
     def open_screen(self, screen_data):
-        """Creates and opens a new screen in the central MDI area."""
+        """Creates and opens a new screen, or activates an existing one."""
         if not screen_data:
             return
 
+        # Ensure screen data has dimensions, providing defaults if not.
+        # This makes the application robust to older project files.
+        if 'width' not in screen_data:
+            screen_data['width'] = 1024  # Default width
+        if 'height' not in screen_data:
+            screen_data['height'] = 768   # Default height
+
+        screen_number = screen_data.get('number')
+        if screen_number is None:
+            return
+
+        # If screen is already open, just activate its window
+        if screen_number in self.open_screens:
+            sub_window = self.open_screens.get(screen_number)
+            if sub_window:
+                self.central_widget.setActiveSubWindow(sub_window)
+                return
+
+        # If not open, create a new one
         screen_widget = CanvasBaseScreen(screen_data)
+        screen_widget.zoom_changed.connect(lambda zf, sw=screen_widget: self.sync_zoom_controls(sw))
+
         sub_window = QMdiSubWindow()
         sub_window.setWidget(screen_widget)
         sub_window.setWindowTitle(f"Screen: {screen_data.get('number')} - {screen_data.get('name')}")
         sub_window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+
+        # When the sub_window is destroyed (closed), remove it from our tracking dictionary
+        sub_window.destroyed.connect(lambda: self.on_screen_closed(screen_number))
+
         self.central_widget.addSubWindow(sub_window)
+        self.open_screens[screen_number] = sub_window # Add to tracker
         sub_window.show()
 
+    def on_screen_closed(self, screen_number):
+        """Removes a screen from the tracking dictionary when its window is closed."""
+        if screen_number in self.open_screens:
+            del self.open_screens[screen_number]
+            
     def prompt_to_save(self):
         if self.project_service.is_saved:
             return True
@@ -195,12 +231,173 @@ class MainWindow(QMainWindow):
             return False
         return True
 
+    def _connect_signals(self):
+        """Connect all signals for the main window."""
+        # --- File Menu ---
+        self.file_menu.new_action.triggered.connect(self.new_project)
+        self.file_menu.open_action.triggered.connect(self.open_project)
+        self.file_menu.save_action.triggered.connect(self.save_project)
+        self.file_menu.save_as_action.triggered.connect(self.save_project_as)
+
+        # --- Edit Menu ---
+        self.edit_menu.undo_action.triggered.connect(self.undo_active_widget)
+        self.edit_menu.redo_action.triggered.connect(self.redo_active_widget)
+        self.edit_menu.cut_action.triggered.connect(self.cut_active_widget)
+        self.edit_menu.copy_action.triggered.connect(self.copy_active_widget)
+        self.edit_menu.paste_action.triggered.connect(self.paste_active_widget)
+        self.edit_menu.select_all_action.triggered.connect(self.select_all_in_active_widget)
+        self.edit_menu.delete_action.triggered.connect(self.delete_in_active_widget)
+
+        # --- View Menu & Toolbar (Zoom) ---
+        self.view_menu.zoom_action_group.triggered.connect(self.on_zoom_action_triggered)
+        self.view_menu.fit_screen_action.triggered.connect(self.on_fit_screen_triggered)
+
+        view_toolbar = self.toolbars.get("View")
+        if view_toolbar:
+            view_toolbar.zoom_in_button.clicked.connect(self.on_zoom_in_triggered)
+            view_toolbar.zoom_out_button.clicked.connect(self.on_zoom_out_triggered)
+            view_toolbar.zoom_combo.currentTextChanged.connect(self.on_zoom_combo_changed)
+
+        # --- Screen Menu ---
+        screen_tree = self.dock_factory.get_dock("screen_tree")
+        if screen_tree:
+            self.screen_menu.base_screen_action.triggered.connect(screen_tree.add_main_screen)
+            self.screen_menu.window_screen_action.triggered.connect(screen_tree.add_window_screen)
+            self.screen_menu.template_screen_action.triggered.connect(screen_tree.add_template_screen)
+            self.screen_menu.widgets_action.triggered.connect(screen_tree.add_widgets_screen)
+            self.screen_menu.screen_design_action.triggered.connect(screen_tree.open_screen_design)
+            
+        # --- Toolbar Visibility ---
+        for action in self.view_menu.tool_bar_menu.actions():
+            widget = action.defaultWidget()
+            checkbox = widget.findChild(QCheckBox)
+            if checkbox:
+                toolbar_name = action.text()
+                if toolbar_name in self.toolbars:
+                    checkbox.toggled.connect(
+                        lambda checked, name=toolbar_name: self.toggle_toolbar(checked, name)
+                    )
+
+        # --- Dock Widget Visibility ---
+        for action in self.view_menu.docking_window_menu.actions():
+            dock_name = action.text().lower().replace(' ', '_')
+            if self.dock_factory.get_dock(dock_name):
+                # Connect menu checkbox
+                menu_checkbox = action.defaultWidget().findChild(QCheckBox)
+                if menu_checkbox:
+                    menu_checkbox.toggled.connect(
+                        lambda checked, name=dock_name: self.set_dock_widget_visibility(name, checked)
+                    )
+                
+                # Connect toolbar action
+                toolbar = self.toolbars.get("Window Display")
+                if toolbar:
+                    toolbar_action = toolbar.findChild(QAction, f"toggle_{dock_name}")
+                    if toolbar_action:
+                        toolbar_action.toggled.connect(
+                             lambda checked, name=dock_name: self.set_dock_widget_visibility(name, checked)
+                        )
+
     def get_active_screen_widget(self):
         """Returns the widget from the currently active MDI sub-window."""
         active_sub_window = self.central_widget.activeSubWindow()
         if active_sub_window:
             return active_sub_window.widget()
         return None
+
+    def on_sub_window_activated(self, sub_window):
+        """Handles syncing UI when a sub-window is activated."""
+        if sub_window:
+            widget = sub_window.widget()
+            if isinstance(widget, CanvasBaseScreen):
+                # Sync the zoom controls to the newly activated window's state
+                self.sync_zoom_controls(widget)
+        else:
+            # Optional: handle case where no window is active (e.g., disable zoom controls)
+            pass
+            
+    # --- Zoom Handlers ---
+    def on_zoom_action_triggered(self, action):
+        """Handles when a zoom percentage is selected from the menu."""
+        active_screen = self.get_active_screen_widget()
+        if isinstance(active_screen, CanvasBaseScreen):
+            view_toolbar = self.toolbars.get("View")
+            if view_toolbar:
+                # This will trigger on_zoom_combo_changed, which does the actual work
+                view_toolbar.zoom_combo.setCurrentText(action.text())
+
+    def on_zoom_combo_changed(self, text):
+        """Handles when the zoom combo box text changes."""
+        active_screen = self.get_active_screen_widget()
+        if isinstance(active_screen, CanvasBaseScreen):
+            # Block the screen's signal to prevent a feedback loop
+            active_screen.blockSignals(True)
+            active_screen.set_zoom_level(text)
+            active_screen.blockSignals(False)
+            self.sync_zoom_controls(active_screen)
+
+    def on_fit_screen_triggered(self):
+        """Fits the active screen to the view."""
+        active_screen = self.get_active_screen_widget()
+        if isinstance(active_screen, CanvasBaseScreen):
+            active_screen.fit_screen()
+            # The sync will be triggered by the zoom_changed signal
+
+    def on_zoom_in_triggered(self):
+        """Zooms in on the active screen."""
+        active_screen = self.get_active_screen_widget()
+        if isinstance(active_screen, CanvasBaseScreen):
+            active_screen.zoom_in()
+            # The sync will be triggered by the zoom_changed signal
+
+    def on_zoom_out_triggered(self):
+        """Zooms out on the active screen."""
+        active_screen = self.get_active_screen_widget()
+        if isinstance(active_screen, CanvasBaseScreen):
+            active_screen.zoom_out()
+            # The sync will be triggered by the zoom_changed signal
+    
+    def sync_zoom_controls(self, active_screen):
+        """Updates the zoom combobox and menu from the screen's zoom factor."""
+        if not (self.toolbars.get("View") and isinstance(active_screen, CanvasBaseScreen)):
+            return
+
+        view_toolbar = self.toolbars.get("View")
+        zoom_factor = active_screen.zoom_factor
+        new_zoom_percentage_str = f"{zoom_factor * 100:.0f}%"
+
+        # --- Update Toolbar ComboBox ---
+        view_toolbar.zoom_combo.blockSignals(True)
+        if view_toolbar.zoom_combo.findText(new_zoom_percentage_str) == -1:
+            zoom_levels = [float(view_toolbar.zoom_combo.itemText(i).strip('%')) for i in range(view_toolbar.zoom_combo.count())]
+            new_zoom_level = float(new_zoom_percentage_str.strip('%'))
+            
+            insert_index = 0
+            for i, level in enumerate(zoom_levels):
+                if new_zoom_level > level:
+                    insert_index = i + 1
+                else:
+                    break
+            view_toolbar.zoom_combo.insertItem(insert_index, new_zoom_percentage_str)
+
+        view_toolbar.zoom_combo.setCurrentText(new_zoom_percentage_str)
+        view_toolbar.zoom_combo.blockSignals(False)
+
+        # --- Update Menu ---
+        self.view_menu.zoom_action_group.blockSignals(True)
+        found_in_menu = False
+        for action in self.view_menu.zoom_actions:
+            if action.text() == new_zoom_percentage_str:
+                action.setChecked(True)
+                found_in_menu = True
+                break
+        
+        if not found_in_menu:
+            self.view_menu.zoom_action_group.setExclusive(False)
+            for action in self.view_menu.zoom_actions:
+                action.setChecked(False)
+            self.view_menu.zoom_action_group.setExclusive(True)
+        self.view_menu.zoom_action_group.blockSignals(False)
 
     def undo_active_widget(self):
         widget = self.get_active_screen_widget()
@@ -256,15 +453,6 @@ class MainWindow(QMainWindow):
         self.figure_menu = FigureMenu(self, menu_bar)
         self.object_menu = ObjectMenu(self, menu_bar)
 
-        # Connect EditMenu actions to operate on the active widget
-        self.edit_menu.undo_action.triggered.connect(self.undo_active_widget)
-        self.edit_menu.redo_action.triggered.connect(self.redo_active_widget)
-        self.edit_menu.cut_action.triggered.connect(self.cut_active_widget)
-        self.edit_menu.copy_action.triggered.connect(self.copy_active_widget)
-        self.edit_menu.paste_action.triggered.connect(self.paste_active_widget)
-        self.edit_menu.select_all_action.triggered.connect(self.select_all_in_active_widget)
-        self.edit_menu.delete_action.triggered.connect(self.delete_in_active_widget)
-
     def _create_toolbars(self):
         """Creates the toolbars for the main window."""
         self.toolbars = {}
@@ -283,18 +471,6 @@ class MainWindow(QMainWindow):
             self.addToolBar(toolbar)
             toolbar.setIconSize(self.iconSize())
             
-        # Connect the toggle actions from the view menu
-        for action in self.view_menu.tool_bar_menu.actions():
-            widget = action.defaultWidget()
-            checkbox = widget.findChild(QCheckBox)
-            if checkbox:
-                toolbar_name = action.text()
-                if toolbar_name in self.toolbars:
-                    # Use a lambda to capture the toolbar name correctly
-                    checkbox.toggled.connect(
-                        lambda checked, name=toolbar_name: self.toggle_toolbar(checked, name)
-                    )
-
     def _create_dock_widgets(self):
         """Creates and arranges all dock widgets."""
         self.dock_factory = DockWidgetFactory(self)
@@ -338,35 +514,6 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(data_browser, ip_address)
         self.tabifyDockWidget(ip_address, controller_list)
         self.tabifyDockWidget(controller_list, data_view)
-
-        # Connect the toggle actions from the view menu and the docking toolbar
-        # This centralizes the visibility logic
-        for action in self.view_menu.docking_window_menu.actions():
-            dock_name = action.text().lower().replace(' ', '_')
-            if self.dock_factory.get_dock(dock_name):
-                # Connect menu checkbox
-                menu_checkbox = action.defaultWidget().findChild(QCheckBox)
-                if menu_checkbox:
-                    menu_checkbox.toggled.connect(
-                        lambda checked, name=dock_name: self.set_dock_widget_visibility(name, checked)
-                    )
-                
-                # Connect toolbar action
-                toolbar = self.toolbars.get("Window Display")
-                if toolbar:
-                    toolbar_action = toolbar.findChild(QAction, f"toggle_{dock_name}")
-                    if toolbar_action:
-                        toolbar_action.toggled.connect(
-                             lambda checked, name=dock_name: self.set_dock_widget_visibility(name, checked)
-                        )
-        
-        # Connect Screen Menu actions to Screen Tree Dock slots
-        if screen_tree:
-            self.screen_menu.base_screen_action.triggered.connect(screen_tree.add_main_screen)
-            self.screen_menu.window_screen_action.triggered.connect(screen_tree.add_window_screen)
-            self.screen_menu.template_screen_action.triggered.connect(screen_tree.add_template_screen)
-            self.screen_menu.widgets_action.triggered.connect(screen_tree.add_widgets_screen)
-            self.screen_menu.screen_design_action.triggered.connect(screen_tree.open_screen_design)
 
     def set_dock_widget_visibility(self, dock_name, visible):
         """

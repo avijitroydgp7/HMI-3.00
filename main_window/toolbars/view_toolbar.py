@@ -36,11 +36,11 @@ class ViewToolbar(QToolBar):
         self.addWidget(self.zoom_out_button)
 
         self.zoom_combo = QComboBox()
+        self.zoom_combo.setEditable(True)
         self.zoom_combo.setFixedWidth(100)
         for action in self.view_menu.zoom_actions:
             self.zoom_combo.addItem(action.text())
         self.zoom_combo.setCurrentText("100%")
-        self.zoom_combo.currentTextChanged.connect(self.sync_zoom_action)
         self.addWidget(self.zoom_combo)
 
         self.zoom_in_button = QToolButton()
@@ -76,12 +76,6 @@ class ViewToolbar(QToolBar):
         
         # Set initial UI state
         self.update_state_ui()
-
-    def sync_zoom_action(self, text):
-        for action in self.view_menu.zoom_actions:
-            if action.text() == text:
-                action.setChecked(True)
-                break
 
     def update_state_ui(self):
         """Updates all state-related UI elements to reflect the current state."""
@@ -135,3 +129,4 @@ class ViewToolbar(QToolBar):
         if 0 <= value < self.max_states:
             self.current_state = value
             self.update_state_ui()
+
