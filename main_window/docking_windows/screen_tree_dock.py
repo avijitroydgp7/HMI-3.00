@@ -144,10 +144,17 @@ class ScreenTreeDock(QDockWidget):
 
     def open_screen_design(self):
         """
-        Opens the screen design dialog.
+        Opens the screen design dialog and updates the project-wide template.
         """
-        dialog = ScreenDesignDialog(self)
-        dialog.exec()
+        project_service = self.main_window.project_service
+        template_data = project_service.get_screen_design_template()
+        dialog = ScreenDesignDialog(self, initial_data=template_data)
+        
+        if dialog.exec():
+            new_template_data = dialog.get_design_details()
+            if new_template_data:
+                project_service.set_screen_design_template(new_template_data)
+                self.main_window.update_open_screens_from_template()
 
     def get_existing_screen_numbers(self, screen_type):
         """
@@ -299,4 +306,3 @@ class ScreenTreeDock(QDockWidget):
             self.widgets_screen_count += 1
             new_item = QTreeWidgetItem(self.widgets_screens_root, [f"Widget {self.widgets_screen_count}"])
             new_item.setIcon(0, IconService.get_icon('screen-widgets-white'))
-

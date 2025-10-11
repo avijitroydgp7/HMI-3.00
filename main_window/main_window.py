@@ -196,7 +196,7 @@ class MainWindow(QMainWindow):
                 self.central_widget.setCurrentWidget(widget_to_activate)
             return
 
-        screen_widget = CanvasBaseScreen(screen_data)
+        screen_widget = CanvasBaseScreen(screen_data, self.project_service, parent=self)
         screen_widget.zoom_changed.connect(lambda zf, sw=screen_widget: self.sync_zoom_controls(sw))
         
         if screen_type == 'base':
@@ -257,6 +257,25 @@ class MainWindow(QMainWindow):
         elif reply == QMessageBox.StandardButton.Cancel:
             return False
         return True
+
+    def update_open_screens_from_template(self):
+        """
+        Reloads the configuration for any open screens that use the default template.
+        """
+        screens_to_reopen = []
+        for screen_id, widget in self.open_screens.items():
+            screen_data = widget.screen_data
+            # If the screen is a base screen and has no individual design, it needs updating.
+            if screen_data.get("type") == "base" and not screen_data.get("design"):
+                 screens_to_reopen.append(screen_data)
+        
+        for screen_data in screens_to_reopen:
+            screen_id = (screen_data.get('type'), screen_data.get('number'))
+            self.close_screen_by_id(screen_id)
+            self.open_screen(screen_data)
+        
+        if screens_to_reopen:
+             self.project_modified()
 
     def _connect_signals(self):
         """Connect all signals for the main window."""
@@ -652,4 +671,3 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
-

@@ -3,7 +3,7 @@ import sys
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QDialogButtonBox,
     QRadioButton, QButtonGroup, QStackedWidget, QWidget, QGroupBox,
-    QPushButton, QFileDialog, QLineEdit
+    QPushButton, QFileDialog, QLineEdit, QFormLayout, QSpinBox
 )
 from PyQt6.QtGui import (
     QColor, QPixmap, QIcon, QPainter, QLinearGradient, QBrush
@@ -31,6 +31,18 @@ class ScreenDesignDialog(QDialog):
         self.selected_image = None
 
         main_layout = QVBoxLayout(self)
+
+        # --- Screen Size GroupBox ---
+        screen_size_group_box = QGroupBox("Screen Size")
+        screen_size_layout = QFormLayout(screen_size_group_box)
+        self.width_spinbox = QSpinBox()
+        self.width_spinbox.setRange(1, 8000)
+        self.width_spinbox.setValue(1920)
+        self.height_spinbox = QSpinBox()
+        self.height_spinbox.setRange(1, 8000)
+        self.height_spinbox.setValue(1080)
+        screen_size_layout.addRow("Width:", self.width_spinbox)
+        screen_size_layout.addRow("Height:", self.height_spinbox)
         
         # --- Radio buttons for fill style ---
         fill_group_box = QGroupBox("Fill Style")
@@ -67,11 +79,12 @@ class ScreenDesignDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         
+        main_layout.addWidget(screen_size_group_box)
         main_layout.addWidget(fill_group_box)
         main_layout.addWidget(self.stack)
         main_layout.addWidget(buttons)
 
-        self.resize(550, 450)
+        self.resize(550, 500)
 
         if initial_data:
             self.load_design_details(initial_data)
@@ -285,6 +298,9 @@ class ScreenDesignDialog(QDialog):
         """Loads an existing design configuration into the dialog."""
         style_type = data.get("type")
         
+        self.width_spinbox.setValue(data.get("width", 1920))
+        self.height_spinbox.setValue(data.get("height", 1080))
+
         if style_type == "color":
             color_str = data.get("color", "#FFFFFFFF")
             self.selected_color = QColor(color_str)
@@ -320,30 +336,40 @@ class ScreenDesignDialog(QDialog):
         Gathers the selected design details and returns them in a dictionary.
         Colors are stored as hex strings to ensure they are serializable.
         """
+        details = {
+            "width": self.width_spinbox.value(),
+            "height": self.height_spinbox.value()
+        }
         selected_id = self.radio_button_group.checkedId()
         
         if selected_id == 0:  # Fill Colour
-            return {"type": "color", "color": self.selected_color.name(QColor.NameFormat.HexArgb)}
+            details["type"] = "color"
+            details["color"] = self.selected_color.name(QColor.NameFormat.HexArgb)
         
         elif selected_id == 1:  # Gradient Colour
             if self.selected_gradient:
-                # Create a copy to avoid modifying the internal state
                 grad_data = self.selected_gradient.copy()
                 grad_data["color1"] = grad_data["color1"].name(QColor.NameFormat.HexArgb)
                 grad_data["color2"] = grad_data["color2"].name(QColor.NameFormat.HexArgb)
-                return {"type": "gradient", "gradient": grad_data}
+                details["type"] = "gradient"
+                details["gradient"] = grad_data
         
         elif selected_id == 2:  # Fill Pattern
             if self.selected_pattern:
-                # Create a copy to avoid modifying the internal state
                 patt_data = self.selected_pattern.copy()
                 patt_data["fg_color"] = patt_data["fg_color"].name(QColor.NameFormat.HexArgb)
                 patt_data["bg_color"] = patt_data["bg_color"].name(QColor.NameFormat.HexArgb)
-                return {"type": "pattern", "pattern": patt_data}
+                details["type"] = "pattern"
+                details["pattern"] = patt_data
         
         elif selected_id == 3:  # Fill Image
             if self.selected_image:
-                return {"type": "image", "image_path": self.selected_image}
+                details["type"] = "image"
+                details["image_path"] = self.selected_image
         
-        return None
+        if "type" not in details:
+            # Default to color if nothing else is valid
+            details["type"] = "color"
+            details["color"] = self.selected_color.name(QColor.NameFormat.HexArgb)
 
+        return details

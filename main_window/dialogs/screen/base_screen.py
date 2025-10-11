@@ -177,19 +177,9 @@ class BaseScreenDialog(QDialog):
             QMessageBox.warning(self, "Input Error", "The detail description cannot exceed 500 characters.")
             return
 
-        screen = QApplication.primaryScreen()
-        width = 1920
-        height = 1080
-        if screen:
-            screen_geometry = screen.geometry()
-            width = screen_geometry.width()
-            height = screen_geometry.height()
-
         self.screen_data = {
             "number": self.screen_number_spinbox.value(),
             "name": self.screen_name_input.text().strip(),
-            "width": width,
-            "height": height,
             "description": self.description_input.toPlainText(),
             "security": self.security_spinbox.value(),
             "design": self.screen_design_data if self.design_checkbox.isChecked() else None,
@@ -201,4 +191,3 @@ class BaseScreenDialog(QDialog):
     def get_screen_data(self):
         """Returns the screen data that was gathered when the dialog was accepted."""
         return self.screen_data
-

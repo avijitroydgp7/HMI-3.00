@@ -8,13 +8,25 @@ class ProjectService:
     A service class to manage project-related data and operations.
     """
     def __init__(self):
-        self.project_data = {}
+        self.project_data = self.get_default_project_data()
         self.file_path = None
         self.is_saved = True
 
+    def get_default_project_data(self):
+        """Returns the default structure for a new project."""
+        return {
+            'screens': [],
+            'screen_design_template': {
+                "width": 1920,
+                "height": 1080,
+                "type": "color",
+                "color": "#F0F0F0"
+            }
+        }
+
     def new_project(self):
         """Resets the project to a new, unsaved state."""
-        self.project_data = {}
+        self.project_data = self.get_default_project_data()
         self.file_path = None
         self.is_saved = False
 
@@ -28,7 +40,10 @@ class ProjectService:
                 data = json.load(file)
 
             self.file_path = file_path
-            self.project_data = data.get('project_data', {})
+            self.project_data = data.get('project_data', self.get_default_project_data())
+            # Ensure screen_design_template exists for older projects
+            if 'screen_design_template' not in self.project_data:
+                self.project_data['screen_design_template'] = self.get_default_project_data()['screen_design_template']
             self.is_saved = True
 
             return True, "Project loaded successfully"
@@ -76,3 +91,12 @@ class ProjectService:
         """Marks the current project as having unsaved changes."""
         if self.is_saved:
             self.is_saved = False
+
+    def get_screen_design_template(self):
+        """Returns the project-wide screen design template."""
+        return self.project_data.get('screen_design_template', self.get_default_project_data()['screen_design_template'])
+
+    def set_screen_design_template(self, template_data):
+        """Sets the project-wide screen design template."""
+        self.project_data['screen_design_template'] = template_data
+        self.mark_as_unsaved()

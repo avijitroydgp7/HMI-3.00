@@ -9,13 +9,35 @@ class CanvasWidget(QGraphicsWidget):
     A QGraphicsWidget that represents the actual content of the screen.
     This widget handles the drawing of the background and any content on the screen.
     """
-    def __init__(self, screen_data):
+    def __init__(self, screen_data, project_service):
         super().__init__()
         self.screen_data = screen_data
-        width = self.screen_data.get("width", 1920)
-        height = self.screen_data.get("height", 1080)
+        self.project_service = project_service
+        
+        width, height = self._get_dimensions()
         self.setGeometry(0, 0, width, height)
         self.update_background()
+
+    def _get_dimensions(self):
+        """Determines the correct dimensions for the screen canvas."""
+        # Priority 1: Individual screen design settings for base screens
+        if self.screen_data.get("type") == "base" and self.screen_data.get("design"):
+            design = self.screen_data["design"]
+            if "width" in design and "height" in design:
+                return design["width"], design["height"]
+        
+        # Priority 2: Project-wide screen design template for base screens
+        if self.screen_data.get("type") == "base" and self.project_service:
+            template = self.project_service.get_screen_design_template()
+            if template and "width" in template and "height" in template:
+                return template["width"], template["height"]
+        
+        # Priority 3: Fallback to data stored on the screen itself (e.g., for window screens)
+        if "width" in self.screen_data and "height" in self.screen_data:
+            return self.screen_data["width"], self.screen_data["height"]
+            
+        # Final fallback
+        return 1920, 1080
 
     def update_background(self):
         """Updates the background based on the screen's design data."""
@@ -23,7 +45,12 @@ class CanvasWidget(QGraphicsWidget):
 
     def paint(self, painter, option, widget=None):
         """Paint the background and content of the screen."""
+        # Determine which design data to use for the background
         design_data = self.screen_data.get("design")
+        if not design_data and self.project_service and self.screen_data.get("type") == "base":
+             # If no individual design on a base screen, use the project template for background
+             design_data = self.project_service.get_screen_design_template()
+
         rect = self.boundingRect()
 
         # Default background
@@ -69,14 +96,16 @@ class CanvasBaseScreen(QGraphicsView):
     """
     zoom_changed = pyqtSignal(float)
 
-    def __init__(self, screen_data, parent=None):
+    def __init__(self, screen_data, project_service, parent=None):
         super().__init__(parent)
         self.screen_data = screen_data
+        self.project_service = project_service
         self.zoom_factor = 1.0
+        self._initial_fit_done = False
 
         # Create a scene and the canvas widget
         self.scene = QGraphicsScene(self)
-        self.canvas_widget = CanvasWidget(self.screen_data)
+        self.canvas_widget = CanvasWidget(self.screen_data, self.project_service)
         self.scene.addItem(self.canvas_widget)
         self.setScene(self.scene)
         
@@ -86,8 +115,13 @@ class CanvasBaseScreen(QGraphicsView):
         self.setDragMode(QGraphicsView.DragMode.NoDrag)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        
-        self.fit_screen()
+
+    def showEvent(self, event):
+        """Handle the event when the view is shown, to perform initial fit."""
+        if not self._initial_fit_done:
+            self.fit_screen()
+            self._initial_fit_done = True
+        super().showEvent(event)
 
     def wheelEvent(self, event):
         """Handle mouse wheel events for zooming."""
@@ -167,3 +201,4 @@ class CanvasBaseScreen(QGraphicsView):
         self.fitInView(self.canvas_widget.boundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.zoom_factor = self.transform().m11()
         self.zoom_changed.emit(self.zoom_factor)
+
