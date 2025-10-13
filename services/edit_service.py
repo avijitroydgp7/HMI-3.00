@@ -23,9 +23,22 @@ class EditService:
             return
         self._initialized = True
         
-        self.clipboard = QApplication.clipboard()
+        self.text_clipboard = QApplication.clipboard()
+        self._custom_clipboard_data = None  # For custom app data like screens
         self._undo_stack = []
         self._redo_stack = []
+
+    def copy_custom_data(self, data):
+        """Copies custom application data to the internal clipboard."""
+        self._custom_clipboard_data = data
+
+    def get_custom_data(self):
+        """Gets custom data from the internal clipboard."""
+        return self._custom_clipboard_data
+
+    def has_custom_data(self):
+        """Checks if there is custom data on the internal clipboard."""
+        return self._custom_clipboard_data is not None
 
     def cut(self, widget):
         """

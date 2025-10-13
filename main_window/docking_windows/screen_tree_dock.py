@@ -2,6 +2,7 @@
 import copy
 from PyQt6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog, QMessageBox
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QKeySequence
 from ..dialogs.screen.screen_design import ScreenDesignDialog
 from ..dialogs.screen.base_screen import BaseScreenDialog
 from ..dialogs.screen.window_screen import WindowScreenDialog
@@ -39,6 +40,27 @@ class ScreenTreeDock(QDockWidget):
         # Counters for new items
         self.template_screen_count = 0
         self.widgets_screen_count = 0
+
+    def keyPressEvent(self, event):
+        """Handle key press events for cut, copy, and paste."""
+        selected_items = self.tree_widget.selectedItems()
+        if not selected_items:
+            super().keyPressEvent(event)
+            return
+
+        item = selected_items[0]
+        
+        if event.matches(QKeySequence.StandardKey.Copy):
+            self.copy_screen(item)
+            event.accept()
+        elif event.matches(QKeySequence.StandardKey.Cut):
+            self.cut_screen(item)
+            event.accept()
+        elif event.matches(QKeySequence.StandardKey.Paste):
+            self.paste_screen(item)
+            event.accept()
+        else:
+            super().keyPressEvent(event)
 
     def _populate_tree(self):
         """
@@ -88,10 +110,16 @@ class ScreenTreeDock(QDockWidget):
         if item == self.base_screens_root:
             add_main_screen_action = menu.addAction("Add New Base Screen")
             add_main_screen_action.triggered.connect(self.add_main_screen)
+            paste_action = menu.addAction(IconService.get_icon('edit-paste'), "Paste")
+            paste_action.setEnabled(self._clipboard is not None)
+            paste_action.triggered.connect(lambda: self.paste_screen(item))
         
         elif item == self.window_screens_root:
             add_window_screen_action = menu.addAction("Add New Window Screen")
             add_window_screen_action.triggered.connect(self.add_window_screen)
+            paste_action = menu.addAction(IconService.get_icon('edit-paste'), "Paste")
+            paste_action.setEnabled(self._clipboard is not None and self._clipboard.get('type') == 'window')
+            paste_action.triggered.connect(lambda: self.paste_screen(item))
 
         elif item == self.template_screens_root:
             add_template_screen_action = menu.addAction("Add New Template Screen")
@@ -306,3 +334,4 @@ class ScreenTreeDock(QDockWidget):
             self.widgets_screen_count += 1
             new_item = QTreeWidgetItem(self.widgets_screens_root, [f"Widget {self.widgets_screen_count}"])
             new_item.setIcon(0, IconService.get_icon('screen-widgets-white'))
+

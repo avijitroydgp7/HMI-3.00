@@ -1,6 +1,6 @@
 # main_window\main_window.py
 import sys
-from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog, QTabWidget
+from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog, QTabWidget, QApplication, QLineEdit
 from PyQt6.QtCore import Qt, QSize, QByteArray
 from PyQt6.QtGui import QAction
 
@@ -26,6 +26,7 @@ from .toolbars.debug_toolbar import DebugToolbar
 
 # Import the dock widget factory
 from .docking_windows.dock_widget_factory import DockWidgetFactory
+from .docking_windows.screen_tree_dock import ScreenTreeDock
 from .services.icon_service import IconService
 from services.project_service import ProjectService
 from services.edit_service import EditService
@@ -291,6 +292,7 @@ class MainWindow(QMainWindow):
         self.edit_menu.cut_action.triggered.connect(self.cut_active_widget)
         self.edit_menu.copy_action.triggered.connect(self.copy_active_widget)
         self.edit_menu.paste_action.triggered.connect(self.paste_active_widget)
+        self.edit_menu.duplicate_action.triggered.connect(self.duplicate_active_widget)
         self.edit_menu.select_all_action.triggered.connect(self.select_all_in_active_widget)
         self.edit_menu.delete_action.triggered.connect(self.delete_in_active_widget)
 
@@ -440,42 +442,85 @@ class MainWindow(QMainWindow):
             self.view_menu.zoom_action_group.setExclusive(True)
         self.view_menu.zoom_action_group.blockSignals(False)
 
+    def get_focused_widget_for_edit(self):
+        """Finds the widget that should receive the edit command."""
+        focus_widget = QApplication.focusWidget()
+        
+        # Is focus inside the screen tree?
+        screen_tree_dock = self.dock_factory.get_dock("screen_tree")
+        if screen_tree_dock and (focus_widget is screen_tree_dock.tree_widget or screen_tree_dock.tree_widget.isAncestorOf(focus_widget)):
+            return screen_tree_dock
+
+        # Is focus inside the canvas?
+        active_screen = self.get_active_screen_widget()
+        if active_screen and (focus_widget is active_screen or active_screen.isAncestorOf(focus_widget)):
+            # Later, we can check for selected items on the canvas, for now return the canvas
+            return active_screen
+
+        # Is it a standard text-editable widget?
+        if isinstance(focus_widget, (QLineEdit, QTextEdit)):
+            return focus_widget
+
+        return None
+
     def undo_active_widget(self):
-        widget = self.get_active_screen_widget()
-        if widget:
-            self.edit_service.undo(widget)
+        widget = QApplication.focusWidget()
+        if hasattr(widget, 'undo'):
+            widget.undo()
 
     def redo_active_widget(self):
-        widget = self.get_active_screen_widget()
-        if widget:
-            self.edit_service.redo(widget)
+        widget = QApplication.focusWidget()
+        if hasattr(widget, 'redo'):
+            widget.redo()
 
     def cut_active_widget(self):
-        widget = self.get_active_screen_widget()
-        if widget:
-            self.edit_service.cut(widget)
+        widget = self.get_focused_widget_for_edit()
+        if isinstance(widget, ScreenTreeDock):
+            selected_items = widget.tree_widget.selectedItems()
+            if selected_items:
+                widget.cut_screen(selected_items[0])
+        elif hasattr(widget, 'cut'):
+            widget.cut()
 
     def copy_active_widget(self):
-        widget = self.get_active_screen_widget()
-        if widget:
-            self.edit_service.copy(widget)
+        widget = self.get_focused_widget_for_edit()
+        if isinstance(widget, ScreenTreeDock):
+            selected_items = widget.tree_widget.selectedItems()
+            if selected_items:
+                widget.copy_screen(selected_items[0])
+        elif hasattr(widget, 'copy'):
+            widget.copy()
 
     def paste_active_widget(self):
-        widget = self.get_active_screen_widget()
-        if widget:
-            self.edit_service.paste(widget)
+        widget = self.get_focused_widget_for_edit()
+        if isinstance(widget, ScreenTreeDock):
+            selected_items = widget.tree_widget.selectedItems()
+            item = selected_items[0] if selected_items else widget.base_screens_root
+            widget.paste_screen(item)
+        elif hasattr(widget, 'paste'):
+            widget.paste()
             
     def delete_in_active_widget(self):
-        widget = self.get_active_screen_widget()
-        if hasattr(widget, 'delete_selection'):
-             widget.delete_selection()
-        elif hasattr(widget, 'textCursor'):
+        widget = self.get_focused_widget_for_edit()
+        if isinstance(widget, ScreenTreeDock):
+            selected_items = widget.tree_widget.selectedItems()
+            if selected_items:
+                widget.delete_screen(selected_items[0])
+        elif hasattr(widget, 'textCursor'): # For QTextEdit, QLineEdit
             widget.textCursor().removeSelectedText()
 
     def select_all_in_active_widget(self):
-        widget = self.get_active_screen_widget()
+        widget = self.get_focused_widget_for_edit()
         if hasattr(widget, 'selectAll'):
             widget.selectAll()
+
+    def duplicate_active_widget(self):
+        widget = self.get_focused_widget_for_edit()
+        if isinstance(widget, ScreenTreeDock):
+            selected_items = widget.tree_widget.selectedItems()
+            if selected_items:
+                widget.copy_screen(selected_items[0])
+                widget.paste_screen(selected_items[0])
 
     def _create_menu_bar(self):
         """
