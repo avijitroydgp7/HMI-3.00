@@ -15,6 +15,8 @@ from ..dialogs.project_tree.trigger_action_dialog import TriggerActionDialog
 from ..dialogs.project_tree.time_action_dialog import TimeActionDialog
 from ..dialogs.project_tree.image_dialog import ImageDialog
 from ..dialogs.project_tree.animation_dialog import AnimationDialog
+from project.comment.comment_table import CommentTable
+from project.tag.tag_table import TagTable
 
 
 class ProjectTreeDock(QDockWidget):
@@ -76,6 +78,15 @@ class ProjectTreeDock(QDockWidget):
         elif item == self.project_info_item:
             dialog = ProjectInformationDialog(self)
             dialog.exec()
+        elif item.parent() == self.comment_item:
+            comment_data = item.data(0, Qt.ItemDataRole.UserRole)
+            if comment_data:
+                self.main_window.open_comment_table(comment_data)
+        elif item.parent() == self.tag_item:
+            tag_data = item.data(0, Qt.ItemDataRole.UserRole)
+            if tag_data:
+                self.main_window.open_tag_table(tag_data)
+
 
     def show_context_menu(self, position):
         """
@@ -89,7 +100,7 @@ class ProjectTreeDock(QDockWidget):
 
         if item == self.tag_item:
             action = menu.addAction("Add New Tag List")
-            action.triggered.connect(lambda: self.open_dialog(TagDialog))
+            action.triggered.connect(self.add_new_tag)
             menu.addSeparator()
             paste_action = menu.addAction(IconService.get_icon('edit-paste'), "Paste")
             paste_action.triggered.connect(self.paste_tag)
@@ -97,7 +108,7 @@ class ProjectTreeDock(QDockWidget):
             import_action.triggered.connect(self.import_tags)
         elif item == self.comment_item:
             action = menu.addAction("Add New Comment")
-            action.triggered.connect(lambda: self.open_dialog(CommentDialog))
+            action.triggered.connect(self.add_new_comment)
             menu.addSeparator()
             paste_action = menu.addAction(IconService.get_icon('edit-paste'), "Paste")
             paste_action.triggered.connect(self.paste_comment)
@@ -134,6 +145,56 @@ class ProjectTreeDock(QDockWidget):
         if not menu.isEmpty():
             menu.exec(self.tree_widget.viewport().mapToGlobal(position))
             
+    def get_existing_comment_numbers(self):
+        numbers = []
+        for i in range(self.comment_item.childCount()):
+            child = self.comment_item.child(i)
+            data = child.data(0, Qt.ItemDataRole.UserRole)
+            if data and 'number' in data:
+                numbers.append(data['number'])
+        return numbers
+
+    def add_new_comment(self):
+        existing_numbers = self.get_existing_comment_numbers()
+        dialog = CommentDialog(self, existing_comment_numbers=existing_numbers)
+        if dialog.exec():
+            comment_data = dialog.get_comment_data()
+            if comment_data:
+                # Add item to tree
+                comment_text = f"{comment_data['number']} - {comment_data['name']}"
+                new_item = QTreeWidgetItem(self.comment_item, [comment_text])
+                new_item.setData(0, Qt.ItemDataRole.UserRole, comment_data)
+                new_item.setIcon(0, IconService.get_icon('common-comment'))
+                self.comment_item.setExpanded(True)
+                
+                # Open tab in main window
+                self.main_window.open_comment_table(comment_data)
+
+    def get_existing_tag_numbers(self):
+        numbers = []
+        for i in range(self.tag_item.childCount()):
+            child = self.tag_item.child(i)
+            data = child.data(0, Qt.ItemDataRole.UserRole)
+            if data and 'number' in data:
+                numbers.append(data['number'])
+        return numbers
+
+    def add_new_tag(self):
+        existing_numbers = self.get_existing_tag_numbers()
+        dialog = TagDialog(self, existing_tag_numbers=existing_numbers)
+        if dialog.exec():
+            tag_data = dialog.get_tag_data()
+            if tag_data:
+                # Add item to tree
+                tag_text = f"{tag_data['number']} - {tag_data['name']}"
+                new_item = QTreeWidgetItem(self.tag_item, [tag_text])
+                new_item.setData(0, Qt.ItemDataRole.UserRole, tag_data)
+                new_item.setIcon(0, IconService.get_icon('common-tags'))
+                self.tag_item.setExpanded(True)
+                
+                # Open tab in main window
+                self.main_window.open_tag_table(tag_data)
+            
     def open_dialog(self, dialog_class):
         dialog = dialog_class(self)
         dialog.exec()
@@ -161,3 +222,4 @@ class ProjectTreeDock(QDockWidget):
     def export_comments(self):
         # Placeholder for future implementation
         print("Export Comments action triggered.")
+

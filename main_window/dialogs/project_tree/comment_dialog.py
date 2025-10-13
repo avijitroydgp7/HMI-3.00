@@ -5,9 +5,11 @@ from PyQt6.QtWidgets import (
 )
 
 class CommentDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, existing_comment_numbers=None):
         super().__init__(parent)
         self.setWindowTitle("New Comment")
+        self.comment_data = {}
+        self.existing_comment_numbers = existing_comment_numbers if existing_comment_numbers is not None else []
         
         main_layout = QVBoxLayout(self)
 
@@ -36,3 +38,29 @@ class CommentDialog(QDialog):
         main_layout.addWidget(buttons)
         
         self.resize(400, 250)
+
+    def accept(self):
+        """
+        Validates the user input and accepts the dialog if valid.
+        """
+        comment_number = self.number_spinbox.value()
+        if self.number_spinbox.isEnabled() and comment_number in self.existing_comment_numbers:
+            QMessageBox.warning(self, "Input Error", f"Comment number {comment_number} already exists.")
+            return
+
+        if not self.name_input.text().strip():
+            QMessageBox.warning(self, "Input Error", "Comment name cannot be empty.")
+            return
+
+        self.comment_data = {
+            "number": comment_number,
+            "name": self.name_input.text().strip(),
+            "description": self.description_input.toPlainText()
+        }
+        super().accept()
+
+    def get_comment_data(self):
+        """
+        Returns the entered comment data.
+        """
+        return self.comment_data

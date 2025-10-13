@@ -31,6 +31,8 @@ from .services.icon_service import IconService
 from services.project_service import ProjectService
 from services.edit_service import EditService
 from screen.base.canvas_base_screen import CanvasBaseScreen
+from project.comment.comment_table import CommentTable
+from project.tag.tag_table import TagTable
 
 class MainWindow(QMainWindow):
     """
@@ -46,6 +48,9 @@ class MainWindow(QMainWindow):
         self.project_service = ProjectService()
         self.edit_service = EditService()
         self.open_screens = {} # Dictionary to track open screens {(type, number): widget}
+        self.open_comments = {} # Dictionary to track open comment tables {comment_number: widget}
+        self.open_tags = {} # Dictionary to track open tag tables {tag_number: widget}
+
 
         # Set the window title
         self.update_window_title()
@@ -63,7 +68,7 @@ class MainWindow(QMainWindow):
         self.central_widget.setTabsClosable(True)
         self.central_widget.setMovable(True)
         self.central_widget.currentChanged.connect(self.on_tab_changed)
-        self.central_widget.tabCloseRequested.connect(self.close_screen_tab)
+        self.central_widget.tabCloseRequested.connect(self.close_tab)
         self.setCentralWidget(self.central_widget)
 
         # Allow nested docks and tabbed docks
@@ -152,6 +157,8 @@ class MainWindow(QMainWindow):
         self.project_service.new_project()
         self.central_widget.clear()
         self.open_screens.clear()
+        self.open_comments.clear()
+        self.open_tags.clear()
         self.update_window_title()
 
     def prepare_project_data(self):
@@ -246,7 +253,58 @@ class MainWindow(QMainWindow):
 
         self.open_screens[screen_id] = screen_widget
         self.central_widget.setCurrentWidget(screen_widget)
-        self.update_status_bar_for_screen(screen_widget)
+        self.update_status_bar(screen_widget)
+
+    def open_comment_table(self, comment_data):
+        """
+        Creates and opens a new comment table in a tab, or activates an existing one.
+        """
+        comment_number = comment_data.get('number')
+        if comment_number is None:
+            return
+
+        if comment_number in self.open_comments:
+            widget_to_activate = self.open_comments.get(comment_number)
+            if widget_to_activate:
+                self.central_widget.setCurrentWidget(widget_to_activate)
+            return
+
+        comment_widget = CommentTable(comment_data, self)
+        
+        tab_title = f"[C] - {comment_number} - {comment_data.get('name')}"
+        icon = IconService.get_icon("common-comment")
+
+        index = self.central_widget.addTab(comment_widget, tab_title)
+        self.central_widget.setTabIcon(index, icon)
+
+        self.open_comments[comment_number] = comment_widget
+        self.central_widget.setCurrentWidget(comment_widget)
+
+    def open_tag_table(self, tag_data):
+        """
+        Creates and opens a new tag table in a tab, or activates an existing one.
+        """
+        tag_number = tag_data.get('number')
+        if tag_number is None:
+            return
+
+        if tag_number in self.open_tags:
+            widget_to_activate = self.open_tags.get(tag_number)
+            if widget_to_activate:
+                self.central_widget.setCurrentWidget(widget_to_activate)
+            return
+
+        tag_widget = TagTable(tag_data, self)
+        
+        tab_title = f"[T] - {tag_number} - {tag_data.get('name')}"
+        icon = IconService.get_icon("common-tags")
+
+        index = self.central_widget.addTab(tag_widget, tab_title)
+        self.central_widget.setTabIcon(index, icon)
+
+        self.open_tags[tag_number] = tag_widget
+        self.central_widget.setCurrentWidget(tag_widget)
+
 
     def is_screen_open(self, screen_id):
         return screen_id in self.open_screens
@@ -265,17 +323,31 @@ class MainWindow(QMainWindow):
                 return screen_id
         return None
 
-    def close_screen_tab(self, index):
-        """Closes a screen tab."""
+    def close_tab(self, index):
+        """Closes a screen or comment tab."""
         widget = self.central_widget.widget(index)
         if not widget:
             return
 
+        # Check if it's a screen
         screen_id_to_remove = self.get_screen_id_for_widget(widget)
-        
         if screen_id_to_remove is not None:
             del self.open_screens[screen_id_to_remove]
+            self.central_widget.removeTab(index)
+            return
 
+        # Check if it's a comment table
+        if isinstance(widget, CommentTable):
+            comment_number_to_remove = widget.comment_data.get('number')
+            if comment_number_to_remove in self.open_comments:
+                del self.open_comments[comment_number_to_remove]
+        
+        # Check if it's a tag table
+        if isinstance(widget, TagTable):
+            tag_number_to_remove = widget.tag_data.get('number')
+            if tag_number_to_remove in self.open_tags:
+                del self.open_tags[tag_number_to_remove]
+        
         self.central_widget.removeTab(index)
             
     def prompt_to_save(self):
@@ -386,7 +458,7 @@ class MainWindow(QMainWindow):
     def on_tab_changed(self, index):
         """Handles syncing UI when the current tab is changed."""
         widget = self.central_widget.widget(index)
-        self.update_status_bar_for_screen(widget)
+        self.update_status_bar(widget)
             
     # --- Zoom Handlers ---
     def on_zoom_action_triggered(self, action):
@@ -803,22 +875,22 @@ class MainWindow(QMainWindow):
         else:
             event.ignore()
 
-    def update_status_bar_for_screen(self, screen_widget):
-        """Updates status bar labels for the given screen widget."""
-        if not isinstance(screen_widget, CanvasBaseScreen):
+    def update_status_bar(self, widget):
+        """Updates status bar labels for the given widget."""
+        if isinstance(widget, CanvasBaseScreen):
+            screen_data = widget.screen_data
+            width, height = widget.canvas_widget._get_dimensions()
+
+            self.screen_size_label.setText(f"{width} x {height}")
+            self.sync_zoom_controls(widget)
+        else:
             # Reset labels if no screen is active
             self.mouse_pos_label.setText("--, --")
             self.screen_size_label.setText("-- x --")
             self.zoom_label.setText("--%")
             self.object_pos_label.setText("X: --, Y: --")
             self.object_size_label.setText("W: --, H: --")
-            return
 
-        screen_data = screen_widget.screen_data
-        width, height = screen_widget.canvas_widget._get_dimensions()
-
-        self.screen_size_label.setText(f"{width} x {height}")
-        self.sync_zoom_controls(screen_widget)
 
     def update_mouse_position(self, pos):
         """Updates the mouse position label in the status bar."""
