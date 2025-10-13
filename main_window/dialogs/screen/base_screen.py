@@ -89,7 +89,6 @@ class BaseScreenDialog(QDialog):
 
     def load_screen_data(self, data):
         self.screen_number_spinbox.setValue(data.get("number", 1))
-        self.screen_number_spinbox.setEnabled(False) # Don't allow editing number
         self.screen_name_input.setText(data.get("name", ""))
         self.description_input.setPlainText(data.get("description", ""))
         self.security_spinbox.setValue(data.get("security", 0))
@@ -191,3 +190,4 @@ class BaseScreenDialog(QDialog):
     def get_screen_data(self):
         """Returns the screen data that was gathered when the dialog was accepted."""
         return self.screen_data
+
