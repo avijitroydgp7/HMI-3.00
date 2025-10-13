@@ -2,10 +2,11 @@
 import re
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem, 
-    QLineEdit, QMessageBox, QAbstractItemView, QHeaderView, QApplication
+    QLineEdit, QMessageBox, QAbstractItemView, QHeaderView, QApplication, QLabel,
+    QStyledItemDelegate, QMenu, QListWidget
 )
 from PyQt6.QtGui import QColor, QBrush, QFont, QPainter, QPen
-from PyQt6.QtCore import Qt, QRegularExpression, QRectF, QPointF
+from PyQt6.QtCore import Qt, QRegularExpression, QRectF, QPointF, pyqtSignal
 
 class CommentTable(QWidget):
     """
@@ -62,15 +63,11 @@ class CommentTable(QWidget):
         # Link formula bar and table selection
         self.table_widget.currentCellChanged.connect(self.update_formula_bar)
         self.formula_bar.returnPressed.connect(self.update_cell_from_formula_bar)
-        # The logic is now in Spreadsheet.mousePressEvent, so this is not strictly needed
-        # but we leave it in case of other uses.
         self.table_widget.cellClicked.connect(self.handle_cell_click_for_formula)
 
 
     def handle_cell_click_for_formula(self, row, column):
         """Appends a cell reference to the formula bar if it's in formula-entry mode."""
-        # This logic is mostly handled by Spreadsheet.mousePressEvent to keep focus,
-        # but this can serve as a backup.
         if self.formula_bar.hasFocus() and self.formula_bar.text().startswith('='):
             cell_ref = self.table_widget.get_cell_ref_str(row, column)
             self.formula_bar.insert(cell_ref)
@@ -165,6 +162,14 @@ class ExcelHeaderView(QHeaderView):
 
         painter.restore()
 
+class SpreadsheetDelegate(QStyledItemDelegate):
+    editingTextChanged = pyqtSignal(str)
+
+    def createEditor(self, parent, option, index):
+        editor = super().createEditor(parent, option, index)
+        if isinstance(editor, QLineEdit):
+            editor.textChanged.connect(self.editingTextChanged)
+        return editor
 
 class Spreadsheet(QTableWidget):
     """A QTableWidget with spreadsheet-like formula and fill capabilities."""
@@ -176,10 +181,75 @@ class Spreadsheet(QTableWidget):
         self._drag_fill_rect = None
         self.referenced_cells = []
         self.ref_colors = [QColor("#0070C0"), QColor("#C00000"), QColor("#00B050"), QColor("#7030A0")]
+        
+        # --- Formula Hinting Widgets ---
+        self.formula_hint = QLabel(self)
+        self.formula_hint.setStyleSheet("background-color: white; border: 1px solid #c0c0c0; padding: 4px; font-size: 9pt; color: #333;")
+        self.formula_hint.setWindowFlags(Qt.WindowType.ToolTip)
+        self.formula_hint.hide()
 
+        self.completer_popup = QListWidget(self)
+        self.completer_popup.setWindowFlags(Qt.WindowType.ToolTip)
+        self.completer_popup.setStyleSheet("""
+            QListWidget {
+                background-color: white;
+                border: 1px solid #c0c0c0;
+                font-size: 9pt;
+                color: black;
+            }
+            QListWidget::item:hover { background-color: #f0f0f0; }
+            QListWidget::item:selected { background-color: #0078d7; color: white; }
+        """)
+        self.completer_popup.hide()
+        self.completer_popup.itemClicked.connect(self.complete_formula)
+
+
+        self.FUNCTION_HINTS = {
+            "SUM": "SUM(value1, [value2], ...)",
+            "AVERAGE": "AVERAGE(value1, [value2], ...)",
+            "MAX": "MAX(value1, [value2], ...)",
+            "MIN": "MIN(value1, [value2], ...)",
+            "COUNT": "COUNT(value1, [value2], ...)",
+            "IF": "IF(logical_test, value_if_true, [value_if_false])",
+            "AND": "AND(logical1, [logical2], ...)",
+            "OR": "OR(logical1, [logical2], ...)",
+            "NOT": "NOT(logical)",
+            "TRUE": "TRUE()",
+            "FALSE": "FALSE()",
+            "UPPER": "UPPER(text)",
+            "LOWER": "LOWER(text)",
+            "LEN": "LEN(text)",
+            "LEFT": "LEFT(text, [num_chars])",
+            "RIGHT": "RIGHT(text, [num_chars])",
+            "MID": "MID(text, start_num, num_chars)",
+            "CONCAT": "CONCAT(text1, [text2], ...)",
+            "INT": "INT(number)",
+            "DEC2HEX": "DEC2HEX(number)",
+            "DEC2BIN": "DEC2BIN(number)",
+            "DEC2OCT": "DEC2OCT(number)",
+            "HEX2DEC": "HEX2DEC(hex_number)",
+            "HEX2BIN": "HEX2BIN(hex_number)",
+            "HEX2OCT": "HEX2OCT(hex_number)",
+            "BIN2DEC": "BIN2DEC(binary_number)",
+            "BIN2HEX": "BIN2HEX(binary_number)",
+            "BIN2OCT": "BIN2OCT(binary_number)",
+            "OCT2DEC": "OCT2DEC(octal_number)",
+            "OCT2BIN": "OCT2BIN(octal_number)",
+            "OCT2HEX": "OCT2HEX(octal_number)",
+            "CHAR": "CHAR(number)",
+            "VLOOKUP": "VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])",
+            "HLOOKUP": "HLOOKUP(lookup_value, table_array, row_index_num, [range_lookup])",
+        }
+        # --- End Hinting Widgets ---
 
         self.setHorizontalHeader(ExcelHeaderView(Qt.Orientation.Horizontal, self))
         self.setVerticalHeader(ExcelHeaderView(Qt.Orientation.Vertical, self))
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        
+        self.delegate = SpreadsheetDelegate(self)
+        self.setItemDelegate(self.delegate)
+        self.delegate.editingTextChanged.connect(parent.formula_bar.setText)
+
 
         self.blockSignals(True)
         for row in range(self.rowCount()):
@@ -189,9 +259,7 @@ class Spreadsheet(QTableWidget):
         
         self.update_headers()
         
-        self.itemSelectionChanged.connect(self.horizontalHeader().update)
-        self.itemSelectionChanged.connect(self.verticalHeader().update)
-        self.itemSelectionChanged.connect(self.viewport().update)
+        self.itemSelectionChanged.connect(self.on_selection_changed)
         self.itemChanged.connect(self.on_item_changed)
         parent.formula_bar.textChanged.connect(self.on_formula_bar_text_changed)
 
@@ -203,23 +271,95 @@ class Spreadsheet(QTableWidget):
                 selection-background-color: transparent;
             }
             QTableWidget::item:selected {
+                color: white; 
                 background-color: transparent;
-                color: white;
             }
         """)
 
+    def on_selection_changed(self):
+        """Handles changes in cell selection."""
+        self.horizontalHeader().update()
+        self.verticalHeader().update()
+        self.viewport().update()
+        self.formula_hint.hide()
+        self.completer_popup.hide()
+
     def on_formula_bar_text_changed(self, text):
-        """Highlights cells referenced in the formula bar."""
+        """Highlights cells referenced in the formula bar and shows function hints."""
         self.referenced_cells.clear()
+        self.formula_hint.hide()
+        self.completer_popup.hide()
+
         if text.startswith('='):
+            text_upper = text.upper()
+            
             # Find all cell references like A1, B2, etc.
-            refs = re.findall(r"([A-Z]+)(\d+)", text.upper())
+            refs = re.findall(r"([A-Z]+)(\d+)", text_upper)
             for i, (col_str, row_str) in enumerate(refs):
                 row = int(row_str) - 1
                 col = self.col_str_to_int(col_str)
                 color = self.ref_colors[i % len(self.ref_colors)]
                 self.referenced_cells.append(((row, col), color))
+
+            # Regex to find the function currently being typed or whose args are being edited
+            syntax_match = re.search(r"([A-Z_]+)\(([^)]*)$", text_upper)
+            if syntax_match:
+                func_name = syntax_match.group(1)
+                if func_name in self.FUNCTION_HINTS:
+                    self.show_syntax_hint(func_name)
+            else:
+                # Regex to find a function name being typed
+                completer_match = re.search(r"=([A-Z_]+)$", text_upper)
+                if completer_match:
+                    self.show_completer_popup(completer_match.group(1))
+
         self.viewport().update()
+
+    def show_syntax_hint(self, func_name):
+        """Displays the syntax hint for a given function."""
+        hint_text = self.FUNCTION_HINTS[func_name]
+        self.formula_hint.setText(hint_text)
+        self.formula_hint.adjustSize()
+        current_rect = self.visualRect(self.currentIndex())
+        if current_rect.isValid():
+            global_pos = self.viewport().mapToGlobal(current_rect.bottomLeft())
+            self.formula_hint.move(global_pos)
+            self.formula_hint.show()
+    
+    def show_completer_popup(self, partial_func):
+        """Displays a popup with function suggestions."""
+        matches = [f for f in self.FUNCTION_HINTS if f.startswith(partial_func)]
+        if matches:
+            self.completer_popup.clear()
+            self.completer_popup.addItems(matches)
+            current_rect = self.visualRect(self.currentIndex())
+            if current_rect.isValid():
+                # Map the local viewport coordinate to a global coordinate for the top-level popup
+                global_pos = self.viewport().mapToGlobal(current_rect.bottomLeft())
+                self.completer_popup.move(global_pos)
+                self.completer_popup.adjustSize()
+                self.completer_popup.setMinimumWidth(150)
+                self.completer_popup.show()
+
+    def complete_formula(self, item):
+        """Completes the formula with the selected function."""
+        full_func = item.text()
+        editor = self.focusWidget()
+        if not isinstance(editor, QLineEdit):
+             editor = self.parent().formula_bar
+        
+        current_text = editor.text()
+        # Use a case-insensitive match for completing
+        match = re.search(r"=([a-zA-Z_]*)$", current_text)
+        if match:
+             start_pos = match.start(1)
+             new_text = current_text[:start_pos] + full_func + "("
+             editor.setText(new_text)
+             editor.setFocus()
+             # Move cursor to the end
+             editor.setCursorPosition(len(new_text))
+        self.completer_popup.hide()
+
 
     def get_cell_ref_str(self, row, col):
         col_str = ""
@@ -266,46 +406,125 @@ class Spreadsheet(QTableWidget):
             item.setData(Qt.ItemDataRole.DisplayRole, str(result))
         except Exception as e:
             item.setData(Qt.ItemDataRole.DisplayRole, "#ERROR")
-            print(f"Error evaluating formula '{item.formula}': {e}")
+            #print(f"Error evaluating formula '{item.formula}': {e}") # Silenced for now
     
-    def get_cell_value(self, row, col):
+    def get_cell_value(self, row, col, as_string=False):
         item = self.item(row, col)
-        if item:
-            try:
-                # Use EditRole to get value during calculation to avoid circular deps with display
-                return float(item.data(Qt.ItemDataRole.DisplayRole))
-            except (ValueError, TypeError):
-                return 0.0
-        return 0.0
+        if not item or not item.data(Qt.ItemDataRole.DisplayRole):
+            return "" if as_string else 0
+
+        text = str(item.data(Qt.ItemDataRole.DisplayRole))
+        if as_string:
+            return text
+
+        try:
+            return float(text)
+        except (ValueError, TypeError):
+            return text # Return as string if conversion fails
 
     def parse_formula(self, formula):
-        formula = formula[1:].upper()
+        formula_upper = formula[1:].upper()
         
-        match = re.match(r"(\w+)\((.+)\)", formula)
-        if match:
-            func, args = match.groups()
-            range_match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", args)
-            if range_match:
-                start_col_str, start_row_str, end_col_str, end_row_str = range_match.groups()
-                start_row, start_col = int(start_row_str) - 1, self.col_str_to_int(start_col_str)
-                end_row, end_col = int(end_row_str) - 1, self.col_str_to_int(end_col_str)
-                values = [self.get_cell_value(r, c) for r in range(start_row, end_row + 1) for c in range(start_col, end_col + 1)]
-                if func == "SUM": return sum(values)
-                if func == "AVERAGE": return sum(values) / len(values) if values else 0
-                if func == "MAX": return max(values) if values else 0
-                if func == "MIN": return min(values) if values else 0
-        
+        # Match function calls like SUM(A1:B2, C3)
+        func_match = re.match(r"\s*(\w+)\s*\((.*)\)\s*", formula_upper)
+        if func_match:
+            func_name, args_str = func_match.groups()
+            
+            if func_name in self.FUNCTION_HINTS:
+                args = self._parse_args(args_str)
+                
+                # Handle functions by category
+                if func_name in ["UPPER", "LOWER", "LEN", "CONCAT", "LEFT", "RIGHT", "MID", 
+                                 "HEX2DEC", "HEX2BIN", "HEX2OCT", "BIN2DEC", "BIN2HEX", "BIN2OCT",
+                                 "OCT2DEC", "OCT2BIN", "OCT2HEX"]:
+                    raw_values = self._evaluate_args(args, as_string=True)
+                    if func_name == "UPPER": return str(raw_values[0]).upper()
+                    if func_name == "LOWER": return str(raw_values[0]).lower()
+                    if func_name == "LEN": return len(str(raw_values[0]))
+                    if func_name == "CONCAT": return "".join(map(str, raw_values))
+                    if func_name == "LEFT": return str(raw_values[0])[:int(raw_values[1])] if len(raw_values) > 1 else str(raw_values[0])[:1]
+                    if func_name == "RIGHT": return str(raw_values[0])[-int(raw_values[1]):] if len(raw_values) > 1 else str(raw_values[0])[-1:]
+                    if func_name == "MID": return str(raw_values[0])[int(raw_values[1])-1:int(raw_values[1])-1+int(raw_values[2])]
+                    # Hex conversions
+                    if func_name == "HEX2DEC": return str(int(str(raw_values[0]), 16))
+                    if func_name == "HEX2BIN": return bin(int(str(raw_values[0]), 16))[2:]
+                    if func_name == "HEX2OCT": return oct(int(str(raw_values[0]), 16))[2:]
+                    # Binary conversions
+                    if func_name == "BIN2DEC": return str(int(str(raw_values[0]), 2))
+                    if func_name == "BIN2HEX": return hex(int(str(raw_values[0]), 2))[2:].upper()
+                    if func_name == "BIN2OCT": return oct(int(str(raw_values[0]), 2))[2:]
+                    # Octal conversions
+                    if func_name == "OCT2DEC": return str(int(str(raw_values[0]), 8))
+                    if func_name == "OCT2BIN": return bin(int(str(raw_values[0]), 8))[2:]
+                    if func_name == "OCT2HEX": return hex(int(str(raw_values[0]), 8))[2:].upper()
+                else: 
+                    numeric_values = self._evaluate_args(args, as_string=False)
+                    if func_name == "SUM": return sum(numeric_values)
+                    if func_name == "AVERAGE": return sum(numeric_values) / len(numeric_values) if numeric_values else 0
+                    if func_name == "MAX": return max(numeric_values) if numeric_values else 0
+                    if func_name == "MIN": return min(numeric_values) if numeric_values else 0
+                    if func_name == "COUNT": return len(numeric_values)
+                    if func_name == "INT": return int(numeric_values[0]) if numeric_values else 0
+                    if func_name == "DEC2HEX": return hex(int(numeric_values[0]))[2:].upper()
+                    if func_name == "DEC2BIN": return bin(int(numeric_values[0]))[2:]
+                    if func_name == "DEC2OCT": return oct(int(numeric_values[0]))[2:]
+                    if func_name == "CHAR": return chr(int(numeric_values[0]))
+            else:
+                raise ValueError(f"Unknown function: {func_name}")
+
+        # Fallback to simple arithmetic expression if not a function
         def replace_cell_ref(match_obj):
             col_str, row_str = match_obj.groups()
             row, col = int(row_str) - 1, self.col_str_to_int(col_str)
             return str(self.get_cell_value(row, col))
         
-        formula = re.sub(r"([A-Z]+)(\d+)", replace_cell_ref, formula)
-        return self.safe_eval(formula)
+        expression = re.sub(r"([A-Z]+)(\d+)", replace_cell_ref, formula_upper)
+        return self.safe_eval(expression)
+
+    def _parse_args(self, args_str):
+        # Basic split by comma, doesn't handle commas in strings yet
+        return [arg.strip() for arg in args_str.split(',')]
+
+    def _evaluate_args(self, args, as_string=False):
+        values = []
+        for arg in args:
+            arg = arg.strip()
+            if not arg: continue
+            # Check for a range (e.g., A1:B2)
+            range_match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", arg)
+            if range_match:
+                start_col_str, start_row_str, end_col_str, end_row_str = range_match.groups()
+                start_row, start_col = int(start_row_str) - 1, self.col_str_to_int(start_col_str)
+                end_row, end_col = int(end_row_str) - 1, self.col_str_to_int(end_col_str)
+                for r in range(start_row, end_row + 1):
+                    for c in range(start_col, end_col + 1):
+                        values.append(self.get_cell_value(r, c, as_string))
+            # Check for a single cell (e.g., A1)
+            else:
+                cell_match = re.match(r"([A-Z]+)(\d+)", arg)
+                if cell_match:
+                    col_str, row_str = cell_match.groups()
+                    row, col = int(row_str) - 1, self.col_str_to_int(col_str)
+                    values.append(self.get_cell_value(row, col, as_string))
+                # It's a literal value
+                else:
+                    if as_string:
+                        values.append(arg.strip('"'))
+                    else:
+                        try:
+                            values.append(float(arg))
+                        except ValueError:
+                             if arg.upper() == 'TRUE': values.append(True)
+                             elif arg.upper() == 'FALSE': values.append(False)
+                             else: values.append(arg.strip('"')) # Treat as string if not a number
+        return values
+
 
     def safe_eval(self, expression):
+        # Allow comma for argument separation in the final expression (after cell refs are numbers)
         allowed_chars = "0123456789.+-*/() "
         if all(c in allowed_chars for c in expression):
+            # This is still a security risk in a real app, but ok for this context
             return eval(expression)
         raise ValueError("Unsupported characters in formula")
 
@@ -369,6 +588,17 @@ class Spreadsheet(QTableWidget):
             return
         
         selection = self.selectionModel().selection()
+        current_index = self.currentIndex()
+
+        # Draw semi-transparent fill only if more than one cell is selected
+        if len(selection.indexes()) > 1:
+            for sel_range in selection:
+                for index in sel_range.indexes():
+                    if index != current_index:
+                        rect = self.visualRect(index)
+                        painter.fillRect(rect, QColor(217, 217, 217, 128))
+
+        # Draw main selection border and handle
         selection_rect = self.visualRegionForSelection(selection).boundingRect()
         
         painter.setPen(QPen(QColor(34, 139, 34), 2))
