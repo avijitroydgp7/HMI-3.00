@@ -49,6 +49,8 @@ class CommonMenu:
         comment_menu = common_menu.addMenu(comment_icon, "Comment")
         comment_menu.addAction(QAction(IconService.get_icon('common-folder-open'), "Open", main_window))
         comment_menu.addAction(QAction(IconService.get_icon('common-new'), "New", main_window))
+        comment_menu.addAction(QAction(IconService.get_icon('common-import'), "Import", main_window))
+        comment_menu.addAction(QAction(IconService.get_icon('common-export'), "Export", main_window))
         comment_menu.addSeparator()
         comment_menu.addAction(QAction(IconService.get_icon('common-add-column'), "Add Column", main_window))
         comment_menu.addAction(QAction(IconService.get_icon('common-add-row'), "Add Row", main_window))

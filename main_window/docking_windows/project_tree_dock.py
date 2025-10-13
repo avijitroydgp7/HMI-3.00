@@ -86,14 +86,23 @@ class ProjectTreeDock(QDockWidget):
             return
 
         menu = QMenu()
-        action = None
 
         if item == self.tag_item:
             action = menu.addAction("Add New Tag List")
             action.triggered.connect(lambda: self.open_dialog(TagDialog))
+            menu.addSeparator()
+            paste_action = menu.addAction(IconService.get_icon('edit-paste'), "Paste")
+            paste_action.triggered.connect(self.paste_tag)
+            import_action = menu.addAction(IconService.get_icon('common-import'), "Import")
+            import_action.triggered.connect(self.import_tags)
         elif item == self.comment_item:
             action = menu.addAction("Add New Comment")
             action.triggered.connect(lambda: self.open_dialog(CommentDialog))
+            menu.addSeparator()
+            paste_action = menu.addAction(IconService.get_icon('edit-paste'), "Paste")
+            paste_action.triggered.connect(self.paste_comment)
+            import_action = menu.addAction(IconService.get_icon('common-import'), "Import")
+            import_action.triggered.connect(self.import_comments)
         elif item == self.alarm_item:
             action = menu.addAction("Add New Alarm List")
             action.triggered.connect(lambda: self.open_dialog(AlarmDialog))
@@ -122,10 +131,33 @@ class ProjectTreeDock(QDockWidget):
             action = menu.addAction("Add New Animation List")
             action.triggered.connect(lambda: self.open_dialog(AnimationDialog))
 
-        if action:
+        if not menu.isEmpty():
             menu.exec(self.tree_widget.viewport().mapToGlobal(position))
             
     def open_dialog(self, dialog_class):
         dialog = dialog_class(self)
         dialog.exec()
 
+    def paste_tag(self):
+        # Placeholder for future implementation
+        print("Paste Tag action triggered.")
+
+    def import_tags(self):
+        # Placeholder for future implementation
+        print("Import Tags action triggered.")
+
+    def export_tags(self):
+        # Placeholder for future implementation
+        print("Export Tags action triggered.")
+
+    def paste_comment(self):
+        # Placeholder for future implementation
+        print("Paste Comment action triggered.")
+
+    def import_comments(self):
+        # Placeholder for future implementation
+        print("Import Comments action triggered.")
+
+    def export_comments(self):
+        # Placeholder for future implementation
+        print("Export Comments action triggered.")
