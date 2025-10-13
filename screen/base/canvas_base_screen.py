@@ -1,7 +1,7 @@
 # screen\base\canvas_base_screen.py
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsWidget, QVBoxLayout, QLabel
 from PyQt6.QtGui import QPainter, QColor, QBrush, QLinearGradient, QPixmap, QPen, QFont
-from PyQt6.QtCore import Qt, QRectF, pyqtSignal
+from PyQt6.QtCore import Qt, QRectF, pyqtSignal, QPointF
 
 
 class CanvasWidget(QGraphicsWidget):
@@ -95,6 +95,7 @@ class CanvasBaseScreen(QGraphicsView):
     A QGraphicsView that acts as a container for a screen, providing zoom and pan functionality.
     """
     zoom_changed = pyqtSignal(float)
+    mouse_moved = pyqtSignal(QPointF)
 
     def __init__(self, screen_data, project_service, parent=None):
         super().__init__(parent)
@@ -115,6 +116,13 @@ class CanvasBaseScreen(QGraphicsView):
         self.setDragMode(QGraphicsView.DragMode.NoDrag)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setMouseTracking(True)
+
+    def mouseMoveEvent(self, event):
+        """Handle mouse move events to report cursor position."""
+        scene_pos = self.mapToScene(event.pos())
+        self.mouse_moved.emit(scene_pos)
+        super().mouseMoveEvent(event)
 
     def showEvent(self, event):
         """Handle the event when the view is shown, to perform initial fit."""
@@ -201,4 +209,3 @@ class CanvasBaseScreen(QGraphicsView):
         self.fitInView(self.canvas_widget.boundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.zoom_factor = self.transform().m11()
         self.zoom_changed.emit(self.zoom_factor)
-

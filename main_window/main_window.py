@@ -1,6 +1,6 @@
 # main_window\main_window.py
 import sys
-from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog, QTabWidget, QApplication, QLineEdit
+from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog, QTabWidget, QApplication, QLineEdit, QLabel, QStatusBar, QWidget, QHBoxLayout
 from PyQt6.QtCore import Qt, QSize, QByteArray
 from PyQt6.QtGui import QAction
 
@@ -69,6 +69,9 @@ class MainWindow(QMainWindow):
         # Allow nested docks and tabbed docks
         self.setDockNestingEnabled(True)
 
+        # Create the status bar
+        self._create_status_bar()
+
         # Create the menu bar by instantiating the menu classes
         self._create_menu_bar()
         # Create the toolbars
@@ -89,6 +92,34 @@ class MainWindow(QMainWindow):
         self._restore_ui_settings()
         
         self.new_project()
+
+    def _create_status_bar(self):
+        """Creates the status bar and its widgets."""
+        self.setStatusBar(QStatusBar(self))
+
+        # Left side widget for messages
+        self.status_message_label = QLabel("Ready")
+        self.statusBar().addWidget(self.status_message_label)
+
+        # Right side widgets
+        self.mouse_pos_label = QLabel("X: 0, Y: 0")
+        self.screen_size_label = QLabel("W: 0, H: 0")
+        self.zoom_label = QLabel("Zoom: 100%")
+        self.object_pos_label = QLabel("Obj X: 0, Y: 0")
+        self.object_size_label = QLabel("Obj W: 0, H: 0")
+
+        # Set fixed widths to prevent resizing
+        self.mouse_pos_label.setFixedWidth(100)
+        self.screen_size_label.setFixedWidth(120)
+        self.zoom_label.setFixedWidth(100)
+        self.object_pos_label.setFixedWidth(120)
+        self.object_size_label.setFixedWidth(120)
+
+        self.statusBar().addPermanentWidget(self.mouse_pos_label)
+        self.statusBar().addPermanentWidget(self.screen_size_label)
+        self.statusBar().addPermanentWidget(self.zoom_label)
+        self.statusBar().addPermanentWidget(self.object_pos_label)
+        self.statusBar().addPermanentWidget(self.object_size_label)
 
     def update_window_title(self):
         """Updates the window title based on the project state."""
@@ -199,6 +230,7 @@ class MainWindow(QMainWindow):
 
         screen_widget = CanvasBaseScreen(screen_data, self.project_service, parent=self)
         screen_widget.zoom_changed.connect(lambda zf, sw=screen_widget: self.sync_zoom_controls(sw))
+        screen_widget.mouse_moved.connect(self.update_mouse_position)
         
         if screen_type == 'base':
             tab_title = f"[B] - {screen_number} - {screen_data.get('name')}"
@@ -214,6 +246,7 @@ class MainWindow(QMainWindow):
 
         self.open_screens[screen_id] = screen_widget
         self.central_widget.setCurrentWidget(screen_widget)
+        self.update_status_bar_for_screen(screen_widget)
 
     def is_screen_open(self, screen_id):
         return screen_id in self.open_screens
@@ -353,11 +386,7 @@ class MainWindow(QMainWindow):
     def on_tab_changed(self, index):
         """Handles syncing UI when the current tab is changed."""
         widget = self.central_widget.widget(index)
-        if isinstance(widget, CanvasBaseScreen):
-            self.sync_zoom_controls(widget)
-        else:
-            # No screen active, maybe disable some controls. For now, pass.
-            pass
+        self.update_status_bar_for_screen(widget)
             
     # --- Zoom Handlers ---
     def on_zoom_action_triggered(self, action):
@@ -408,6 +437,9 @@ class MainWindow(QMainWindow):
         view_toolbar = self.toolbars.get("View")
         zoom_factor = active_screen.zoom_factor
         new_zoom_percentage_str = f"{zoom_factor * 100:.0f}%"
+
+        # Update Status Bar
+        self.zoom_label.setText(new_zoom_percentage_str)
 
         # --- Update Toolbar ComboBox ---
         view_toolbar.zoom_combo.blockSignals(True)
@@ -521,6 +553,60 @@ class MainWindow(QMainWindow):
             if selected_items:
                 widget.copy_screen(selected_items[0])
                 widget.paste_screen(selected_items[0])
+
+    def _create_status_bar(self):
+        """Creates the status bar and its widgets."""
+        status_bar = QStatusBar(self)
+        status_bar.setStyleSheet("""
+            QStatusBar {
+                background-color: #2c3e50; /* A dark blue-grey */
+                color: white;
+            }
+            QStatusBar::item {
+                border: none; /* No borders between items */
+            }
+            QLabel { /* Ensure labels in the status bar inherit the color */
+                color: white;
+                padding-left: 2px;
+                padding-right: 2px;
+            }
+        """)
+        self.setStatusBar(status_bar)
+
+        # Left side widget for messages
+        self.status_message_label = QLabel("Ready")
+        self.statusBar().addWidget(self.status_message_label, 1) # Give it a stretch factor
+
+        # --- Helper to create icon+label widgets ---
+        def create_status_widget(icon_name, initial_text, fixed_width):
+            widget = QWidget()
+            layout = QHBoxLayout(widget)
+            layout.setContentsMargins(5, 0, 5, 0)
+            layout.setSpacing(5)
+            
+            icon_label = QLabel()
+            if icon_name:
+                icon_label.setPixmap(IconService.get_icon(icon_name).pixmap(16, 16))
+            
+            text_label = QLabel(initial_text)
+            
+            layout.addWidget(icon_label)
+            layout.addWidget(text_label)
+            widget.setFixedWidth(fixed_width)
+            return widget, text_label
+
+        # --- Right side widgets ---
+        mouse_widget, self.mouse_pos_label = create_status_widget('mouse-cursor', "0, 0", 100)
+        screen_size_widget, self.screen_size_label = create_status_widget('view-screen', "0 x 0", 120)
+        zoom_widget, self.zoom_label = create_status_widget('view-zoom', "100%", 80)
+        obj_pos_widget, self.object_pos_label = create_status_widget('view-transform-line', "X: 0, Y: 0", 120)
+        obj_size_widget, self.object_size_label = create_status_widget('view-transform-line', "W: 0, H: 0", 120)
+
+        self.statusBar().addPermanentWidget(mouse_widget)
+        self.statusBar().addPermanentWidget(screen_size_widget)
+        self.statusBar().addPermanentWidget(zoom_widget)
+        self.statusBar().addPermanentWidget(obj_pos_widget)
+        self.statusBar().addPermanentWidget(obj_size_widget)
 
     def _create_menu_bar(self):
         """
@@ -716,3 +802,25 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+    def update_status_bar_for_screen(self, screen_widget):
+        """Updates status bar labels for the given screen widget."""
+        if not isinstance(screen_widget, CanvasBaseScreen):
+            # Reset labels if no screen is active
+            self.mouse_pos_label.setText("--, --")
+            self.screen_size_label.setText("-- x --")
+            self.zoom_label.setText("--%")
+            self.object_pos_label.setText("X: --, Y: --")
+            self.object_size_label.setText("W: --, H: --")
+            return
+
+        screen_data = screen_widget.screen_data
+        width, height = screen_widget.canvas_widget._get_dimensions()
+
+        self.screen_size_label.setText(f"{width} x {height}")
+        self.sync_zoom_controls(screen_widget)
+
+    def update_mouse_position(self, pos):
+        """Updates the mouse position label in the status bar."""
+        self.mouse_pos_label.setText(f"{int(pos.x())}, {int(pos.y())}")
+

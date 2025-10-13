@@ -23,6 +23,7 @@ class IconService:
         "window-close": "window-close.svg",
         "windows-close": "windows-close.svg",
         "exit": "exit.svg",
+        "mouse-cursor": "mouse-cursor.svg",
         
         # Edit Menu Icons
         "edit-undo": "edit-undo.svg",
