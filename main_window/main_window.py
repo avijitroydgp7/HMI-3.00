@@ -270,7 +270,7 @@ class MainWindow(QMainWindow):
                 self.central_widget.setCurrentWidget(widget_to_activate)
             return
 
-        comment_widget = CommentTable(comment_data, self)
+        comment_widget = CommentTable(comment_data, self, self.common_menu)
         
         tab_title = f"[C] - {comment_number} - {comment_data.get('name')}"
         icon = IconService.get_icon("common-comment")
