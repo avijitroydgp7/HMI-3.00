@@ -5,9 +5,9 @@ from PyQt6.QtWidgets import (
 )
 
 class TagDialog(QDialog):
-    def __init__(self, parent=None, existing_tag_numbers=None):
+    def __init__(self, parent=None, existing_tag_numbers=None, initial_data=None):
         super().__init__(parent)
-        self.setWindowTitle("New Tag List")
+        self.setWindowTitle("Tag Properties")
         self.tag_data = {}
         self.existing_tag_numbers = existing_tag_numbers if existing_tag_numbers is not None else []
         
@@ -39,6 +39,16 @@ class TagDialog(QDialog):
         
         self.resize(400, 250)
 
+        if initial_data:
+            self.load_data(initial_data)
+
+    def load_data(self, data):
+        """Loads existing data into the dialog for editing."""
+        self.number_spinbox.setValue(data.get("number", 1))
+        self.name_input.setText(data.get("name", ""))
+        self.description_input.setPlainText(data.get("description", ""))
+        self.number_spinbox.setEnabled(False)  # Number is not editable
+
     def accept(self):
         """
         Validates the user input and accepts the dialog if valid.
@@ -64,3 +74,4 @@ class TagDialog(QDialog):
         Returns the entered tag data.
         """
         return self.tag_data
+

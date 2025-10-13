@@ -27,6 +27,7 @@ from .toolbars.debug_toolbar import DebugToolbar
 # Import the dock widget factory
 from .docking_windows.dock_widget_factory import DockWidgetFactory
 from .docking_windows.screen_tree_dock import ScreenTreeDock
+from .docking_windows.project_tree_dock import ProjectTreeDock
 from .services.icon_service import IconService
 from services.project_service import ProjectService
 from services.edit_service import EditService
@@ -317,6 +318,22 @@ class MainWindow(QMainWindow):
                 self.central_widget.removeTab(index)
             del self.open_screens[screen_id]
 
+    def close_tag_tab_by_number(self, number):
+        if number in self.open_tags:
+            widget_to_close = self.open_tags[number]
+            index = self.central_widget.indexOf(widget_to_close)
+            if index != -1:
+                self.central_widget.removeTab(index)
+            del self.open_tags[number]
+
+    def close_comment_tab_by_number(self, number):
+        if number in self.open_comments:
+            widget_to_close = self.open_comments[number]
+            index = self.central_widget.indexOf(widget_to_close)
+            if index != -1:
+                self.central_widget.removeTab(index)
+            del self.open_comments[number]
+
     def get_screen_id_for_widget(self, widget):
         for screen_id, screen_widget in self.open_screens.items():
             if screen_widget is widget:
@@ -554,6 +571,11 @@ class MainWindow(QMainWindow):
         screen_tree_dock = self.dock_factory.get_dock("screen_tree")
         if screen_tree_dock and (focus_widget is screen_tree_dock.tree_widget or screen_tree_dock.tree_widget.isAncestorOf(focus_widget)):
             return screen_tree_dock
+        
+        # Is focus inside the project tree?
+        project_tree_dock = self.dock_factory.get_dock("project_tree")
+        if project_tree_dock and (focus_widget is project_tree_dock.tree_widget or project_tree_dock.tree_widget.isAncestorOf(focus_widget)):
+            return project_tree_dock
 
         # Is focus inside the canvas?
         active_screen = self.get_active_screen_widget()
@@ -583,6 +605,10 @@ class MainWindow(QMainWindow):
             selected_items = widget.tree_widget.selectedItems()
             if selected_items:
                 widget.cut_screen(selected_items[0])
+        elif isinstance(widget, ProjectTreeDock):
+            selected_items = widget.tree_widget.selectedItems()
+            if selected_items:
+                widget.cut_item(selected_items[0])
         elif hasattr(widget, 'cut'):
             widget.cut()
 
@@ -592,6 +618,10 @@ class MainWindow(QMainWindow):
             selected_items = widget.tree_widget.selectedItems()
             if selected_items:
                 widget.copy_screen(selected_items[0])
+        elif isinstance(widget, ProjectTreeDock):
+            selected_items = widget.tree_widget.selectedItems()
+            if selected_items:
+                widget.copy_item(selected_items[0])
         elif hasattr(widget, 'copy'):
             widget.copy()
 
@@ -601,6 +631,10 @@ class MainWindow(QMainWindow):
             selected_items = widget.tree_widget.selectedItems()
             item = selected_items[0] if selected_items else widget.base_screens_root
             widget.paste_screen(item)
+        elif isinstance(widget, ProjectTreeDock):
+            selected_items = widget.tree_widget.selectedItems()
+            if selected_items:
+                widget.paste_item(selected_items[0])
         elif hasattr(widget, 'paste'):
             widget.paste()
             
@@ -610,6 +644,10 @@ class MainWindow(QMainWindow):
             selected_items = widget.tree_widget.selectedItems()
             if selected_items:
                 widget.delete_screen(selected_items[0])
+        elif isinstance(widget, ProjectTreeDock):
+            selected_items = widget.tree_widget.selectedItems()
+            if selected_items:
+                widget.delete_item(selected_items[0])
         elif hasattr(widget, 'textCursor'): # For QTextEdit, QLineEdit
             widget.textCursor().removeSelectedText()
 
