@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QMessageBox, QAbstractItemView, QHeaderView, QApplication, QLabel,
     QStyledItemDelegate, QMenu, QListWidget
 )
-from PyQt6.QtGui import QColor, QBrush, QFont, QPainter, QPen
+from PyQt6.QtGui import QColor, QBrush, QFont, QPainter, QPen, QKeySequence
 from PyQt6.QtCore import Qt, QRegularExpression, QRectF, QPointF, pyqtSignal
 
 class CommentTable(QWidget):
@@ -74,11 +74,12 @@ class CommentTable(QWidget):
 
 
     def update_formula_bar(self, currentRow, currentColumn, previousRow, previousColumn):
-        """Update the formula bar with the content of the selected cell."""
+        """Update the formula bar with the raw formula/text of the selected cell."""
         item = self.table_widget.item(currentRow, currentColumn)
         if item:
-            edit_data = item.data(Qt.ItemDataRole.EditRole)
-            self.formula_bar.setText(str(edit_data) if edit_data is not None else "")
+            # Read from UserRole, which holds the raw formula/text
+            raw_data = item.data(Qt.ItemDataRole.UserRole)
+            self.formula_bar.setText(str(raw_data) if raw_data is not None else "")
 
     def update_cell_from_formula_bar(self):
         """Update the selected cell with the content from the formula bar."""
@@ -97,22 +98,12 @@ class CommentTable(QWidget):
 
 
 class SpreadsheetItem(QTableWidgetItem):
-    """Custom item to store both formula and evaluated value."""
+    """Custom item that uses UserRole as the single source of truth for raw text/formulas."""
     def __init__(self, text=''):
-        super().__init__()
-        self.formula = None
-        self.setData(Qt.ItemDataRole.EditRole, text)
-
-    def setData(self, role, value):
-        if role == Qt.ItemDataRole.EditRole:
-            str_value = str(value)
-            self.formula = str_value if str_value.startswith('=') else None
-            super().setData(role, str_value)
-            # Initially set display to the formula itself
-            super().setData(Qt.ItemDataRole.DisplayRole, str_value)
-        else:
-            # This will be called by evaluate_cell to set the calculated result
-            super().setData(role, value)
+        # Set initial display text
+        super().__init__(text)
+        # Store the raw text/formula in UserRole.
+        self.setData(Qt.ItemDataRole.UserRole, text)
 
 
 class ExcelHeaderView(QHeaderView):
@@ -170,6 +161,18 @@ class SpreadsheetDelegate(QStyledItemDelegate):
         if isinstance(editor, QLineEdit):
             editor.textChanged.connect(self.editingTextChanged)
         return editor
+
+    def setEditorData(self, editor, index):
+        """Populate the editor with the raw formula from UserRole."""
+        value = index.model().data(index, Qt.ItemDataRole.UserRole)
+        if isinstance(editor, QLineEdit):
+            editor.setText(str(value) if value is not None else "")
+            
+    def setModelData(self, editor, model, index):
+        """When editing is finished, save the text back to UserRole."""
+        if isinstance(editor, QLineEdit):
+            value = editor.text()
+            model.setData(index, value, Qt.ItemDataRole.UserRole)
 
 class Spreadsheet(QTableWidget):
     """A QTableWidget with spreadsheet-like formula and fill capabilities."""
@@ -260,6 +263,7 @@ class Spreadsheet(QTableWidget):
         self.update_headers()
         
         self.itemSelectionChanged.connect(self.on_selection_changed)
+        # Use itemChanged signal for re-evaluation
         self.itemChanged.connect(self.on_item_changed)
         parent.formula_bar.textChanged.connect(self.on_formula_bar_text_changed)
 
@@ -275,6 +279,126 @@ class Spreadsheet(QTableWidget):
                 background-color: transparent;
             }
         """)
+
+    def contextMenuEvent(self, event):
+        """Shows a context menu on right-click."""
+        menu = QMenu(self)
+        
+        cut_action = menu.addAction("Cut")
+        copy_action = menu.addAction("Copy")
+        paste_action = menu.addAction("Paste")
+        delete_action = menu.addAction("Delete")
+        
+        cut_action.triggered.connect(self.cut)
+        copy_action.triggered.connect(self.copy)
+        paste_action.triggered.connect(self.paste)
+        delete_action.triggered.connect(self.delete)
+        
+        # Check if there is anything to paste
+        paste_action.setEnabled(bool(QApplication.clipboard().text()))
+        
+        menu.exec(event.globalPos())
+
+    def keyPressEvent(self, event):
+        """Handle key press events for clipboard operations."""
+        if event.matches(QKeySequence.StandardKey.Copy):
+            self.copy()
+        elif event.matches(QKeySequence.StandardKey.Paste):
+            self.paste()
+        elif event.matches(QKeySequence.StandardKey.Cut):
+            self.cut()
+        elif event.matches(QKeySequence.StandardKey.SelectAll):
+            self.selectAll()
+        elif event.key() == Qt.Key.Key_Delete:
+            self.delete()
+        elif event.matches(QKeySequence.StandardKey.Undo):
+            self.undo()
+        elif event.matches(QKeySequence.StandardKey.Redo):
+            self.redo()
+        else:
+            super().keyPressEvent(event)
+
+    def copy(self):
+        """Copies the selected cells' raw data to the clipboard."""
+        selection = self.selectedRanges()
+        if not selection:
+            return
+
+        first_range = selection[0]
+        min_row, max_row = first_range.topRow(), first_range.bottomRow()
+        min_col, max_col = first_range.leftColumn(), first_range.rightColumn()
+        for r in selection:
+            min_row = min(min_row, r.topRow())
+            max_row = max(max_row, r.bottomRow())
+            min_col = min(min_col, r.leftColumn())
+            max_col = max(max_col, r.rightColumn())
+        
+        clipboard_text = ""
+        for r in range(min_row, max_row + 1):
+            row_data = []
+            for c in range(min_col, max_col + 1):
+                item = self.item(r, c)
+                if item:
+                    raw_data = item.data(Qt.ItemDataRole.UserRole)
+                    row_data.append(str(raw_data) if raw_data is not None else "")
+                else:
+                    row_data.append("")
+            clipboard_text += "\t".join(row_data) + "\n"
+
+        QApplication.clipboard().setText(clipboard_text)
+
+    def cut(self):
+        """Cuts the selected cells' data."""
+        self.copy()
+        self.delete()
+
+    def delete(self):
+        """Deletes the content of the selected cells."""
+        selection = self.selectedRanges()
+        if not selection:
+            return
+
+        for r in selection:
+            for row in range(r.topRow(), r.bottomRow() + 1):
+                for col in range(r.leftColumn(), r.rightColumn() + 1):
+                    item = self.item(row, col)
+                    if item:
+                        # Clear UserRole which holds the raw data.
+                        # This will trigger on_item_changed to update the display.
+                        item.setData(Qt.ItemDataRole.UserRole, "")
+        self.evaluate_all_cells()
+
+    def paste(self):
+        """Pastes clipboard content into the table."""
+        selection = self.selectedRanges()
+        if not selection:
+            return
+
+        start_row = selection[0].topRow()
+        start_col = selection[0].leftColumn()
+
+        clipboard_text = QApplication.clipboard().text()
+        rows = clipboard_text.strip('\n').split('\n')
+
+        for r, row_data in enumerate(rows):
+            columns = row_data.split('\t')
+            for c, cell_text in enumerate(columns):
+                target_row = start_row + r
+                target_col = start_col + c
+
+                if target_row < self.rowCount() and target_col < self.columnCount():
+                    self.setItem(target_row, target_col, SpreadsheetItem(cell_text))
+        
+        self.evaluate_all_cells()
+        
+    def undo(self):
+        # Full undo/redo is not implemented in this version.
+        pass
+
+    def redo(self):
+        # Full undo/redo is not implemented in this version.
+        pass
+
 
     def on_selection_changed(self):
         """Handles changes in cell selection."""
@@ -385,7 +509,11 @@ class Spreadsheet(QTableWidget):
         self.setVerticalHeaderLabels(row_headers)
 
     def on_item_changed(self, item):
-        if not isinstance(item, SpreadsheetItem):
+        """
+        Triggered when an item's data changes. We use this to re-evaluate all cells,
+        as a change in one cell (e.g., via the editor) can affect others.
+        """
+        if not isinstance(item, QTableWidgetItem):
             return
 
         self.blockSignals(True)
@@ -397,16 +525,22 @@ class Spreadsheet(QTableWidget):
         for row in range(self.rowCount()):
             for col in range(self.columnCount()):
                 item = self.item(row, col)
-                if item and isinstance(item, SpreadsheetItem) and item.formula:
+                if item:
                     self.evaluate_cell(item)
 
     def evaluate_cell(self, item):
+        """Evaluates the formula in a cell (if any) and updates its display text."""
+        formula = str(item.data(Qt.ItemDataRole.UserRole) or '')
+        if not formula.startswith('='):
+            item.setText(formula)
+            return
+
         try:
-            result = self.parse_formula(item.formula)
-            item.setData(Qt.ItemDataRole.DisplayRole, str(result))
+            result = self.parse_formula(formula)
+            item.setText(str(result))
         except Exception as e:
-            item.setData(Qt.ItemDataRole.DisplayRole, "#ERROR")
-            #print(f"Error evaluating formula '{item.formula}': {e}") # Silenced for now
+            item.setText("#ERROR")
+            # print(f"Error evaluating formula '{formula}': {e}")
     
     def get_cell_value(self, row, col, as_string=False):
         item = self.item(row, col)
@@ -478,7 +612,7 @@ class Spreadsheet(QTableWidget):
             row, col = int(row_str) - 1, self.col_str_to_int(col_str)
             return str(self.get_cell_value(row, col))
         
-        expression = re.sub(r"([A-Z]+)(\d+)", replace_cell_ref, formula_upper)
+        expression = re.sub(r"([A-Z]+)(\d+)", replace_cell_ref, formula_upper, flags=re.IGNORECASE)
         return self.safe_eval(expression)
 
     def _parse_args(self, args_str):
@@ -676,18 +810,27 @@ class Spreadsheet(QTableWidget):
                 source_row = source_range.topRow() + (i-1) % source_range.rowCount()
                 source_item = self.item(source_row, col)
                 if not source_item: continue
-                target_item = SpreadsheetItem()
-                target_item.setFont(source_item.font())
-                if isinstance(source_item, SpreadsheetItem) and source_item.formula:
+                
+                # Use UserRole to get the source text/formula
+                source_text = str(source_item.data(Qt.ItemDataRole.UserRole) or '')
+                
+                new_text = ""
+                if source_text.startswith('='):
                     offset = target_row - source_row
-                    new_formula = re.sub(r"([A-Z]+)(\d+)", lambda m: f"{m.group(1)}{int(m.group(2)) + offset}", source_item.formula)
-                    target_item.setData(Qt.ItemDataRole.EditRole, new_formula)
+                    new_text = re.sub(r"([A-Z]+)(\d+)", lambda m: f"{m.group(1)}{int(m.group(2)) + offset}", source_text, flags=re.IGNORECASE)
                 else:
                     try:
-                        new_value = float(source_item.text()) + i
-                        target_item.setText(str(int(new_value) if new_value.is_integer() else new_value))
-                    except ValueError:
-                        target_item.setText(source_item.text())
+                        # Attempt to increment numbers
+                        new_value = float(source_text) + i
+                        new_text = str(int(new_value) if new_value.is_integer() else new_value)
+                    except (ValueError, TypeError):
+                        # If not a number, just copy the text
+                        new_text = source_text
+
+                target_item = SpreadsheetItem(new_text)
+                target_item.setFont(source_item.font())
                 self.setItem(target_row, col, target_item)
+        
+        # A full re-evaluation is needed after the drag-fill operation
         self.evaluate_all_cells()
 
