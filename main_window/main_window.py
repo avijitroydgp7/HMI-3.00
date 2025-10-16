@@ -32,7 +32,7 @@ from .services.icon_service import IconService
 from services.project_service import ProjectService
 from services.edit_service import EditService
 from screen.base.canvas_base_screen import CanvasBaseScreen
-from project.comment.comment_table import CommentTable
+from project.comment.comment_table import CommentTable, Spreadsheet
 from project.tag.tag_table import TagTable
 
 class MainWindow(QMainWindow):
@@ -564,30 +564,37 @@ class MainWindow(QMainWindow):
         self.view_menu.zoom_action_group.blockSignals(False)
 
     def get_focused_widget_for_edit(self):
-        """Finds the widget that should receive the edit command."""
+        """
+        Finds the widget that should receive an edit command (cut, copy, paste, etc.).
+        This method is crucial for routing global shortcuts to the correct context.
+        """
         focus_widget = QApplication.focusWidget()
-        
-        # Is focus inside the screen tree?
-        screen_tree_dock = self.dock_factory.get_dock("screen_tree")
-        if screen_tree_dock and (focus_widget is screen_tree_dock.tree_widget or screen_tree_dock.tree_widget.isAncestorOf(focus_widget)):
-            return screen_tree_dock
-        
-        # Is focus inside the project tree?
-        project_tree_dock = self.dock_factory.get_dock("project_tree")
-        if project_tree_dock and (focus_widget is project_tree_dock.tree_widget or project_tree_dock.tree_widget.isAncestorOf(focus_widget)):
-            return project_tree_dock
+        if not focus_widget:
+            return None
 
-        # Is focus inside the canvas?
-        active_screen = self.get_active_screen_widget()
-        if active_screen and (focus_widget is active_screen or active_screen.isAncestorOf(focus_widget)):
-            # Later, we can check for selected items on the canvas, for now return the canvas
-            return active_screen
+        # Case 1: The focus is within a tree dock. The dock itself handles the actions.
+        for dock_name in ["screen_tree", "project_tree"]:
+            dock = self.dock_factory.get_dock(dock_name)
+            if dock and (focus_widget is dock.tree_widget or dock.tree_widget.isAncestorOf(focus_widget)):
+                return dock
 
-        # Is it a standard text-editable widget?
+        # Case 2: The focus is within the central tab widget.
+        current_tab_widget = self.central_widget.currentWidget()
+        if current_tab_widget and (focus_widget is current_tab_widget or current_tab_widget.isAncestorOf(focus_widget)):
+            # If the current tab is a CommentTable, the target for edits is its internal Spreadsheet.
+            if isinstance(current_tab_widget, CommentTable):
+                return current_tab_widget.table_widget
+            # For other tab types like CanvasBaseScreen, return the tab widget itself.
+            # The calling function will check if it has the required methods.
+            return current_tab_widget
+
+        # Case 3: The focused widget is a simple input field not in the central widget.
         if isinstance(focus_widget, (QLineEdit, QTextEdit)):
             return focus_widget
-
-        return None
+            
+        # Fallback: return the focused widget directly. This covers cases where the spreadsheet
+        # itself might have focus without its parent tab being the `current_tab_widget` somehow.
+        return focus_widget
 
     def undo_active_widget(self):
         widget = QApplication.focusWidget()
@@ -648,6 +655,9 @@ class MainWindow(QMainWindow):
             selected_items = widget.tree_widget.selectedItems()
             if selected_items:
                 widget.delete_item(selected_items[0])
+        # Check for our custom delete method first (e.g., in Spreadsheet)
+        elif hasattr(widget, 'delete'):
+             widget.delete()
         elif hasattr(widget, 'textCursor'): # For QTextEdit, QLineEdit
             widget.textCursor().removeSelectedText()
 
@@ -933,4 +943,3 @@ class MainWindow(QMainWindow):
     def update_mouse_position(self, pos):
         """Updates the mouse position label in the status bar."""
         self.mouse_pos_label.setText(f"{int(pos.x())}, {int(pos.y())}")
-

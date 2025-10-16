@@ -129,7 +129,7 @@ class ExcelHeaderView(QHeaderView):
         painter.save()
         
         if is_selected:
-            bg_color = QColor("#E7F5E7")
+            bg_color = QColor("#9FFF9F")
             text_color = QColor("#0F5113")
             pen_color = QColor("#A0A0A0")
         else:
@@ -182,8 +182,11 @@ class Spreadsheet(QTableWidget):
         self._is_dragging_fill_handle = False
         self._drag_start_pos = None
         self._drag_fill_rect = None
+        self._currently_evaluating = set() # For circular reference detection
+        self.precedents = {} # For formula auditing
+        self.highlighted_cells = set()
         self.referenced_cells = []
-        self.ref_colors = [QColor("#0070C0"), QColor("#C00000"), QColor("#00B050"), QColor("#7030A0")]
+        self.ref_colors = [QColor("#54B8FF"), QColor("#FF3C3C"), QColor("#39FF92"), QColor("#BE6AFF")]
         
         # --- Formula Hinting Widgets ---
         self.formula_hint = QLabel(self)
@@ -227,6 +230,9 @@ class Spreadsheet(QTableWidget):
             "MID": "MID(text, start_num, num_chars)",
             "CONCAT": "CONCAT(text1, [text2], ...)",
             "INT": "INT(number)",
+            "TRIM": "TRIM(text)",
+            "REPLACE": "REPLACE(old_text, start_num, num_chars, new_text)",
+            "SUBSTITUTE": "SUBSTITUTE(text, old_text, new_text, [instance_num])",
             "DEC2HEX": "DEC2HEX(number)",
             "DEC2BIN": "DEC2BIN(number)",
             "DEC2OCT": "DEC2OCT(number)",
@@ -297,6 +303,15 @@ class Spreadsheet(QTableWidget):
         # Check if there is anything to paste
         paste_action.setEnabled(bool(QApplication.clipboard().text()))
         
+        item = self.itemAt(event.pos())
+        if item and str(item.data(Qt.ItemDataRole.UserRole) or '').startswith('='):
+            menu.addSeparator()
+            trace_precedents_action = menu.addAction("Trace Precedents")
+            trace_precedents_action.triggered.connect(self.trace_precedents)
+            if self.highlighted_cells:
+                clear_highlights_action = menu.addAction("Clear Highlights")
+                clear_highlights_action.triggered.connect(self.clear_highlights)
+
         menu.exec(event.globalPos())
 
     def keyPressEvent(self, event):
@@ -522,6 +537,8 @@ class Spreadsheet(QTableWidget):
         self.viewport().update()
 
     def evaluate_all_cells(self):
+        self._currently_evaluating.clear() # Reset for a new evaluation cycle
+        self.precedents.clear()
         for row in range(self.rowCount()):
             for col in range(self.columnCount()):
                 item = self.item(row, col)
@@ -536,49 +553,198 @@ class Spreadsheet(QTableWidget):
             return
 
         try:
-            result = self.parse_formula(formula)
-            item.setText(str(result))
+            # We don't need to add to the _currently_evaluating set here,
+            # because get_cell_value will handle it for the recursive calls.
+            result = self.parse_formula(formula, (item.row(), item.column()))
+            
+            # Format the result to show integers without decimal points
+            if isinstance(result, float) and result.is_integer():
+                item.setText(str(int(result)))
+            else:
+                item.setText(str(result))
+
         except Exception as e:
             item.setText("#ERROR")
             # print(f"Error evaluating formula '{formula}': {e}")
     
-    def get_cell_value(self, row, col, as_string=False):
+    def get_cell_value(self, row, col, as_string=False, dependent_cell=None):
+        """
+        Gets the evaluated value of a cell. This method recursively evaluates
+        formulas and includes circular reference detection.
+        """
+        if dependent_cell:
+            if dependent_cell not in self.precedents:
+                self.precedents[dependent_cell] = set()
+            self.precedents[dependent_cell].add((row, col))
+            
         item = self.item(row, col)
-        if not item or not item.data(Qt.ItemDataRole.DisplayRole):
+        if not item:
             return "" if as_string else 0
 
-        text = str(item.data(Qt.ItemDataRole.DisplayRole))
+        # Check for circular references
+        if (row, col) in self._currently_evaluating:
+            return 0  # Return 0 to break the cycle
+
+        # Get the raw data from UserRole, which is the source of truth
+        raw_data = str(item.data(Qt.ItemDataRole.UserRole) or '')
+
+        value = ""
+        if raw_data.startswith('='):
+            # It's a formula. Add to the evaluating set and parse it.
+            self._currently_evaluating.add((row, col))
+            try:
+                value = self.parse_formula(raw_data, (row, col))
+            except Exception:
+                value = "#ERROR"
+            finally:
+                # IMPORTANT: Remove from set after evaluation is done for this branch
+                self._currently_evaluating.remove((row, col))
+        else:
+            # It's a literal value.
+            value = raw_data
+
+        # Now, try to convert the result to the desired type
         if as_string:
-            return text
+            return str(value)
 
+        # If numeric is desired, try to convert.
         try:
-            return float(text)
+            if isinstance(value, bool):
+                return 1.0 if value else 0.0
+            return float(value)
         except (ValueError, TypeError):
-            return text # Return as string if conversion fails
+            # If it's not a number (e.g., "#ERROR", or a string literal), return 0 for numeric contexts
+            return 0
 
-    def parse_formula(self, formula):
-        formula_upper = formula[1:].upper()
+    def _get_range_values(self, range_str, dependent_cell=None):
+        range_match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", range_str.upper())
+        if not range_match:
+            # It might be a single cell reference
+            cell_match = re.match(r"([A-Z]+)(\d+)", range_str.upper())
+            if cell_match:
+                col_str, row_str = cell_match.groups()
+                row, col = int(row_str) - 1, self.col_str_to_int(col_str)
+                return [[self.get_cell_value(row, col, as_string=True, dependent_cell=dependent_cell)]]
+            return []
+
+        start_col_str, start_row_str, end_col_str, end_row_str = range_match.groups()
+        start_row, start_col = int(start_row_str) - 1, self.col_str_to_int(start_col_str)
+        end_row, end_col = int(end_row_str) - 1, self.col_str_to_int(end_col_str)
         
-        # Match function calls like SUM(A1:B2, C3)
-        func_match = re.match(r"\s*(\w+)\s*\((.*)\)\s*", formula_upper)
+        table_data = []
+        for r in range(start_row, end_row + 1):
+            row_data = []
+            for c in range(start_col, end_col + 1):
+                row_data.append(self.get_cell_value(r, c, as_string=True, dependent_cell=dependent_cell))
+            table_data.append(row_data)
+        return table_data
+
+    def _evaluate_single_arg(self, arg, as_string=False, dependent_cell=None):
+        arg = arg.strip()
+        arg_upper = arg.upper()
+
+        if arg.startswith('"') and arg.endswith('"'):
+            return arg[1:-1]
+        
+        cell_match = re.match(r"([A-Z]+)(\d+)", arg_upper)
+        if cell_match:
+            col_str, row_str = cell_match.groups()
+            row, col = int(row_str) - 1, self.col_str_to_int(col_str)
+            return self.get_cell_value(row, col, as_string=as_string, dependent_cell=dependent_cell)
+
+        if arg_upper == 'TRUE':
+            return True
+        if arg_upper == 'FALSE':
+            return False
+        
+        try:
+            return float(arg)
+        except (ValueError, TypeError):
+            return arg # return as string if it's not a number or cell ref
+            
+    def parse_formula(self, formula, current_cell=None):
+        expression = formula[1:]  # Work with original case
+
+        # Match function calls like SUM(A1:B2, C3) case-insensitively
+        func_match = re.match(r"\s*(\w+)\s*\((.*)\)\s*$", expression, re.IGNORECASE)
         if func_match:
-            func_name, args_str = func_match.groups()
+            func_name = func_match.group(1).upper()
+            args_str = func_match.group(2)
             
             if func_name in self.FUNCTION_HINTS:
                 args = self._parse_args(args_str)
+
+                if func_name == "VLOOKUP":
+                    lookup_value = self._evaluate_single_arg(args[0], as_string=True, dependent_cell=current_cell)
+                    table_array_range = args[1]
+                    table_array = self._get_range_values(table_array_range, dependent_cell=current_cell)
+                    col_index_num = int(self._evaluate_single_arg(args[2], as_string=False, dependent_cell=current_cell))
+                    
+                    if not table_array or col_index_num > len(table_array[0]):
+                        raise ValueError("Invalid table array or column index for VLOOKUP")
+
+                    for row_data in table_array:
+                        if str(row_data[0]) == str(lookup_value):
+                             return row_data[col_index_num - 1]
+                    
+                    return "#N/A" 
+
+                if func_name == "HLOOKUP":
+                    lookup_value = self._evaluate_single_arg(args[0], as_string=True, dependent_cell=current_cell)
+                    table_array_range = args[1]
+                    table_array = self._get_range_values(table_array_range, dependent_cell=current_cell)
+                    row_index_num = int(self._evaluate_single_arg(args[2], as_string=False, dependent_cell=current_cell))
+
+                    if not table_array or row_index_num > len(table_array):
+                        raise ValueError("Invalid table array or row index for HLOOKUP")
+                    
+                    first_row = table_array[0]
+                    
+                    for col_idx, cell_val in enumerate(first_row):
+                        if str(cell_val) == str(lookup_value):
+                            return table_array[row_index_num - 1][col_idx]
+                            
+                    return "#N/A"
                 
                 # Handle functions by category
                 if func_name in ["UPPER", "LOWER", "LEN", "CONCAT", "LEFT", "RIGHT", "MID", 
                                  "HEX2DEC", "HEX2BIN", "HEX2OCT", "BIN2DEC", "BIN2HEX", "BIN2OCT",
-                                 "OCT2DEC", "OCT2BIN", "OCT2HEX"]:
-                    raw_values = self._evaluate_args(args, as_string=True)
+                                 "OCT2DEC", "OCT2BIN", "OCT2HEX", "TRIM", "REPLACE", "SUBSTITUTE"]:
+                    raw_values = self._evaluate_args(args, as_string=True, dependent_cell=current_cell)
                     if func_name == "UPPER": return str(raw_values[0]).upper()
                     if func_name == "LOWER": return str(raw_values[0]).lower()
                     if func_name == "LEN": return len(str(raw_values[0]))
                     if func_name == "CONCAT": return "".join(map(str, raw_values))
-                    if func_name == "LEFT": return str(raw_values[0])[:int(raw_values[1])] if len(raw_values) > 1 else str(raw_values[0])[:1]
-                    if func_name == "RIGHT": return str(raw_values[0])[-int(raw_values[1]):] if len(raw_values) > 1 else str(raw_values[0])[-1:]
-                    if func_name == "MID": return str(raw_values[0])[int(raw_values[1])-1:int(raw_values[1])-1+int(raw_values[2])]
+                    if func_name == "LEFT":
+                        num_chars = int(float(raw_values[1])) if len(raw_values) > 1 else 1
+                        return str(raw_values[0])[:num_chars]
+                    if func_name == "RIGHT":
+                        num_chars = int(float(raw_values[1])) if len(raw_values) > 1 else 1
+                        return str(raw_values[0])[-num_chars:]
+                    if func_name == "MID":
+                        start_num = int(float(raw_values[1]))
+                        num_chars = int(float(raw_values[2]))
+                        return str(raw_values[0])[start_num - 1:start_num - 1 + num_chars]
+                    if func_name == "TRIM": return str(raw_values[0]).strip()
+                    if func_name == "REPLACE":
+                        old_text, start_num, num_chars, new_text = raw_values
+                        start_num, num_chars = int(start_num), int(num_chars)
+                        return old_text[:start_num-1] + new_text + old_text[start_num-1+num_chars:]
+                    if func_name == "SUBSTITUTE":
+                        text, old_text, new_text = raw_values[:3]
+                        instance_num = int(raw_values[3]) if len(raw_values) > 3 else 0
+                        if instance_num > 0:
+                            count = 0
+                            res = ""
+                            for i in range(len(text)):
+                                if text[i:i+len(old_text)] == old_text:
+                                    count += 1
+                                    if count == instance_num:
+                                        return text[:i] + new_text + text[i+len(old_text):]
+                            return text
+                        else:
+                            return text.replace(old_text, new_text)
+
                     # Hex conversions
                     if func_name == "HEX2DEC": return str(int(str(raw_values[0]), 16))
                     if func_name == "HEX2BIN": return bin(int(str(raw_values[0]), 16))[2:]
@@ -592,7 +758,7 @@ class Spreadsheet(QTableWidget):
                     if func_name == "OCT2BIN": return bin(int(str(raw_values[0]), 8))[2:]
                     if func_name == "OCT2HEX": return hex(int(str(raw_values[0]), 8))[2:].upper()
                 else: 
-                    numeric_values = self._evaluate_args(args, as_string=False)
+                    numeric_values = self._evaluate_args(args, as_string=False, dependent_cell=current_cell)
                     if func_name == "SUM": return sum(numeric_values)
                     if func_name == "AVERAGE": return sum(numeric_values) / len(numeric_values) if numeric_values else 0
                     if func_name == "MAX": return max(numeric_values) if numeric_values else 0
@@ -610,49 +776,100 @@ class Spreadsheet(QTableWidget):
         def replace_cell_ref(match_obj):
             col_str, row_str = match_obj.groups()
             row, col = int(row_str) - 1, self.col_str_to_int(col_str)
-            return str(self.get_cell_value(row, col))
+            return str(self.get_cell_value(row, col, dependent_cell=current_cell))
         
-        expression = re.sub(r"([A-Z]+)(\d+)", replace_cell_ref, formula_upper, flags=re.IGNORECASE)
-        return self.safe_eval(expression)
+        # Use original case expression here
+        expression_with_values = re.sub(r"([A-Z]+)(\d+)", replace_cell_ref, expression, flags=re.IGNORECASE)
+        return self.safe_eval(expression_with_values)
 
     def _parse_args(self, args_str):
-        # Basic split by comma, doesn't handle commas in strings yet
-        return [arg.strip() for arg in args_str.split(',')]
+        # Handles commas within quotes and nested functions
+        args = []
+        current_arg = ""
+        in_quotes = False
+        parenthesis_level = 0
+        for char in args_str:
+            if char == '"':
+                in_quotes = not in_quotes
+                current_arg += char
+            elif char == '(' and not in_quotes:
+                parenthesis_level += 1
+                current_arg += char
+            elif char == ')' and not in_quotes:
+                parenthesis_level -= 1
+                current_arg += char
+            elif char == ',' and not in_quotes and parenthesis_level == 0:
+                args.append(current_arg.strip())
+                current_arg = ""
+            else:
+                current_arg += char
+        args.append(current_arg.strip())
+        return args
 
-    def _evaluate_args(self, args, as_string=False):
+    def _evaluate_args(self, args, as_string=False, dependent_cell=None):
         values = []
         for arg in args:
             arg = arg.strip()
             if not arg: continue
-            # Check for a range (e.g., A1:B2)
-            range_match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", arg)
+
+            # 1. Handle string literals first, preserving case
+            if arg.startswith('"') and arg.endswith('"'):
+                values.append(arg[1:-1])
+                continue
+
+            # 2. Handle ranges and cell refs (case-insensitively)
+            arg_upper = arg.upper()
+            range_match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", arg_upper)
             if range_match:
                 start_col_str, start_row_str, end_col_str, end_row_str = range_match.groups()
                 start_row, start_col = int(start_row_str) - 1, self.col_str_to_int(start_col_str)
                 end_row, end_col = int(end_row_str) - 1, self.col_str_to_int(end_col_str)
                 for r in range(start_row, end_row + 1):
                     for c in range(start_col, end_col + 1):
-                        values.append(self.get_cell_value(r, c, as_string))
-            # Check for a single cell (e.g., A1)
-            else:
-                cell_match = re.match(r"([A-Z]+)(\d+)", arg)
-                if cell_match:
-                    col_str, row_str = cell_match.groups()
-                    row, col = int(row_str) - 1, self.col_str_to_int(col_str)
-                    values.append(self.get_cell_value(row, col, as_string))
-                # It's a literal value
-                else:
-                    if as_string:
-                        values.append(arg.strip('"'))
-                    else:
-                        try:
-                            values.append(float(arg))
-                        except ValueError:
-                             if arg.upper() == 'TRUE': values.append(True)
-                             elif arg.upper() == 'FALSE': values.append(False)
-                             else: values.append(arg.strip('"')) # Treat as string if not a number
-        return values
+                        # Pass the 'as_string' context to get the correct value type
+                        values.append(self.get_cell_value(r, c, as_string=as_string, dependent_cell=dependent_cell))
+                continue
 
+            cell_match = re.match(r"([A-Z]+)(\d+)", arg_upper)
+            if cell_match:
+                col_str, row_str = cell_match.groups()
+                row, col = int(row_str) - 1, self.col_str_to_int(col_str)
+                # Pass the 'as_string' context to get the correct value type
+                values.append(self.get_cell_value(row, col, as_string=as_string, dependent_cell=dependent_cell))
+                continue
+                
+            # 3. Handle boolean literals
+            if arg_upper == 'TRUE':
+                values.append(True)
+                continue
+            if arg_upper == 'FALSE':
+                values.append(False)
+                continue
+                
+            # 4. Handle numeric literals
+            try:
+                values.append(float(arg))
+            except (ValueError, TypeError):
+                # If it's none of the above, it could be an unquoted string
+                # which is an error in most contexts but might be used by CONCAT.
+                values.append(arg)
+                
+        # Now, process the collected values based on the required context (string or numeric)
+        if as_string:
+            return [str(v) for v in values]
+        else: # Numeric context
+            numeric_values = []
+            for v in values:
+                if isinstance(v, (int, float)):
+                    numeric_values.append(v)
+                elif isinstance(v, bool):
+                    numeric_values.append(1.0 if v else 0.0)
+                else: # Try converting strings to float, default to 0 if not possible
+                    try:
+                        numeric_values.append(float(v))
+                    except (ValueError, TypeError):
+                        numeric_values.append(0.0)
+            return numeric_values
 
     def safe_eval(self, expression):
         # Allow comma for argument separation in the final expression (after cell refs are numbers)
@@ -718,6 +935,13 @@ class Spreadsheet(QTableWidget):
                 painter.setBrush(Qt.BrushStyle.NoBrush)
                 painter.drawRect(rect.adjusted(0, 0, -1, -1))
         
+        for (row, col) in self.highlighted_cells:
+            rect = self.visualRect(self.model().index(row, col))
+            if rect.isValid():
+                painter.setPen(QPen(QColor("blue"), 2))
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawRect(rect.adjusted(0, 0, -1, -1))
+                
         if not self.selectionModel().hasSelection():
             return
         
@@ -751,6 +975,7 @@ class Spreadsheet(QTableWidget):
             painter.drawRect(self._drag_fill_rect)
 
     def mousePressEvent(self, event):
+        self.clear_highlights()
         comment_table = self.parent()
         
         is_editing_in_formula_bar = comment_table.formula_bar.hasFocus() and comment_table.formula_bar.text().startswith('=')
@@ -833,4 +1058,18 @@ class Spreadsheet(QTableWidget):
         
         # A full re-evaluation is needed after the drag-fill operation
         self.evaluate_all_cells()
+        
+    def trace_precedents(self):
+        current_item = self.currentItem()
+        if not current_item:
+            return
+        cell = (current_item.row(), current_item.column())
+        if cell in self.precedents:
+            self.highlighted_cells.update(self.precedents[cell])
+            self.viewport().update()
+            
+    def clear_highlights(self):
+        self.highlighted_cells.clear()
+        self.viewport().update()
+
 
