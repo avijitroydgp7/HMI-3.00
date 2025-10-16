@@ -545,5 +545,5 @@ class ColorSelector(QDialog):
         dialog = ColorSelector(initial, true_parent)
         if dialog.exec():
             return dialog.currentColor()
-        return initial
+        return QColor()  # Return invalid color if canceled, matching QColorDialog behavior
 
