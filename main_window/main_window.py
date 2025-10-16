@@ -31,6 +31,7 @@ from .docking_windows.project_tree_dock import ProjectTreeDock
 from .services.icon_service import IconService
 from services.project_service import ProjectService
 from services.edit_service import EditService
+from services.comment_service import CommentService
 from screen.base.canvas_base_screen import CanvasBaseScreen
 from project.comment.comment_table import CommentTable, Spreadsheet
 from project.tag.tag_table import TagTable
@@ -47,6 +48,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.settings_service = settings_service
         self.project_service = ProjectService()
+        self.comment_service = CommentService()
         self.edit_service = EditService()
         self.open_screens = {} # Dictionary to track open screens {(type, number): widget}
         self.open_comments = {} # Dictionary to track open comment tables {comment_number: widget}
@@ -156,18 +158,21 @@ class MainWindow(QMainWindow):
         if not self.prompt_to_save():
             return
         self.project_service.new_project()
+        self.comment_service.clear_data()
         self.central_widget.clear()
         self.open_screens.clear()
         self.open_comments.clear()
         self.open_tags.clear()
+        self.project_tree.clear_project_items()
         self.update_window_title()
 
     def prepare_project_data(self):
         """Prepares project data for saving."""
-        # This will need to be updated to serialize all open screens
-        return {
-            'content': self.get_project_content(),
-        }
+        self.project_service.project_data['comments'] = self.comment_service.get_all_data()
+        # In the future, you would serialize open screens and other data here.
+        self.project_service.project_data['content'] = self.get_project_content()
+        return self.project_service.project_data
+
 
     def open_project(self):
         """Opens a project from a file."""
@@ -177,8 +182,17 @@ class MainWindow(QMainWindow):
         if file_path:
             success, message = self.project_service.load_project(file_path)
             if success:
-                # Restore project content to central widget
+                # Clear existing state
+                self.central_widget.clear()
+                self.open_screens.clear()
+                self.open_comments.clear()
+                self.open_tags.clear()
+
+                # Load data into services and UI
                 project_data = self.project_service.project_data
+                self.comment_service.load_data(project_data.get('comments', {}))
+                self.project_tree.load_project_data(project_data)
+                
                 if project_data and 'content' in project_data:
                     self.set_project_content(project_data['content'])
                 self.update_window_title()
@@ -191,7 +205,7 @@ class MainWindow(QMainWindow):
             return self.save_project_as()
         else:
             # Prepare project data before saving
-            self.project_service.project_data = self.prepare_project_data()
+            self.prepare_project_data()
 
             success, message = self.project_service.save_project()
             if success:
@@ -206,7 +220,7 @@ class MainWindow(QMainWindow):
         file_path, _ = QFileDialog.getSaveFileName(self, "Save Project As", "", "HMI Project Files (*.hmi)")
         if file_path:
             # Prepare project data before saving
-            self.project_service.project_data = self.prepare_project_data()
+            self.prepare_project_data()
 
             success, message = self.project_service.save_project(file_path)
             if success:
@@ -270,7 +284,7 @@ class MainWindow(QMainWindow):
                 self.central_widget.setCurrentWidget(widget_to_activate)
             return
 
-        comment_widget = CommentTable(comment_data, self, self.common_menu)
+        comment_widget = CommentTable(comment_data, self, self.common_menu, self.comment_service)
         
         tab_title = f"[C] - {comment_number} - {comment_data.get('name')}"
         icon = IconService.get_icon("common-comment")
@@ -331,6 +345,8 @@ class MainWindow(QMainWindow):
             widget_to_close = self.open_comments[number]
             index = self.central_widget.indexOf(widget_to_close)
             if index != -1:
+                # Before removing, ensure data is saved
+                widget_to_close.table_widget.save_data_to_service()
                 self.central_widget.removeTab(index)
             del self.open_comments[number]
 
@@ -355,6 +371,7 @@ class MainWindow(QMainWindow):
 
         # Check if it's a comment table
         if isinstance(widget, CommentTable):
+            widget.table_widget.save_data_to_service()
             comment_number_to_remove = widget.comment_data.get('number')
             if comment_number_to_remove in self.open_comments:
                 del self.open_comments[comment_number_to_remove]
@@ -581,7 +598,7 @@ class MainWindow(QMainWindow):
         # Case 2: The focus is within the central tab widget.
         current_tab_widget = self.central_widget.currentWidget()
         if current_tab_widget and (focus_widget is current_tab_widget or current_tab_widget.isAncestorOf(focus_widget)):
-            # If the current tab is a CommentTable, the target for edits is its internal Spreadsheet.
+            # If the current tab is a CommentTable, the target for edits is always its internal Spreadsheet.
             if isinstance(current_tab_widget, CommentTable):
                 return current_tab_widget.table_widget
             # For other tab types like CanvasBaseScreen, return the tab widget itself.
@@ -597,12 +614,12 @@ class MainWindow(QMainWindow):
         return focus_widget
 
     def undo_active_widget(self):
-        widget = QApplication.focusWidget()
+        widget = self.get_focused_widget_for_edit()
         if hasattr(widget, 'undo'):
             widget.undo()
 
     def redo_active_widget(self):
-        widget = QApplication.focusWidget()
+        widget = self.get_focused_widget_for_edit()
         if hasattr(widget, 'redo'):
             widget.redo()
 
@@ -767,6 +784,9 @@ class MainWindow(QMainWindow):
         """Creates and arranges all dock widgets."""
         self.dock_factory = DockWidgetFactory(self)
         self.dock_factory.create_all_docks()
+        self.project_tree = self.dock_factory.get_dock("project_tree")
+        self.project_tree.comment_service = self.comment_service
+
 
         # DOCKING SETUP
         # All dock widgets are movable and closable by default.

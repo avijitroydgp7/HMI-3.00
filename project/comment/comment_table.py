@@ -31,6 +31,7 @@ class ChangeCellCommand(QUndoCommand):
         self.table.blockSignals(False)
         self.table.evaluate_all_cells()
         self.table.viewport().update() # force repaint
+        self.table.save_data_to_service()
 
     def undo(self):
         self.table.blockSignals(True)
@@ -43,17 +44,19 @@ class ChangeCellCommand(QUndoCommand):
         self.table.blockSignals(False)
         self.table.evaluate_all_cells()
         self.table.viewport().update() # force repaint
+        self.table.save_data_to_service()
 
 class CommentTable(QWidget):
     """
     A widget that provides a spreadsheet-like interface for comments, 
     supporting formulas, cell referencing, and basic Excel features.
     """
-    def __init__(self, comment_data, main_window, common_menu, parent=None):
+    def __init__(self, comment_data, main_window, common_menu, comment_service, parent=None):
         super().__init__(parent)
         self.comment_data = comment_data
         self.main_window = main_window
         self.common_menu = common_menu
+        self.comment_service = comment_service
         
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -62,7 +65,7 @@ class CommentTable(QWidget):
         toolbar = self._create_toolbar()
         self.formula_bar = QLineEdit()
         self.formula_bar.setPlaceholderText("Enter formula here")
-        self.table_widget = Spreadsheet(self)
+        self.table_widget = Spreadsheet(self, self.comment_service, self.comment_data['number'])
 
         layout.addWidget(toolbar)
         layout.addWidget(self.formula_bar)
@@ -224,8 +227,10 @@ class SpreadsheetDelegate(QStyledItemDelegate):
 
 class Spreadsheet(QTableWidget):
     """A QTableWidget with spreadsheet-like formula and fill capabilities."""
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, comment_service=None, comment_number=None):
         super().__init__(20, 10, parent) # Default size 20 rows, 10 columns
+        self.comment_service = comment_service
+        self.comment_number = comment_number
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self._is_dragging_fill_handle = False
         self._drag_start_pos = None
@@ -340,6 +345,50 @@ class Spreadsheet(QTableWidget):
             }
         """)
 
+        self.load_data_from_service()
+
+    def load_data_from_service(self):
+        if not self.comment_service:
+            return
+        table_data = self.comment_service.get_table_data(self.comment_number)
+        
+        # If there's no saved data, don't do anything, just use the default empty table.
+        if not table_data:
+            self.save_data_to_service() # Save the initial empty state
+            return
+
+        num_rows = len(table_data)
+        num_cols = len(table_data[0]) if num_rows > 0 else 0
+        self.setRowCount(num_rows)
+        self.setColumnCount(num_cols)
+        self.update_headers()
+
+        self.blockSignals(True)
+        for r, row_data in enumerate(table_data):
+            for c, cell_data in enumerate(row_data):
+                item = self.item(r, c)
+                if not item:
+                    item = SpreadsheetItem()
+                    self.setItem(r, c, item)
+                item.setData(Qt.ItemDataRole.UserRole, cell_data)
+        self.blockSignals(False)
+        self.evaluate_all_cells()
+
+    def save_data_to_service(self):
+        if not self.comment_service:
+            return
+        table_data = []
+        for r in range(self.rowCount()):
+            row_data = []
+            for c in range(self.columnCount()):
+                item = self.item(r, c)
+                raw_data = item.data(Qt.ItemDataRole.UserRole) if item else ""
+                row_data.append(raw_data if raw_data is not None else "")
+            table_data.append(row_data)
+        self.comment_service.update_table_data(self.comment_number, table_data)
+        # Mark project as modified
+        self.parent().main_window.project_modified()
+
     def contextMenuEvent(self, event):
         """Shows a context menu on right-click."""
         menu = QMenu(self)
@@ -380,10 +429,6 @@ class Spreadsheet(QTableWidget):
             self.selectAll()
         elif event.key() == Qt.Key.Key_Delete:
             self.delete()
-        elif event.matches(QKeySequence.StandardKey.Undo):
-            self.undo()
-        elif event.matches(QKeySequence.StandardKey.Redo):
-            self.redo()
         else:
             super().keyPressEvent(event)
 
@@ -897,15 +942,22 @@ class Spreadsheet(QTableWidget):
     def add_column(self): 
         self.insertColumn(self.currentColumn() + 1)
         self.update_headers()
+        self.save_data_to_service()
+        
     def add_row(self): 
         self.insertRow(self.currentRow() + 1)
         self.update_headers()
+        self.save_data_to_service()
+
     def remove_column(self): 
         self.removeColumn(self.currentColumn())
         self.update_headers()
+        self.save_data_to_service()
+
     def remove_row(self): 
         self.removeRow(self.currentRow())
         self.update_headers()
+        self.save_data_to_service()
 
     def set_bold(self): self._toggle_font_property(QFont.Weight.Bold, 700)
     def set_italic(self): self._toggle_font_property("setItalic")
@@ -920,6 +972,7 @@ class Spreadsheet(QTableWidget):
             else:
                  font.setWeight(QFont.Weight.Normal if font.weight() > QFont.Weight.Normal else value)
             item.setFont(font)
+        # Note: Font changes are not currently saved by the service.
 
     def get_fill_handle_rect(self):
         selected_ranges = self.selectedRanges()
@@ -1036,9 +1089,13 @@ class Spreadsheet(QTableWidget):
     def perform_fill_drag(self, end_row):
         source_range = self.selectedRanges()[0]
         fill_rows = range(source_range.bottomRow() + 1, end_row + 1)
+        if not fill_rows:
+            return
+
+        changes = []
         for col in range(source_range.leftColumn(), source_range.rightColumn() + 1):
             for i, target_row in enumerate(fill_rows, 1):
-                source_row = source_range.topRow() + (i-1) % source_range.rowCount()
+                source_row = source_range.topRow() + (i - 1) % source_range.rowCount()
                 source_item = self.item(source_row, col)
                 if not source_item: continue
                 
@@ -1050,16 +1107,24 @@ class Spreadsheet(QTableWidget):
                     new_text = re.sub(r"([A-Z]+)(\d+)", lambda m: f"{m.group(1)}{int(m.group(2)) + offset}", source_text, flags=re.IGNORECASE)
                 else:
                     try:
-                        new_value = float(source_text) + i
-                        new_text = str(int(new_value) if new_value.is_integer() else new_value)
+                        # Attempt to increment numbers
+                        match = re.match(r"^(.*?)(\d+)$", source_text)
+                        if match:
+                            prefix, num_str = match.groups()
+                            new_value = int(num_str) + i
+                            new_text = f"{prefix}{new_value}"
+                        else:
+                            new_text = source_text
                     except (ValueError, TypeError):
                         new_text = source_text
 
-                target_item = SpreadsheetItem(new_text)
-                target_item.setFont(source_item.font())
-                self.setItem(target_row, col, target_item)
-        
-        self.evaluate_all_cells()
+                target_item = self.item(target_row, col)
+                old_text = target_item.data(Qt.ItemDataRole.UserRole) if target_item else ""
+                changes.append((target_row, col, old_text, new_text))
+
+        if changes:
+            command = ChangeCellCommand(self, changes, "Fill Drag")
+            self.undo_stack.push(command)
         
     def trace_precedents(self):
         current_item = self.currentItem()

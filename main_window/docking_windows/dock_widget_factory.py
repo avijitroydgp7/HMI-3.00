@@ -34,7 +34,7 @@ class DockWidgetFactory:
         Creates all the predefined dock widgets for the application by instantiating
         their respective classes.
         """
-        self.docks["project_tree"] = ProjectTreeDock(self.main_window)
+        self.docks["project_tree"] = ProjectTreeDock(self.main_window, self.main_window.comment_service)
         self.docks["screen_tree"] = ScreenTreeDock(self.main_window)
         self.docks["system_tree"] = SystemTreeDock(self.main_window)
         

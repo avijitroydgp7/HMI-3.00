@@ -25,15 +25,17 @@ class ProjectTreeDock(QDockWidget):
     """
     Dockable window to display the project file structure.
     """
-    def __init__(self, main_window):
+    def __init__(self, main_window, comment_service):
         """
         Initializes the Project Tree dock widget.
 
         Args:
             main_window (QMainWindow): The main window instance.
+            comment_service (CommentService): The service for managing comment data.
         """
         super().__init__("Project Tree", main_window)
         self.main_window = main_window
+        self.comment_service = comment_service
         self.setObjectName("project_tree")
         self._clipboard = None
 
@@ -64,7 +66,7 @@ class ProjectTreeDock(QDockWidget):
         elif event.matches(QKeySequence.StandardKey.Paste):
             self.paste_item(item)
             event.accept()
-        elif event.matches(QKeySequence.StandardKey.Delete):
+        elif event.key() == Qt.Key.Key_Delete:
              self.delete_item(item)
              event.accept()
         else:
@@ -93,6 +95,30 @@ class ProjectTreeDock(QDockWidget):
         item = QTreeWidgetItem(self.tree_widget, [name])
         item.setIcon(0, IconService.get_icon(icon_name))
         return item
+
+    def clear_project_items(self):
+        """Clears all dynamic items from the project tree (e.g., tags, comments)."""
+        for i in range(self.comment_item.childCount() -1, -1, -1):
+            self.comment_item.removeChild(self.comment_item.child(i))
+        for i in range(self.tag_item.childCount() -1, -1, -1):
+            self.tag_item.removeChild(self.tag_item.child(i))
+        # Add similar loops for other item types as they become dynamic
+
+    def load_project_data(self, project_data):
+        """Loads data from the project into the tree view."""
+        self.clear_project_items()
+        
+        comments_data = project_data.get('comments', {})
+        for number_str, comment_obj in comments_data.items():
+            metadata = comment_obj.get('metadata')
+            if metadata:
+                comment_text = f"{metadata['number']} - {metadata['name']}"
+                new_item = QTreeWidgetItem(self.comment_item, [comment_text])
+                new_item.setData(0, Qt.ItemDataRole.UserRole, metadata)
+                new_item.setIcon(0, IconService.get_icon('common-comment'))
+        self.comment_item.setExpanded(True)
+
+        # In the future, you would load tags, alarms, etc. here as well.
 
     def handle_double_click(self, item, column):
         """
@@ -220,6 +246,10 @@ class ProjectTreeDock(QDockWidget):
         if dialog.exec():
             comment_data = dialog.get_comment_data()
             if comment_data:
+                # Add to service first
+                self.comment_service.add_comment(comment_data)
+                self.main_window.project_modified()
+
                 # Add item to tree
                 comment_text = f"{comment_data['number']} - {comment_data['name']}"
                 new_item = QTreeWidgetItem(self.comment_item, [comment_text])
@@ -273,7 +303,7 @@ class ProjectTreeDock(QDockWidget):
         data = item.data(0, Qt.ItemDataRole.UserRole)
         if not data:
             return
-        
+
         parent = item.parent()
         item_type = None
         if parent == self.tag_item:
@@ -284,6 +314,12 @@ class ProjectTreeDock(QDockWidget):
         if item_type:
             self._clipboard = copy.deepcopy(data)
             self._clipboard['type'] = item_type
+            # For comments, also copy the table data
+            if item_type == 'comment':
+                comment_number = data.get('number')
+                if comment_number is not None:
+                    table_data = self.comment_service.get_table_data(comment_number)
+                    self._clipboard['table_data'] = copy.deepcopy(table_data)
 
     def paste_item(self, item):
         if not self._clipboard:
@@ -314,7 +350,14 @@ class ProjectTreeDock(QDockWidget):
                 new_number += 1
             pasted_data['number'] = new_number
             pasted_data['name'] += " (copy)"
-            
+
+            # Add the comment with metadata first
+            self.comment_service.add_comment(pasted_data)
+            # If table_data was copied, update it for the new comment
+            if 'table_data' in self._clipboard:
+                self.comment_service.update_table_data(new_number, self._clipboard['table_data'])
+            self.main_window.project_modified()
+
             comment_text = f"{pasted_data['number']} - {pasted_data['name']}"
             new_item = QTreeWidgetItem(self.comment_item, [comment_text])
             new_item.setData(0, Qt.ItemDataRole.UserRole, pasted_data)
@@ -358,6 +401,9 @@ class ProjectTreeDock(QDockWidget):
             item.setData(0, Qt.ItemDataRole.UserRole, updated_data)
             item.setText(0, f"{updated_data['number']} - {updated_data['name']}")
             
+            self.comment_service.update_comment_metadata(updated_data)
+            self.main_window.project_modified()
+            
             self.main_window.close_comment_tab_by_number(current_number)
             self.main_window.open_comment_table(updated_data)
 
@@ -385,6 +431,8 @@ class ProjectTreeDock(QDockWidget):
                 self.main_window.close_tag_tab_by_number(item_number)
             elif parent == self.comment_item:
                 self.main_window.close_comment_tab_by_number(item_number)
+                self.comment_service.remove_comment(item_number)
+                self.main_window.project_modified()
             
     def open_dialog(self, dialog_class):
         dialog = dialog_class(self)
@@ -413,4 +461,3 @@ class ProjectTreeDock(QDockWidget):
     def export_comments(self):
         # Placeholder for future implementation
         print("Export Comments action triggered.")
-

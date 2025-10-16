@@ -16,6 +16,7 @@ class ProjectService:
         """Returns the default structure for a new project."""
         return {
             'screens': [],
+            'comments': {},
             'screen_design_template': {
                 "width": 1920,
                 "height": 1080,
@@ -44,6 +45,8 @@ class ProjectService:
             # Ensure screen_design_template exists for older projects
             if 'screen_design_template' not in self.project_data:
                 self.project_data['screen_design_template'] = self.get_default_project_data()['screen_design_template']
+            if 'comments' not in self.project_data:
+                self.project_data['comments'] = {}
             self.is_saved = True
 
             return True, "Project loaded successfully"
@@ -91,6 +94,7 @@ class ProjectService:
         """Marks the current project as having unsaved changes."""
         if self.is_saved:
             self.is_saved = False
+            # self.main_window.update_window_title() # This should be handled by the main window
 
     def get_screen_design_template(self):
         """Returns the project-wide screen design template."""
