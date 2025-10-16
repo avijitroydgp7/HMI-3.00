@@ -70,7 +70,7 @@ class CommonMenu:
         self.bold_action = QAction(IconService.get_icon('common-bold'), "Bold", main_window)
         self.italic_action = QAction(IconService.get_icon('common-italic'), "Italic", main_window)
         self.underline_action = QAction(IconService.get_icon('common-underline'), "Underline", main_window)
-        self.fill_text_action = QAction(IconService.get_icon('common-fill'), "Fill Text", main_window)
+        self.fill_text_action = QAction(IconService.get_icon('common-edit'), "Fill Text", main_window)
         self.fill_background_action = QAction(IconService.get_icon('common-fill'), "Fill Background", main_window)
         style_submenu.addAction(self.bold_action)
         style_submenu.addAction(self.italic_action)
