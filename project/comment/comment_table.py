@@ -275,6 +275,9 @@ class Spreadsheet(QTableWidget):
         self.itemChanged.connect(self.on_item_changed)
         parent.formula_bar.textChanged.connect(self.on_formula_bar_text_changed)
 
+        # Hide hints when application loses focus
+        QApplication.instance().focusChanged.connect(self.on_focus_changed)
+
 
         self.setStyleSheet("""
             QTableWidget {
@@ -1026,3 +1029,8 @@ class Spreadsheet(QTableWidget):
     def clear_highlights(self):
         self.highlighted_cells.clear()
         self.viewport().update()
+
+    def on_focus_changed(self, old, new):
+        """Hide hints when application loses focus."""
+        self.formula_hint.hide()
+        self.completer_popup.hide()
