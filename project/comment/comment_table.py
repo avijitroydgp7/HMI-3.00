@@ -5,8 +5,44 @@ from PyQt6.QtWidgets import (
     QLineEdit, QMessageBox, QAbstractItemView, QHeaderView, QApplication, QLabel,
     QStyledItemDelegate, QMenu, QListWidget
 )
-from PyQt6.QtGui import QColor, QBrush, QFont, QPainter, QPen, QKeySequence
+from PyQt6.QtGui import (
+    QColor, QBrush, QFont, QPainter, QPen, QKeySequence, QUndoStack, QUndoCommand
+)
 from PyQt6.QtCore import Qt, QRegularExpression, QRectF, QPointF, pyqtSignal
+
+class ChangeCellCommand(QUndoCommand):
+    """An undo command for changing the data of one or more cells."""
+    def __init__(self, table, changes, text="Cell Change"):
+        """
+        `changes` is a list of tuples: (row, col, old_data, new_data)
+        """
+        super().__init__(text)
+        self.table = table
+        self.changes = changes
+
+    def redo(self):
+        self.table.blockSignals(True)
+        for row, col, old_data, new_data in self.changes:
+            item = self.table.item(row, col)
+            if not item:
+                item = SpreadsheetItem()
+                self.table.setItem(row, col, item)
+            item.setData(Qt.ItemDataRole.UserRole, new_data)
+        self.table.blockSignals(False)
+        self.table.evaluate_all_cells()
+        self.table.viewport().update() # force repaint
+
+    def undo(self):
+        self.table.blockSignals(True)
+        for row, col, old_data, new_data in self.changes:
+            item = self.table.item(row, col)
+            if not item:
+                item = SpreadsheetItem()
+                self.table.setItem(row, col, item)
+            item.setData(Qt.ItemDataRole.UserRole, old_data)
+        self.table.blockSignals(False)
+        self.table.evaluate_all_cells()
+        self.table.viewport().update() # force repaint
 
 class CommentTable(QWidget):
     """
@@ -83,10 +119,17 @@ class CommentTable(QWidget):
 
     def update_cell_from_formula_bar(self):
         """Update the selected cell with the content from the formula bar."""
-        if self.table_widget.currentItem():
+        current_item = self.table_widget.currentItem()
+        if current_item:
             row = self.table_widget.currentRow()
             col = self.table_widget.currentColumn()
-            self.table_widget.setItem(row, col, SpreadsheetItem(self.formula_bar.text()))
+            new_text = self.formula_bar.text()
+            old_text = current_item.data(Qt.ItemDataRole.UserRole) or ""
+
+            if new_text != old_text:
+                changes = [(row, col, old_text, new_text)]
+                command = ChangeCellCommand(self.table_widget, changes, "Edit Cell")
+                self.table_widget.undo_stack.push(command)
 
 
     # Placeholder slots for actions that need more implementation
@@ -169,10 +212,15 @@ class SpreadsheetDelegate(QStyledItemDelegate):
             editor.setText(str(value) if value is not None else "")
             
     def setModelData(self, editor, model, index):
-        """When editing is finished, save the text back to UserRole."""
+        """When editing is finished, create a command to perform the change."""
         if isinstance(editor, QLineEdit):
-            value = editor.text()
-            model.setData(index, value, Qt.ItemDataRole.UserRole)
+            table = self.parent() # The Spreadsheet widget
+            new_value = editor.text()
+            old_value = index.model().data(index, Qt.ItemDataRole.UserRole) or ""
+            if new_value != old_value:
+                changes = [(index.row(), index.column(), old_value, new_value)]
+                command = ChangeCellCommand(table, changes, "Edit Cell")
+                table.undo_stack.push(command)
 
 class Spreadsheet(QTableWidget):
     """A QTableWidget with spreadsheet-like formula and fill capabilities."""
@@ -188,6 +236,8 @@ class Spreadsheet(QTableWidget):
         self.referenced_cells = []
         self.ref_colors = [QColor("#54B8FF"), QColor("#FF3C3C"), QColor("#39FF92"), QColor("#BE6AFF")]
         
+        self.undo_stack = QUndoStack(self)
+
         # --- Formula Hinting Widgets ---
         self.formula_hint = QLabel(self)
         self.formula_hint.setStyleSheet("background-color: white; border: 1px solid #c0c0c0; padding: 4px; font-size: 9pt; color: #333;")
@@ -271,8 +321,7 @@ class Spreadsheet(QTableWidget):
         self.update_headers()
         
         self.itemSelectionChanged.connect(self.on_selection_changed)
-        # Use itemChanged signal for re-evaluation
-        self.itemChanged.connect(self.on_item_changed)
+        # itemChanged is no longer directly connected to re-evaluation to support undo/redo
         parent.formula_bar.textChanged.connect(self.on_formula_bar_text_changed)
 
         # Hide hints when application loses focus
@@ -377,16 +426,21 @@ class Spreadsheet(QTableWidget):
         selection = self.selectedRanges()
         if not selection:
             return
-
+        
+        changes = []
         for r in selection:
             for row in range(r.topRow(), r.bottomRow() + 1):
                 for col in range(r.leftColumn(), r.rightColumn() + 1):
                     item = self.item(row, col)
                     if item:
-                        # Clear UserRole which holds the raw data.
-                        # This will trigger on_item_changed to update the display.
-                        item.setData(Qt.ItemDataRole.UserRole, "")
-        self.evaluate_all_cells()
+                        old_data = item.data(Qt.ItemDataRole.UserRole)
+                        if old_data:
+                            changes.append((row, col, old_data, ""))
+        
+        if changes:
+            command = ChangeCellCommand(self, changes, "Delete")
+            self.undo_stack.push(command)
+
 
     def paste(self):
         """Pastes clipboard content into the table."""
@@ -399,7 +453,8 @@ class Spreadsheet(QTableWidget):
 
         clipboard_text = QApplication.clipboard().text()
         rows = clipboard_text.strip('\n').split('\n')
-
+        
+        changes = []
         for r, row_data in enumerate(rows):
             columns = row_data.split('\t')
             for c, cell_text in enumerate(columns):
@@ -407,18 +462,20 @@ class Spreadsheet(QTableWidget):
                 target_col = start_col + c
 
                 if target_row < self.rowCount() and target_col < self.columnCount():
-                    self.setItem(target_row, target_col, SpreadsheetItem(cell_text))
-        
-        self.evaluate_all_cells()
+                    item = self.item(target_row, target_col)
+                    old_data = item.data(Qt.ItemDataRole.UserRole) if item else ""
+                    if old_data != cell_text:
+                        changes.append((target_row, target_col, old_data, cell_text))
+
+        if changes:
+            command = ChangeCellCommand(self, changes, "Paste")
+            self.undo_stack.push(command)
         
     def undo(self):
-        # Full undo/redo is not implemented in this version.
-        pass
+        self.undo_stack.undo()
 
     def redo(self):
-        # Full undo/redo is not implemented in this version.
-        pass
-
+        self.undo_stack.redo()
 
     def on_selection_changed(self):
         """Handles changes in cell selection."""
@@ -527,19 +584,6 @@ class Spreadsheet(QTableWidget):
 
         row_headers = [str(i+1) for i in range(self.rowCount())]
         self.setVerticalHeaderLabels(row_headers)
-
-    def on_item_changed(self, item):
-        """
-        Triggered when an item's data changes. We use this to re-evaluate all cells,
-        as a change in one cell (e.g., via the editor) can affect others.
-        """
-        if not isinstance(item, QTableWidgetItem):
-            return
-
-        self.blockSignals(True)
-        self.evaluate_all_cells()
-        self.blockSignals(False)
-        self.viewport().update()
 
     def evaluate_all_cells(self):
         self._currently_evaluating.clear() # Reset for a new evaluation cycle
