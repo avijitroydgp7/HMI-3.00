@@ -1,5 +1,6 @@
 # project/comment/comment_table.py
 import re
+import statistics
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem,
     QLineEdit, QMessageBox, QAbstractItemView, QHeaderView, QApplication, QLabel,
@@ -13,35 +14,111 @@ from PyQt6.QtCore import Qt, QRegularExpression, QRectF, QPointF, pyqtSignal
 import operator
 
 # --- Safe Formula Parser ---
-# A simple, safe parser to replace eval()
-# It handles basic arithmetic, cell references, and functions.
+# A robust parser to handle arithmetic, cell references, ranges, and a wide variety of functions.
 
 class FormulaParser:
     def __init__(self, table, cell):
         self.table = table
         self.cell = cell
         self.ops = {
-            '+': operator.add,
-            '-': operator.sub,
-            '*': operator.mul,
-            '/': operator.truediv,
+            '+': operator.add, '-': operator.sub, '*': operator.mul, '/': operator.truediv,
             '^': operator.pow,
+            '=': operator.eq, '==': operator.eq,
+            '<': operator.lt, '>': operator.gt,
+            '<=': operator.le, '>=': operator.ge, 
+            '!=': operator.ne, '<>': operator.ne,
         }
-        self.precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
+        self.precedence = {
+            '+': 1, '-': 1, '*': 2, '/': 2, '^': 3,
+            '=': 0, '==': 0, '<': 0, '>': 0, '<=': 0, '>=': 0, '!=': 0, '<>': 0
+        }
+        self.functions = {
+            'SUM': sum,
+            'AVERAGE': statistics.mean,
+            'MAX': max,
+            'MIN': min,
+            'COUNT': len,
+            'IF': lambda cond, t_val, f_val: t_val if cond else f_val,
+            'AND': lambda *args: all(args),
+            'OR': lambda *args: any(args),
+            'NOT': lambda x: not x,
+            'TRUE': lambda: True,
+            'FALSE': lambda: False,
+            'UPPER': lambda s: str(s).upper(),
+            'LOWER': lambda s: str(s).lower(),
+            'LEN': lambda s: len(str(s)),
+            'LEFT': lambda s, n=1: str(s)[:int(n)],
+            'RIGHT': lambda s, n=1: str(s)[-int(n):],
+            'MID': lambda s, start, n: str(s)[int(start)-1:int(start)-1+int(n)],
+            'CONCAT': lambda *args: "".join(map(str, args)),
+            'INT': int,
+            'DEC2HEX': hex,
+            'DEC2BIN': bin,
+            'DEC2OCT': oct,
+            'HEX2DEC': lambda h: int(h, 16),
+            'HEX2BIN': lambda h: bin(int(h, 16)),
+            'HEX2OCT': lambda h: oct(int(h, 16)),
+            'BIN2DEC': lambda b: int(b, 2),
+            'BIN2HEX': lambda b: hex(int(b, 2)),
+            'BIN2OCT': lambda b: oct(int(b, 2)),
+            'OCT2DEC': lambda o: int(o, 8),
+            'OCT2BIN': lambda o: bin(int(o, 8)),
+            'OCT2HEX': lambda o: hex(int(o, 8)),
+            'CHAR': chr,
+            'VLOOKUP': self._vlookup,
+            'HLOOKUP': self._hlookup,
+            'TRIM': lambda s: str(s).strip(),
+            'REPLACE': lambda old_text, start_num, num_chars, new_text: self._replace(old_text, start_num, num_chars, new_text),
+            'SUBSTITUTE': lambda text, old_text, new_text, instance_num=None: self._substitute(text, old_text, new_text, instance_num),
+            'IFERROR': self._iferror,
+            'IFNA': self._ifna,
+        }
 
     def evaluate(self, expression):
-        tokens = self._tokenize(expression)
-        rpn = self._shunting_yard(tokens)
-        return self._evaluate_rpn(rpn)
+        try:
+            tokens = self._tokenize(expression)
+            rpn = self._shunting_yard(tokens)
+            return self._evaluate_rpn(rpn)
+        except Exception as e:
+            # Check for IFERROR/IFNA at the top level
+            match = re.match(r"^\s*IF(ERROR|NA)\((.*)\)\s*$", expression, re.IGNORECASE)
+            if match:
+                func_type = match.group(1).upper()
+                inner_expr = match.group(2)
+                # This is a simplified fallback for top-level IFERROR/IFNA
+                # The robust solution is within _evaluate_rpn
+                try:
+                    # Attempt to evaluate the value part
+                    value_expr, value_if_error_expr = self._split_if_args(inner_expr)
+                    self.evaluate(value_expr) # This will raise an error if it fails
+                except Exception:
+                    _, value_if_error_expr = self._split_if_args(inner_expr)
+                    return self.evaluate(value_if_error_expr)
 
+            raise e # Re-raise if not a top-level IFERROR/IFNA
+
+    def _split_if_args(self, args_str):
+        paren_level = 0
+        split_index = -1
+        for i, char in enumerate(args_str):
+            if char == '(':
+                paren_level += 1
+            elif char == ')':
+                paren_level -= 1
+            elif char == ',' and paren_level == 0:
+                split_index = i
+                break
+        if split_index == -1:
+            raise ValueError("Invalid IFERROR/IFNA arguments")
+        return args_str[:split_index], args_str[split_index+1:]
+        
     def _tokenize(self, expression):
-        # Improved tokenizer to handle functions, ranges, numbers, and operators
         token_specification = [
             ('FUNCTION',  r'[A-Z][A-Z0-9_]*\('),
             ('CELLRANGE', r'[A-Z]+[0-9]+:[A-Z]+[0-9]+'),
             ('CELL',      r'[A-Z]+[0-9]+'),
             ('NUMBER',    r'[0-9]+(\.[0-9]*)?'),
-            ('OP',        r'[\+\-\*/\^]'),
+            ('OP',        r'<=|>=|<>|!=|==|<|>|[\+\-\*/\^]'),
             ('LPAREN',    r'\('),
             ('RPAREN',    r'\)'),
             ('COMMA',     r','),
@@ -54,45 +131,56 @@ class FormulaParser:
             kind = mo.lastgroup
             value = mo.group()
             if kind == 'FUNCTION':
-                tokens.append((kind, value[:-1])) # Store function name without '('
+                tokens.append((kind, value[:-1].upper()))
                 tokens.append(('LPAREN', '('))
             elif kind not in ['MISMATCH']:
-                 tokens.append((kind, value))
+                tokens.append((kind, value))
         return tokens
 
-
     def _shunting_yard(self, tokens):
-        output_queue = []
-        operator_stack = []
-        for kind, value in tokens:
-            if kind == 'NUMBER' or kind == 'CELL' or kind == 'CELLRANGE' or kind == 'STRING':
-                output_queue.append((kind, value))
+        output = []
+        operators = []
+        arg_counts = []
+
+        for i, (kind, value) in enumerate(tokens):
+            if kind in ('NUMBER', 'CELL', 'CELLRANGE', 'STRING'):
+                output.append((kind, value))
             elif kind == 'FUNCTION':
-                operator_stack.append((kind, value))
-            elif kind == 'LPAREN':
-                operator_stack.append((kind, value))
-            elif kind == 'RPAREN':
-                while operator_stack and operator_stack[-1][0] != 'LPAREN':
-                    output_queue.append(operator_stack.pop())
-                if not operator_stack or operator_stack.pop()[0] != 'LPAREN':
-                    raise ValueError("Mismatched parentheses")
-                if operator_stack and operator_stack[-1][0] == 'FUNCTION':
-                    output_queue.append(operator_stack.pop())
-            elif kind == 'OP':
-                while (operator_stack and operator_stack[-1][0] == 'OP' and
-                       self.precedence.get(operator_stack[-1][1], 0) >= self.precedence.get(value, 0)):
-                    output_queue.append(operator_stack.pop())
-                operator_stack.append((kind, value))
+                operators.append((kind, value))
+                if i + 1 < len(tokens) and tokens[i+1][0] == 'RPAREN':
+                    arg_counts.append(0)
+                else:
+                    arg_counts.append(1)
             elif kind == 'COMMA':
-                 while operator_stack and operator_stack[-1][0] != 'LPAREN':
-                    output_queue.append(operator_stack.pop())
+                if not arg_counts: raise ValueError("Comma outside of function arguments")
+                arg_counts[-1] += 1
+                while operators and operators[-1][0] != 'LPAREN':
+                    output.append(operators.pop())
+            elif kind == 'OP':
+                while (operators and operators[-1][0] == 'OP' and
+                       self.precedence.get(operators[-1][1], 0) >= self.precedence.get(value, 0)):
+                    output.append(operators.pop())
+                operators.append((kind, value))
+            elif kind == 'LPAREN':
+                operators.append((kind, value))
+            elif kind == 'RPAREN':
+                while operators and operators[-1][0] != 'LPAREN':
+                    output.append(operators.pop())
+                if not operators or operators.pop()[0] != 'LPAREN':
+                    raise ValueError("Mismatched parentheses")
+
+                if operators and operators[-1][0] == 'FUNCTION':
+                    func_token = operators.pop()
+                    arg_count = arg_counts.pop() if arg_counts else 0
+                    output.append(('FUNCTION_EXEC', (func_token[1], arg_count)))
 
 
-        while operator_stack:
-            if operator_stack[-1][0] in ['LPAREN', 'RPAREN']:
+        while operators:
+            op_kind, op_val = operators.pop()
+            if op_kind in ('LPAREN', 'RPAREN'):
                 raise ValueError("Mismatched parentheses in operator stack")
-            output_queue.append(operator_stack.pop())
-        return output_queue
+            output.append((op_kind, op_val))
+        return output
 
     def _evaluate_rpn(self, rpn_tokens):
         stack = []
@@ -100,57 +188,105 @@ class FormulaParser:
             if kind == 'NUMBER':
                 stack.append(float(value))
             elif kind == 'STRING':
-                stack.append(value[1:-1]) # remove quotes
+                stack.append(value[1:-1])
             elif kind == 'CELL':
                 row, col = self.table.cell_ref_to_indices(value)
                 stack.append(self.table.get_cell_value(row, col, dependent_cell=self.cell))
             elif kind == 'CELLRANGE':
                 stack.append(self._get_range_values(value))
             elif kind == 'OP':
-                if len(stack) < 2: raise ValueError("Syntax error")
+                if len(stack) < 2: raise ValueError(f"Syntax Error: Not enough operands for '{value}'")
                 right, left = stack.pop(), stack.pop()
                 stack.append(self.ops[value](left, right))
-            elif kind == 'FUNCTION':
-                 # Functions need special handling for arguments
-                 func_name = value.upper()
-                 if func_name == 'SUM':
-                     # SUM can take a range or multiple args
-                     args = stack.pop()
-                     if isinstance(args, list):
-                         stack.append(sum(args))
-                     else: # This simple parser assumes SUM's args were pushed individually
-                         # A more robust parser would count args
-                         total = args
-                         while stack and not isinstance(stack[-1], str) and stack[-1] != '(':
-                             total += stack.pop()
-                         stack.append(total)
+            elif kind == 'FUNCTION_EXEC':
+                func_name, arg_count = value
+                if len(stack) < arg_count: raise ValueError(f"Not enough arguments for {func_name}")
+                
+                args = [stack.pop() for _ in range(arg_count)]
+                args.reverse()
 
-        if len(stack) != 1:
-            # Handle implicit concatenation or other logic if needed
-            # For now, assume it's just the final result
-            pass
+                flat_args = []
+                for arg in args:
+                    if isinstance(arg, list) and func_name not in ('VLOOKUP', 'HLOOKUP'):
+                        flat_args.extend(arg)
+                    else:
+                        flat_args.append(arg)
+                
+                result = self.functions[func_name](*flat_args)
+                stack.append(result)
+
         return stack[0] if stack else 0
         
-    def _get_range_values(self, range_str):
+    def _get_range_values(self, range_str, as_string=False):
         values = []
         start_ref, end_ref = range_str.split(':')
         start_row, start_col = self.table.cell_ref_to_indices(start_ref)
         end_row, end_col = self.table.cell_ref_to_indices(end_ref)
+
+        if start_row > end_row: start_row, end_row = end_row, start_row
+        if start_col > end_col: start_col, end_col = end_col, start_col
+
         for r in range(start_row, end_row + 1):
+            row_values = []
             for c in range(start_col, end_col + 1):
-                 values.append(self.table.get_cell_value(r, c, dependent_cell=self.cell))
+                 row_values.append(self.table.get_cell_value(r, c, as_string=as_string, dependent_cell=self.cell))
+            values.append(row_values)
         return values
+
+    def _vlookup(self, lookup_value, table_array, col_index_num, range_lookup=True):
+        col_index_num = int(col_index_num) - 1
+        
+        for row in table_array:
+            if (range_lookup and str(lookup_value).lower() in str(row[0]).lower()) or \
+               (not range_lookup and str(lookup_value) == str(row[0])):
+                return row[col_index_num]
+        return "#N/A"
+
+    def _hlookup(self, lookup_value, table_array, row_index_num, range_lookup=True):
+        row_index_num = int(row_index_num) - 1
+        
+        num_cols = len(table_array[0])
+        for c in range(num_cols):
+            if (range_lookup and str(lookup_value).lower() in str(table_array[0][c]).lower()) or \
+               (not range_lookup and str(lookup_value) == str(table_array[0][c])):
+                return table_array[row_index_num][c]
+        return "#N/A"
+        
+    def _replace(self, old_text, start_num, num_chars, new_text):
+        old_text = str(old_text)
+        start_num = int(start_num) - 1
+        num_chars = int(num_chars)
+        return old_text[:start_num] + str(new_text) + old_text[start_num + num_chars:]
+
+    def _substitute(self, text, old_text, new_text, instance_num=None):
+        text = str(text)
+        old_text = str(old_text)
+        new_text = str(new_text)
+        if instance_num:
+            return text.replace(old_text, new_text, int(instance_num))
+        return text.replace(old_text, new_text)
+
+    def _iferror(self, value, value_if_error):
+        # This will be called by the evaluation logic.
+        # The value is already evaluated at this point.
+        # We need a way to check if it was an error.
+        # A simple check for string error codes can work here.
+        if isinstance(value, str) and value.startswith('#'):
+            return value_if_error
+        return value
+
+    def _ifna(self, value, value_if_na):
+        if value == "#N/A":
+            return value_if_na
+        return value
 
 # --- End Safe Formula Parser ---
 
+# --- Undo Commands ---
 
 class ChangeCellCommand(QUndoCommand):
     """An undo command for changing the data of one or more cells."""
     def __init__(self, table, changes, text="Cell Change"):
-        """
-        `changes` is a list of tuples: (row, col, old_data, new_data)
-        `data` is a dictionary: {'value': '...', 'font': {...}, 'bg_color': '...'}
-        """
         super().__init__(text)
         self.table = table
         self.changes = changes
@@ -180,6 +316,61 @@ class ChangeCellCommand(QUndoCommand):
         self.table.evaluate_all_cells()
         self.table.viewport().update()
         self.table.save_data_to_service()
+
+class ResizeCommand(QUndoCommand):
+    """An undo command for adding/removing rows or columns."""
+    def __init__(self, table, action, index, count=1):
+        super().__init__(f"{action.replace('_', ' ').title()}")
+        self.table = table
+        self.action = action # 'add_row', 'remove_row', 'add_col', 'remove_col'
+        self.index = index
+        self.count = count # For future use
+        self.data = []
+
+    def redo(self):
+        if self.action == 'add_row': self.table.insertRow(self.index)
+        elif self.action == 'remove_row':
+            self._store_data()
+            self.table.removeRow(self.index)
+        elif self.action == 'add_col': self.table.insertColumn(self.index)
+        elif self.action == 'remove_col':
+            self._store_data()
+            self.table.removeColumn(self.index)
+        self.table.update_headers()
+        self.table.save_data_to_service()
+
+    def undo(self):
+        if self.action == 'add_row': self.table.removeRow(self.index)
+        elif self.action == 'remove_row':
+            self.table.insertRow(self.index)
+            self._restore_data()
+        elif self.action == 'add_col': self.table.removeColumn(self.index)
+        elif self.action == 'remove_col':
+            self.table.insertColumn(self.index)
+            self._restore_data()
+        self.table.update_headers()
+        self.table.save_data_to_service()
+
+    def _store_data(self):
+        self.data = []
+        if self.action == 'remove_row':
+            for c in range(self.table.columnCount()):
+                item = self.table.item(self.index, c)
+                self.data.append(item.get_data() if item else {'value': ''})
+        elif self.action == 'remove_col':
+             for r in range(self.table.rowCount()):
+                item = self.table.item(r, self.index)
+                self.data.append(item.get_data() if item else {'value': ''})
+
+    def _restore_data(self):
+        if self.action == 'remove_row':
+            for c, cell_data in enumerate(self.data):
+                 self.table.item(self.index, c).set_data(cell_data)
+        elif self.action == 'remove_col':
+            for r, cell_data in enumerate(self.data):
+                self.table.item(r, self.index).set_data(cell_data)
+
+# --- End Undo Commands ---
 
 class CommentTable(QWidget):
     """
@@ -437,6 +628,39 @@ class Spreadsheet(QTableWidget):
             "MIN": "MIN(value1, [value2], ...)",
             "COUNT": "COUNT(value1, [value2], ...)",
             "IF": "IF(logical_test, value_if_true, [value_if_false])",
+            "AND": "AND(logical1, [logical2], ...)",
+            "OR": "OR(logical1, [logical2], ...)",
+            "NOT": "NOT(logical)",
+            "TRUE": "TRUE()",
+            "FALSE": "FALSE()",
+            "UPPER": "UPPER(text)",
+            "LOWER": "LOWER(text)",
+            "LEN": "LEN(text)",
+            "LEFT": "LEFT(text, [num_chars])",
+            "RIGHT": "RIGHT(text, [num_chars])",
+            "MID": "MID(text, start_num, num_chars)",
+            "CONCAT": "CONCAT(text1, [text2], ...)",
+            "INT": "INT(number)",
+            "DEC2HEX": "DEC2HEX(number)",
+            "DEC2BIN": "DEC2BIN(number)",
+            "DEC2OCT": "DEC2OCT(number)",
+            "HEX2DEC": "HEX2DEC(hex_number)",
+            "HEX2BIN": "HEX2BIN(hex_number)",
+            "HEX2OCT": "HEX2OCT(hex_number)",
+            "BIN2DEC": "BIN2DEC(binary_number)",
+            "BIN2HEX": "BIN2HEX(binary_number)",
+            "BIN2OCT": "BIN2OCT(binary_number)",
+            "OCT2DEC": "OCT2DEC(octal_number)",
+            "OCT2BIN": "OCT2BIN(octal_number)",
+            "OCT2HEX": "OCT2HEX(octal_number)",
+            "CHAR": "CHAR(number)",
+            "VLOOKUP": "VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])",
+            "HLOOKUP": "HLOOKUP(lookup_value, table_array, row_index_num, [range_lookup])",
+            "TRIM": "TRIM(text)",
+            "REPLACE": "REPLACE(old_text, start_num, num_chars, new_text)",
+            "SUBSTITUTE": "SUBSTITUTE(text, old_text, new_text, [instance_num])",
+            "IFERROR": "IFERROR(value, value_if_error)",
+            "IFNA": "IFNA(value, value_if_na)",
         }
         # --- End Hinting Widgets ---
 
@@ -565,8 +789,6 @@ class Spreadsheet(QTableWidget):
         selection = self.selectedRanges()
         if not selection: return
 
-        # For simplicity, we only copy the text value, not the full data dictionary.
-        # A more advanced implementation would serialize the dictionary to JSON.
         first_range = selection[0]
         rows = range(first_range.topRow(), first_range.bottomRow() + 1)
         cols = range(first_range.leftColumn(), first_range.rightColumn() + 1)
@@ -659,6 +881,11 @@ class Spreadsheet(QTableWidget):
         if text.startswith('='):
             text_upper = text.upper()
             
+            # Show all functions if only "=" is typed
+            if text == '=':
+                self.show_completer_popup('')
+                return
+
             refs = re.findall(r"([A-Z]+)(\d+)", text_upper)
             for i, (col_str, row_str) in enumerate(refs):
                 row = int(row_str) - 1
@@ -672,9 +899,10 @@ class Spreadsheet(QTableWidget):
                 if func_name in self.FUNCTION_HINTS:
                     self.show_syntax_hint(func_name)
             else:
-                completer_match = re.search(r"=([A-Z_]+)$", text_upper)
+                completer_match = re.search(r"=([A-Z_]*)$", text_upper)
                 if completer_match:
                     self.show_completer_popup(completer_match.group(1))
+
 
         self.viewport().update()
 
@@ -708,13 +936,16 @@ class Spreadsheet(QTableWidget):
              editor = self.parent().formula_bar
         
         current_text = editor.text()
-        match = re.search(r"=([a-zA-Z_]*)$", current_text)
-        if match:
-             start_pos = match.start(1)
-             new_text = current_text[:start_pos] + full_func + "("
-             editor.setText(new_text)
-             editor.setFocus()
-             editor.setCursorPosition(len(new_text))
+        # Find the start of the partial function name
+        last_equal = current_text.rfind('=')
+        last_paren = current_text.rfind('(')
+        last_comma = current_text.rfind(',')
+        start_pos = max(last_equal, last_paren, last_comma) + 1
+        
+        new_text = current_text[:start_pos] + full_func + "("
+        editor.setText(new_text)
+        editor.setFocus()
+        editor.setCursorPosition(len(new_text))
         self.completer_popup.hide()
 
 
@@ -752,8 +983,7 @@ class Spreadsheet(QTableWidget):
 
     def evaluate_all_cells(self):
         self.precedents.clear()
-        # Evaluate in passes to handle dependencies
-        for _ in range(self.rowCount()): # Iterate enough times for dependencies to resolve
+        for _ in range(self.rowCount()):
             for row in range(self.rowCount()):
                 for col in range(self.columnCount()):
                     item = self.item(row, col)
@@ -767,7 +997,6 @@ class Spreadsheet(QTableWidget):
             item.setText(formula)
             return
             
-        # Circular reference check
         cell_coords = (item.row(), item.column())
         if cell_coords in self._currently_evaluating:
             item.setText("#REF!")
@@ -784,7 +1013,7 @@ class Spreadsheet(QTableWidget):
             elif isinstance(result, float) and result.is_integer():
                 item.setText(str(int(result)))
             else:
-                item.setText(str(result))
+                item.setText(f"{result:.2f}" if isinstance(result, float) else str(result))
 
         except Exception as e:
             item.setText("#ERROR")
@@ -801,14 +1030,16 @@ class Spreadsheet(QTableWidget):
         item = self.item(row, col)
         if not item: return "" if as_string else 0
 
-        # Use the displayed text for value to avoid re-evaluating formulas endlessly
         text = item.text()
         if as_string: return text
         
         try:
             return float(text)
         except (ValueError, TypeError):
-            return 0
+             if text == 'TRUE': return True
+             if text == 'FALSE': return False
+             if text.startswith('#'): return text
+             return 0
 
     def col_str_to_int(self, col_str):
         num = 0
@@ -816,25 +1047,23 @@ class Spreadsheet(QTableWidget):
             num = num * 26 + (ord(char.upper()) - ord('A')) + 1
         return num - 1
 
-    def add_column(self): 
-        self.insertColumn(self.currentColumn() + 1)
-        self.update_headers()
-        self.save_data_to_service()
-        
-    def add_row(self): 
-        self.insertRow(self.currentRow() + 1)
-        self.update_headers()
-        self.save_data_to_service()
+    def add_column(self):
+        command = ResizeCommand(self, 'add_col', self.currentColumn() + 1)
+        self.undo_stack.push(command)
 
-    def remove_column(self): 
-        self.removeColumn(self.currentColumn())
-        self.update_headers()
-        self.save_data_to_service()
+    def add_row(self):
+        command = ResizeCommand(self, 'add_row', self.currentRow() + 1)
+        self.undo_stack.push(command)
 
-    def remove_row(self): 
-        self.removeRow(self.currentRow())
-        self.update_headers()
-        self.save_data_to_service()
+    def remove_column(self):
+        if self.columnCount() > 0:
+            command = ResizeCommand(self, 'remove_col', self.currentColumn())
+            self.undo_stack.push(command)
+
+    def remove_row(self):
+        if self.rowCount() > 0:
+            command = ResizeCommand(self, 'remove_row', self.currentRow())
+            self.undo_stack.push(command)
 
     def set_bold(self): self._toggle_font_property('bold')
     def set_italic(self): self._toggle_font_property('italic')
