@@ -4,283 +4,15 @@ import statistics
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem,
     QLineEdit, QMessageBox, QAbstractItemView, QHeaderView, QApplication, QLabel,
-    QStyledItemDelegate, QMenu, QListWidget
+    QStyledItemDelegate, QMenu, QListWidget, QSpinBox
 )
 from main_window.widgets.color_selector import ColorSelector
 from PyQt6.QtGui import (
-    QColor, QBrush, QFont, QPainter, QPen, QKeySequence, QUndoStack, QUndoCommand
+    QColor, QBrush, QFont, QPainter, QPen, QKeySequence, QUndoStack, QUndoCommand, QAction
 )
 from PyQt6.QtCore import Qt, QRegularExpression, QRectF, QPointF, pyqtSignal
 import operator
-
-# --- Safe Formula Parser ---
-# A robust parser to handle arithmetic, cell references, ranges, and a wide variety of functions.
-
-class FormulaParser:
-    def __init__(self, table, cell):
-        self.table = table
-        self.cell = cell
-        self.ops = {
-            '+': operator.add, '-': operator.sub, '*': operator.mul, '/': operator.truediv,
-            '^': operator.pow,
-            '=': operator.eq, '==': operator.eq,
-            '<': operator.lt, '>': operator.gt,
-            '<=': operator.le, '>=': operator.ge, 
-            '!=': operator.ne, '<>': operator.ne,
-        }
-        self.precedence = {
-            '+': 1, '-': 1, '*': 2, '/': 2, '^': 3,
-            '=': 0, '==': 0, '<': 0, '>': 0, '<=': 0, '>=': 0, '!=': 0, '<>': 0
-        }
-        self.functions = {
-            'SUM': sum,
-            'AVERAGE': statistics.mean,
-            'MAX': max,
-            'MIN': min,
-            'COUNT': len,
-            'IF': lambda cond, t_val, f_val: t_val if cond else f_val,
-            'AND': lambda *args: all(args),
-            'OR': lambda *args: any(args),
-            'NOT': lambda x: not x,
-            'TRUE': lambda: True,
-            'FALSE': lambda: False,
-            'UPPER': lambda s: str(s).upper(),
-            'LOWER': lambda s: str(s).lower(),
-            'LEN': lambda s: len(str(s)),
-            'LEFT': lambda s, n=1: str(s)[:int(n)],
-            'RIGHT': lambda s, n=1: str(s)[-int(n):],
-            'MID': lambda s, start, n: str(s)[int(start)-1:int(start)-1+int(n)],
-            'CONCAT': lambda *args: "".join(map(str, args)),
-            'INT': int,
-            'DEC2HEX': hex,
-            'DEC2BIN': bin,
-            'DEC2OCT': oct,
-            'HEX2DEC': lambda h: int(h, 16),
-            'HEX2BIN': lambda h: bin(int(h, 16)),
-            'HEX2OCT': lambda h: oct(int(h, 16)),
-            'BIN2DEC': lambda b: int(b, 2),
-            'BIN2HEX': lambda b: hex(int(b, 2)),
-            'BIN2OCT': lambda b: oct(int(b, 2)),
-            'OCT2DEC': lambda o: int(o, 8),
-            'OCT2BIN': lambda o: bin(int(o, 8)),
-            'OCT2HEX': lambda o: hex(int(o, 8)),
-            'CHAR': chr,
-            'VLOOKUP': self._vlookup,
-            'HLOOKUP': self._hlookup,
-            'TRIM': lambda s: str(s).strip(),
-            'REPLACE': lambda old_text, start_num, num_chars, new_text: self._replace(old_text, start_num, num_chars, new_text),
-            'SUBSTITUTE': lambda text, old_text, new_text, instance_num=None: self._substitute(text, old_text, new_text, instance_num),
-            'IFERROR': self._iferror,
-            'IFNA': self._ifna,
-        }
-
-    def evaluate(self, expression):
-        try:
-            tokens = self._tokenize(expression)
-            rpn = self._shunting_yard(tokens)
-            return self._evaluate_rpn(rpn)
-        except Exception as e:
-            # Check for IFERROR/IFNA at the top level
-            match = re.match(r"^\s*IF(ERROR|NA)\((.*)\)\s*$", expression, re.IGNORECASE)
-            if match:
-                func_type = match.group(1).upper()
-                inner_expr = match.group(2)
-                # This is a simplified fallback for top-level IFERROR/IFNA
-                # The robust solution is within _evaluate_rpn
-                try:
-                    # Attempt to evaluate the value part
-                    value_expr, value_if_error_expr = self._split_if_args(inner_expr)
-                    self.evaluate(value_expr) # This will raise an error if it fails
-                except Exception:
-                    _, value_if_error_expr = self._split_if_args(inner_expr)
-                    return self.evaluate(value_if_error_expr)
-
-            raise e # Re-raise if not a top-level IFERROR/IFNA
-
-    def _split_if_args(self, args_str):
-        paren_level = 0
-        split_index = -1
-        for i, char in enumerate(args_str):
-            if char == '(':
-                paren_level += 1
-            elif char == ')':
-                paren_level -= 1
-            elif char == ',' and paren_level == 0:
-                split_index = i
-                break
-        if split_index == -1:
-            raise ValueError("Invalid IFERROR/IFNA arguments")
-        return args_str[:split_index], args_str[split_index+1:]
-        
-    def _tokenize(self, expression):
-        token_specification = [
-            ('FUNCTION',  r'[A-Z][A-Z0-9_]*\('),
-            ('CELLRANGE', r'[A-Z]+[0-9]+:[A-Z]+[0-9]+'),
-            ('CELL',      r'[A-Z]+[0-9]+'),
-            ('NUMBER',    r'[0-9]+(\.[0-9]*)?'),
-            ('OP',        r'<=|>=|<>|!=|==|<|>|[\+\-\*/\^]'),
-            ('LPAREN',    r'\('),
-            ('RPAREN',    r'\)'),
-            ('COMMA',     r','),
-            ('STRING',    r'"[^"]*"'),
-            ('MISMATCH',  r'.'),
-        ]
-        tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
-        tokens = []
-        for mo in re.finditer(tok_regex, expression, re.IGNORECASE):
-            kind = mo.lastgroup
-            value = mo.group()
-            if kind == 'FUNCTION':
-                tokens.append((kind, value[:-1].upper()))
-                tokens.append(('LPAREN', '('))
-            elif kind not in ['MISMATCH']:
-                tokens.append((kind, value))
-        return tokens
-
-    def _shunting_yard(self, tokens):
-        output = []
-        operators = []
-        arg_counts = []
-
-        for i, (kind, value) in enumerate(tokens):
-            if kind in ('NUMBER', 'CELL', 'CELLRANGE', 'STRING'):
-                output.append((kind, value))
-            elif kind == 'FUNCTION':
-                operators.append((kind, value))
-                if i + 1 < len(tokens) and tokens[i+1][0] == 'RPAREN':
-                    arg_counts.append(0)
-                else:
-                    arg_counts.append(1)
-            elif kind == 'COMMA':
-                if not arg_counts: raise ValueError("Comma outside of function arguments")
-                arg_counts[-1] += 1
-                while operators and operators[-1][0] != 'LPAREN':
-                    output.append(operators.pop())
-            elif kind == 'OP':
-                while (operators and operators[-1][0] == 'OP' and
-                       self.precedence.get(operators[-1][1], 0) >= self.precedence.get(value, 0)):
-                    output.append(operators.pop())
-                operators.append((kind, value))
-            elif kind == 'LPAREN':
-                operators.append((kind, value))
-            elif kind == 'RPAREN':
-                while operators and operators[-1][0] != 'LPAREN':
-                    output.append(operators.pop())
-                if not operators or operators.pop()[0] != 'LPAREN':
-                    raise ValueError("Mismatched parentheses")
-
-                if operators and operators[-1][0] == 'FUNCTION':
-                    func_token = operators.pop()
-                    arg_count = arg_counts.pop() if arg_counts else 0
-                    output.append(('FUNCTION_EXEC', (func_token[1], arg_count)))
-
-
-        while operators:
-            op_kind, op_val = operators.pop()
-            if op_kind in ('LPAREN', 'RPAREN'):
-                raise ValueError("Mismatched parentheses in operator stack")
-            output.append((op_kind, op_val))
-        return output
-
-    def _evaluate_rpn(self, rpn_tokens):
-        stack = []
-        for kind, value in rpn_tokens:
-            if kind == 'NUMBER':
-                stack.append(float(value))
-            elif kind == 'STRING':
-                stack.append(value[1:-1])
-            elif kind == 'CELL':
-                row, col = self.table.cell_ref_to_indices(value)
-                stack.append(self.table.get_cell_value(row, col, dependent_cell=self.cell))
-            elif kind == 'CELLRANGE':
-                stack.append(self._get_range_values(value))
-            elif kind == 'OP':
-                if len(stack) < 2: raise ValueError(f"Syntax Error: Not enough operands for '{value}'")
-                right, left = stack.pop(), stack.pop()
-                stack.append(self.ops[value](left, right))
-            elif kind == 'FUNCTION_EXEC':
-                func_name, arg_count = value
-                if len(stack) < arg_count: raise ValueError(f"Not enough arguments for {func_name}")
-                
-                args = [stack.pop() for _ in range(arg_count)]
-                args.reverse()
-
-                flat_args = []
-                for arg in args:
-                    if isinstance(arg, list) and func_name not in ('VLOOKUP', 'HLOOKUP'):
-                        flat_args.extend(arg)
-                    else:
-                        flat_args.append(arg)
-                
-                result = self.functions[func_name](*flat_args)
-                stack.append(result)
-
-        return stack[0] if stack else 0
-        
-    def _get_range_values(self, range_str, as_string=False):
-        values = []
-        start_ref, end_ref = range_str.split(':')
-        start_row, start_col = self.table.cell_ref_to_indices(start_ref)
-        end_row, end_col = self.table.cell_ref_to_indices(end_ref)
-
-        if start_row > end_row: start_row, end_row = end_row, start_row
-        if start_col > end_col: start_col, end_col = end_col, start_col
-
-        for r in range(start_row, end_row + 1):
-            row_values = []
-            for c in range(start_col, end_col + 1):
-                 row_values.append(self.table.get_cell_value(r, c, as_string=as_string, dependent_cell=self.cell))
-            values.append(row_values)
-        return values
-
-    def _vlookup(self, lookup_value, table_array, col_index_num, range_lookup=True):
-        col_index_num = int(col_index_num) - 1
-        
-        for row in table_array:
-            if (range_lookup and str(lookup_value).lower() in str(row[0]).lower()) or \
-               (not range_lookup and str(lookup_value) == str(row[0])):
-                return row[col_index_num]
-        return "#N/A"
-
-    def _hlookup(self, lookup_value, table_array, row_index_num, range_lookup=True):
-        row_index_num = int(row_index_num) - 1
-        
-        num_cols = len(table_array[0])
-        for c in range(num_cols):
-            if (range_lookup and str(lookup_value).lower() in str(table_array[0][c]).lower()) or \
-               (not range_lookup and str(lookup_value) == str(table_array[0][c])):
-                return table_array[row_index_num][c]
-        return "#N/A"
-        
-    def _replace(self, old_text, start_num, num_chars, new_text):
-        old_text = str(old_text)
-        start_num = int(start_num) - 1
-        num_chars = int(num_chars)
-        return old_text[:start_num] + str(new_text) + old_text[start_num + num_chars:]
-
-    def _substitute(self, text, old_text, new_text, instance_num=None):
-        text = str(text)
-        old_text = str(old_text)
-        new_text = str(new_text)
-        if instance_num:
-            return text.replace(old_text, new_text, int(instance_num))
-        return text.replace(old_text, new_text)
-
-    def _iferror(self, value, value_if_error):
-        # This will be called by the evaluation logic.
-        # The value is already evaluated at this point.
-        # We need a way to check if it was an error.
-        # A simple check for string error codes can work here.
-        if isinstance(value, str) and value.startswith('#'):
-            return value_if_error
-        return value
-
-    def _ifna(self, value, value_if_na):
-        if value == "#N/A":
-            return value_if_na
-        return value
-
-# --- End Safe Formula Parser ---
+from .comment_utils import FormulaParser, FUNCTION_HINTS
 
 # --- Undo Commands ---
 
@@ -324,7 +56,7 @@ class ResizeCommand(QUndoCommand):
         self.table = table
         self.action = action # 'add_row', 'remove_row', 'add_col', 'remove_col'
         self.index = index
-        self.count = count # For future use
+        self.count = count
         self.data = []
 
     def redo(self):
@@ -365,16 +97,24 @@ class ResizeCommand(QUndoCommand):
     def _restore_data(self):
         if self.action == 'remove_row':
             for c, cell_data in enumerate(self.data):
-                 self.table.item(self.index, c).set_data(cell_data)
+                item = self.table.item(self.index, c)
+                if not item:
+                    item = SpreadsheetItem()
+                    self.table.setItem(self.index, c, item)
+                item.set_data(cell_data)
         elif self.action == 'remove_col':
             for r, cell_data in enumerate(self.data):
-                self.table.item(r, self.index).set_data(cell_data)
+                item = self.table.item(r, self.index)
+                if not item:
+                    item = SpreadsheetItem()
+                    self.table.setItem(r, self.index, item)
+                item.set_data(cell_data)
 
 # --- End Undo Commands ---
 
 class CommentTable(QWidget):
     """
-    A widget that provides a spreadsheet-like interface for comments, 
+    A widget that provides a spreadsheet-like interface for comments,
     supporting formulas, cell referencing, and basic Excel features.
     """
     def __init__(self, comment_data, main_window, common_menu, comment_service, parent=None):
@@ -383,7 +123,7 @@ class CommentTable(QWidget):
         self.main_window = main_window
         self.common_menu = common_menu
         self.comment_service = comment_service
-        
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -413,6 +153,11 @@ class CommentTable(QWidget):
         toolbar.addAction(self.common_menu.underline_action)
         toolbar.addAction(self.common_menu.fill_text_action)
         toolbar.addAction(self.common_menu.fill_background_action)
+        toolbar.addSeparator()
+        toolbar.addWidget(QLabel("Rows:"))
+        toolbar.addWidget(self.common_menu.rows_spinbox)
+        toolbar.addWidget(QLabel("Cols:"))
+        toolbar.addWidget(self.common_menu.cols_spinbox)
         return toolbar
 
     def _connect_signals(self):
@@ -454,7 +199,7 @@ class CommentTable(QWidget):
         if current_item:
             row = self.table_widget.currentRow()
             col = self.table_widget.currentColumn()
-            
+
             old_data = current_item.get_data()
             new_data = old_data.copy()
             new_data['value'] = self.formula_bar.text()
@@ -480,7 +225,7 @@ class SpreadsheetItem(QTableWidgetItem):
     def set_data(self, data):
         """Sets the data dictionary and updates the item's appearance."""
         self.setData(Qt.ItemDataRole.UserRole, data)
-        
+
         # Update font
         font = QFont()
         font_data = data.get('font', {})
@@ -488,14 +233,14 @@ class SpreadsheetItem(QTableWidgetItem):
         font.setItalic(font_data.get('italic', False))
         font.setUnderline(font_data.get('underline', False))
         self.setFont(font)
-        
+
         # Update colors
         bg_color_str = data.get('bg_color')
         if bg_color_str:
             self.setBackground(QColor(bg_color_str))
         else:
             self.setBackground(QBrush()) # Reset to default
-            
+
         text_color_str = data.get('text_color')
         if text_color_str:
             self.setForeground(QColor(text_color_str))
@@ -506,7 +251,15 @@ class SpreadsheetItem(QTableWidgetItem):
 class ExcelHeaderView(QHeaderView):
     def __init__(self, orientation, parent=None):
         super().__init__(orientation, parent)
-        self.setHighlightSections(False) 
+        self.setHighlightSections(False)
+        self.setSectionsClickable(True)
+        self.sectionClicked.connect(self.on_section_clicked)
+
+    def on_section_clicked(self, logicalIndex):
+        if self.orientation() == Qt.Orientation.Horizontal:
+            self.parentWidget().selectColumn(logicalIndex)
+        else:
+            self.parentWidget().selectRow(logicalIndex)
 
     def paintSection(self, painter, rect, logicalIndex):
         is_selected = False
@@ -522,9 +275,9 @@ class ExcelHeaderView(QHeaderView):
                     if r.topRow() <= logicalIndex <= r.bottomRow():
                         is_selected = True
                         break
-        
+
         painter.save()
-        
+
         if is_selected:
             bg_color = QColor("#9FFF9F")
             text_color = QColor("#0F5113")
@@ -543,7 +296,7 @@ class ExcelHeaderView(QHeaderView):
         else:
             painter.drawLine(rect.bottomLeft(), rect.bottomRight())
             painter.drawLine(rect.topRight(), rect.bottomRight())
-            
+
         painter.setPen(text_color)
         text = self.model().headerData(logicalIndex, self.orientation())
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, str(text))
@@ -565,13 +318,13 @@ class SpreadsheetDelegate(QStyledItemDelegate):
         value = data.get('value', '')
         if isinstance(editor, QLineEdit):
             editor.setText(str(value))
-            
+
     def setModelData(self, editor, model, index):
         """When editing is finished, create a command to perform the change."""
         if isinstance(editor, QLineEdit):
             table = self.parent()
             new_value = editor.text()
-            
+
             old_data = index.model().data(index, Qt.ItemDataRole.UserRole) or {'value': ''}
             new_data = old_data.copy()
             new_data['value'] = new_value
@@ -592,11 +345,11 @@ class Spreadsheet(QTableWidget):
         self._drag_start_pos = None
         self._drag_fill_rect = None
         self._currently_evaluating = set()
-        self.precedents = {} 
+        self.precedents = {}
         self.highlighted_cells = set()
         self.referenced_cells = []
         self.ref_colors = [QColor("#54B8FF"), QColor("#FF3C3C"), QColor("#39FF92"), QColor("#BE6AFF")]
-        
+
         self.undo_stack = QUndoStack(self)
 
         # --- Formula Hinting Widgets ---
@@ -619,55 +372,12 @@ class Spreadsheet(QTableWidget):
         """)
         self.completer_popup.hide()
         self.completer_popup.itemClicked.connect(self.complete_formula)
-
-
-        self.FUNCTION_HINTS = {
-            "SUM": "SUM(value1, [value2], ...)",
-            "AVERAGE": "AVERAGE(value1, [value2], ...)",
-            "MAX": "MAX(value1, [value2], ...)",
-            "MIN": "MIN(value1, [value2], ...)",
-            "COUNT": "COUNT(value1, [value2], ...)",
-            "IF": "IF(logical_test, value_if_true, [value_if_false])",
-            "AND": "AND(logical1, [logical2], ...)",
-            "OR": "OR(logical1, [logical2], ...)",
-            "NOT": "NOT(logical)",
-            "TRUE": "TRUE()",
-            "FALSE": "FALSE()",
-            "UPPER": "UPPER(text)",
-            "LOWER": "LOWER(text)",
-            "LEN": "LEN(text)",
-            "LEFT": "LEFT(text, [num_chars])",
-            "RIGHT": "RIGHT(text, [num_chars])",
-            "MID": "MID(text, start_num, num_chars)",
-            "CONCAT": "CONCAT(text1, [text2], ...)",
-            "INT": "INT(number)",
-            "DEC2HEX": "DEC2HEX(number)",
-            "DEC2BIN": "DEC2BIN(number)",
-            "DEC2OCT": "DEC2OCT(number)",
-            "HEX2DEC": "HEX2DEC(hex_number)",
-            "HEX2BIN": "HEX2BIN(hex_number)",
-            "HEX2OCT": "HEX2OCT(hex_number)",
-            "BIN2DEC": "BIN2DEC(binary_number)",
-            "BIN2HEX": "BIN2HEX(binary_number)",
-            "BIN2OCT": "BIN2OCT(binary_number)",
-            "OCT2DEC": "OCT2DEC(octal_number)",
-            "OCT2BIN": "OCT2BIN(octal_number)",
-            "OCT2HEX": "OCT2HEX(octal_number)",
-            "CHAR": "CHAR(number)",
-            "VLOOKUP": "VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])",
-            "HLOOKUP": "HLOOKUP(lookup_value, table_array, row_index_num, [range_lookup])",
-            "TRIM": "TRIM(text)",
-            "REPLACE": "REPLACE(old_text, start_num, num_chars, new_text)",
-            "SUBSTITUTE": "SUBSTITUTE(text, old_text, new_text, [instance_num])",
-            "IFERROR": "IFERROR(value, value_if_error)",
-            "IFNA": "IFNA(value, value_if_na)",
-        }
         # --- End Hinting Widgets ---
 
         self.setHorizontalHeader(ExcelHeaderView(Qt.Orientation.Horizontal, self))
         self.setVerticalHeader(ExcelHeaderView(Qt.Orientation.Vertical, self))
         self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        
+
         self.delegate = SpreadsheetDelegate(self)
         self.setItemDelegate(self.delegate)
         # The delegate now handles updating the formula bar
@@ -678,9 +388,9 @@ class Spreadsheet(QTableWidget):
             for col in range(self.columnCount()):
                 self.setItem(row, col, SpreadsheetItem())
         self.blockSignals(False)
-        
+
         self.update_headers()
-        
+
         self.itemSelectionChanged.connect(self.on_selection_changed)
         parent.formula_bar.textChanged.connect(self.on_formula_bar_text_changed)
 
@@ -694,20 +404,57 @@ class Spreadsheet(QTableWidget):
                 selection-background-color: transparent;
             }
             QTableWidget::item:selected {
-                color: white; 
+                color: white;
                 background-color: transparent;
             }
         """)
 
         self.load_data_from_service()
+        self.horizontalHeader().setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.horizontalHeader().customContextMenuRequested.connect(self.show_header_context_menu)
+        self.verticalHeader().setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.verticalHeader().customContextMenuRequested.connect(self.show_header_context_menu)
+
+    def show_header_context_menu(self, pos):
+        header = self.sender()
+        logicalIndex = header.logicalIndexAt(pos)
+        menu = QMenu(self)
+
+        cut_action = menu.addAction("Cut")
+        copy_action = menu.addAction("Copy")
+        paste_action = menu.addAction("Paste")
+        menu.addSeparator()
+        insert_before_action = menu.addAction("Insert Before")
+        insert_after_action = menu.addAction("Insert After")
+        delete_action = menu.addAction("Delete")
+        clear_contents_action = menu.addAction("Clear Contents")
+
+        if header.orientation() == Qt.Orientation.Horizontal:
+            cut_action.triggered.connect(lambda: self.cut_column(logicalIndex))
+            copy_action.triggered.connect(lambda: self.copy_column(logicalIndex))
+            paste_action.triggered.connect(lambda: self.paste_column(logicalIndex))
+            insert_before_action.triggered.connect(lambda: self.insert_column(logicalIndex))
+            insert_after_action.triggered.connect(lambda: self.insert_column(logicalIndex + 1))
+            delete_action.triggered.connect(lambda: self.remove_column(logicalIndex))
+            clear_contents_action.triggered.connect(lambda: self.clear_column_contents(logicalIndex))
+        else:
+            cut_action.triggered.connect(lambda: self.cut_row(logicalIndex))
+            copy_action.triggered.connect(lambda: self.copy_row(logicalIndex))
+            paste_action.triggered.connect(lambda: self.paste_row(logicalIndex))
+            insert_before_action.triggered.connect(lambda: self.insert_row(logicalIndex))
+            insert_after_action.triggered.connect(lambda: self.insert_row(logicalIndex + 1))
+            delete_action.triggered.connect(lambda: self.remove_row(logicalIndex))
+            clear_contents_action.triggered.connect(lambda: self.clear_row_contents(logicalIndex))
+
+        menu.exec(header.mapToGlobal(pos))
 
     def load_data_from_service(self):
         if not self.comment_service:
             return
         table_data = self.comment_service.get_table_data(self.comment_number)
-        
+
         if not table_data:
-            self.save_data_to_service() 
+            self.save_data_to_service()
             return
 
         num_rows = len(table_data)
@@ -743,19 +490,19 @@ class Spreadsheet(QTableWidget):
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
-        
+
         cut_action = menu.addAction("Cut")
         copy_action = menu.addAction("Copy")
         paste_action = menu.addAction("Paste")
         delete_action = menu.addAction("Delete")
-        
+
         cut_action.triggered.connect(self.cut)
         copy_action.triggered.connect(self.copy)
         paste_action.triggered.connect(self.paste)
         delete_action.triggered.connect(self.delete)
-        
+
         paste_action.setEnabled(bool(QApplication.clipboard().text()))
-        
+
         item = self.itemAt(event.pos())
         if item and str(item.get_data().get('value', '')).startswith('='):
             menu.addSeparator()
@@ -792,7 +539,7 @@ class Spreadsheet(QTableWidget):
         first_range = selection[0]
         rows = range(first_range.topRow(), first_range.bottomRow() + 1)
         cols = range(first_range.leftColumn(), first_range.rightColumn() + 1)
-        
+
         clipboard_text = ""
         for r in rows:
             row_data = []
@@ -813,7 +560,7 @@ class Spreadsheet(QTableWidget):
     def delete(self):
         selection = self.selectedRanges()
         if not selection: return
-        
+
         changes = []
         for r in selection:
             for row in range(r.topRow(), r.bottomRow() + 1):
@@ -825,7 +572,7 @@ class Spreadsheet(QTableWidget):
                             new_data = old_data.copy()
                             new_data['value'] = ''
                             changes.append((row, col, old_data, new_data))
-        
+
         if changes:
             command = ChangeCellCommand(self, changes, "Delete")
             self.undo_stack.push(command)
@@ -839,7 +586,7 @@ class Spreadsheet(QTableWidget):
 
         clipboard_text = QApplication.clipboard().text()
         rows = clipboard_text.strip('\n').split('\n')
-        
+
         changes = []
         for r, row_data in enumerate(rows):
             columns = row_data.split('\t')
@@ -852,14 +599,14 @@ class Spreadsheet(QTableWidget):
                     old_data = item.get_data() if item else {'value': ''}
                     new_data = old_data.copy()
                     new_data['value'] = cell_text
-                    
+
                     if old_data != new_data:
                         changes.append((target_row, target_col, old_data, new_data))
 
         if changes:
             command = ChangeCellCommand(self, changes, "Paste")
             self.undo_stack.push(command)
-        
+
     def undo(self):
         self.undo_stack.undo()
 
@@ -880,7 +627,7 @@ class Spreadsheet(QTableWidget):
 
         if text.startswith('='):
             text_upper = text.upper()
-            
+
             # Show all functions if only "=" is typed
             if text == '=':
                 self.show_completer_popup('')
@@ -896,8 +643,9 @@ class Spreadsheet(QTableWidget):
             syntax_match = re.search(r"([A-Z_]+)\(([^)]*)$", text_upper)
             if syntax_match:
                 func_name = syntax_match.group(1)
-                if func_name in self.FUNCTION_HINTS:
-                    self.show_syntax_hint(func_name)
+                args_text = syntax_match.group(2)
+                if func_name in FUNCTION_HINTS:
+                    self.show_syntax_hint(func_name, args_text)
             else:
                 completer_match = re.search(r"=([A-Z_]*)$", text_upper)
                 if completer_match:
@@ -906,8 +654,16 @@ class Spreadsheet(QTableWidget):
 
         self.viewport().update()
 
-    def show_syntax_hint(self, func_name):
-        hint_text = self.FUNCTION_HINTS[func_name]
+    def show_syntax_hint(self, func_name, args_text):
+        hint_template = FUNCTION_HINTS[func_name]
+        arg_parts = hint_template[len(func_name)+1:-1].split(',')
+        current_arg_index = args_text.count(',')
+
+        if current_arg_index < len(arg_parts):
+            arg_parts[current_arg_index] = f"<b>{arg_parts[current_arg_index].strip()}</b>"
+
+        hint_text = f"{func_name}({', '.join(arg_parts)})"
+
         self.formula_hint.setText(hint_text)
         self.formula_hint.adjustSize()
         current_rect = self.visualRect(self.currentIndex())
@@ -915,9 +671,9 @@ class Spreadsheet(QTableWidget):
             global_pos = self.viewport().mapToGlobal(current_rect.bottomLeft())
             self.formula_hint.move(global_pos)
             self.formula_hint.show()
-    
+
     def show_completer_popup(self, partial_func):
-        matches = [f for f in self.FUNCTION_HINTS if f.startswith(partial_func)]
+        matches = [f for f in FUNCTION_HINTS if f.startswith(partial_func)]
         if matches:
             self.completer_popup.clear()
             self.completer_popup.addItems(matches)
@@ -934,14 +690,14 @@ class Spreadsheet(QTableWidget):
         editor = self.focusWidget()
         if not isinstance(editor, QLineEdit):
              editor = self.parent().formula_bar
-        
+
         current_text = editor.text()
         # Find the start of the partial function name
         last_equal = current_text.rfind('=')
         last_paren = current_text.rfind('(')
         last_comma = current_text.rfind(',')
         start_pos = max(last_equal, last_paren, last_comma) + 1
-        
+
         new_text = current_text[:start_pos] + full_func + "("
         editor.setText(new_text)
         editor.setFocus()
@@ -996,7 +752,7 @@ class Spreadsheet(QTableWidget):
         if not formula.startswith('='):
             item.setText(formula)
             return
-            
+
         cell_coords = (item.row(), item.column())
         if cell_coords in self._currently_evaluating:
             item.setText("#REF!")
@@ -1007,7 +763,7 @@ class Spreadsheet(QTableWidget):
         try:
             parser = FormulaParser(self, cell_coords)
             result = parser.evaluate(formula[1:])
-            
+
             if isinstance(result, bool):
                  item.setText(str(result).upper())
             elif isinstance(result, float) and result.is_integer():
@@ -1026,13 +782,13 @@ class Spreadsheet(QTableWidget):
             if dependent_cell not in self.precedents:
                 self.precedents[dependent_cell] = set()
             self.precedents[dependent_cell].add((row, col))
-            
+
         item = self.item(row, col)
         if not item: return "" if as_string else 0
 
         text = item.text()
         if as_string: return text
-        
+
         try:
             return float(text)
         except (ValueError, TypeError):
@@ -1048,22 +804,150 @@ class Spreadsheet(QTableWidget):
         return num - 1
 
     def add_column(self):
-        command = ResizeCommand(self, 'add_col', self.currentColumn() + 1)
-        self.undo_stack.push(command)
+        count = self.parent().common_menu.cols_spinbox.value()
+        if self.columnCount() + count > 50:
+            QMessageBox.warning(self, "Column Limit", "The maximum number of columns is 50.")
+            return
+        index = self.currentColumn()
+        for i in range(count):
+            command = ResizeCommand(self, 'add_col', index + 1 + i)
+            self.undo_stack.push(command)
 
     def add_row(self):
-        command = ResizeCommand(self, 'add_row', self.currentRow() + 1)
-        self.undo_stack.push(command)
-
-    def remove_column(self):
-        if self.columnCount() > 0:
-            command = ResizeCommand(self, 'remove_col', self.currentColumn())
+        count = self.parent().common_menu.rows_spinbox.value()
+        if self.rowCount() + count > 100000:
+            QMessageBox.warning(self, "Row Limit", "The maximum number of rows is 100,000.")
+            return
+        index = self.currentRow()
+        for i in range(count):
+            command = ResizeCommand(self, 'add_row', index + 1 + i)
             self.undo_stack.push(command)
 
-    def remove_row(self):
-        if self.rowCount() > 0:
-            command = ResizeCommand(self, 'remove_row', self.currentRow())
+    def remove_column(self, index=None):
+        if index is None:
+            selection = self.selectedRanges()
+            if not selection: return
+            for r in reversed(range(selection[0].leftColumn(), selection[0].rightColumn() + 1)):
+                if self.columnCount() > 0:
+                    command = ResizeCommand(self, 'remove_col', r)
+                    self.undo_stack.push(command)
+        else:
+            if self.columnCount() > 0:
+                command = ResizeCommand(self, 'remove_col', index)
+                self.undo_stack.push(command)
+
+
+    def remove_row(self, index=None):
+        if index is None:
+            selection = self.selectedRanges()
+            if not selection: return
+            for r in reversed(range(selection[0].topRow(), selection[0].bottomRow() + 1)):
+                if self.rowCount() > 0:
+                    command = ResizeCommand(self, 'remove_row', r)
+                    self.undo_stack.push(command)
+        else:
+            if self.rowCount() > 0:
+                command = ResizeCommand(self, 'remove_row', index)
+                self.undo_stack.push(command)
+
+    def insert_column(self, index):
+        count = len(self.selectedRanges())
+        if self.columnCount() + count > 50:
+            QMessageBox.warning(self, "Column Limit", "The maximum number of columns is 50.")
+            return
+        for i in range(count):
+            command = ResizeCommand(self, 'add_col', index + i)
             self.undo_stack.push(command)
+
+    def insert_row(self, index):
+        count = len(self.selectedRanges())
+        if self.rowCount() + count > 100000:
+            QMessageBox.warning(self, "Row Limit", "The maximum number of rows is 100,000.")
+            return
+        for i in range(count):
+            command = ResizeCommand(self, 'add_row', index + i)
+            self.undo_stack.push(command)
+
+    def clear_column_contents(self, index):
+        changes = []
+        for r in range(self.rowCount()):
+            item = self.item(r, index)
+            if item:
+                old_data = item.get_data()
+                if old_data.get('value'):
+                    new_data = old_data.copy()
+                    new_data['value'] = ''
+                    changes.append((r, index, old_data, new_data))
+        if changes:
+            command = ChangeCellCommand(self, changes, "Clear Column Contents")
+            self.undo_stack.push(command)
+
+    def clear_row_contents(self, index):
+        changes = []
+        for c in range(self.columnCount()):
+            item = self.item(index, c)
+            if item:
+                old_data = item.get_data()
+                if old_data.get('value'):
+                    new_data = old_data.copy()
+                    new_data['value'] = ''
+                    changes.append((index, c, old_data, new_data))
+        if changes:
+            command = ChangeCellCommand(self, changes, "Clear Row Contents")
+            self.undo_stack.push(command)
+
+    def cut_column(self, index):
+        self.copy_column(index)
+        self.clear_column_contents(index)
+
+    def copy_column(self, index):
+        text = ""
+        for r in range(self.rowCount()):
+            item = self.item(r, index)
+            text += str(item.get_data().get('value', '')) + '\n'
+        QApplication.clipboard().setText(text)
+
+    def paste_column(self, index):
+        clipboard_text = QApplication.clipboard().text()
+        rows = clipboard_text.strip('\n').split('\n')
+        changes = []
+        for r, cell_text in enumerate(rows):
+            if r < self.rowCount():
+                item = self.item(r, index)
+                old_data = item.get_data()
+                new_data = old_data.copy()
+                new_data['value'] = cell_text
+                changes.append((r, index, old_data, new_data))
+        if changes:
+            command = ChangeCellCommand(self, changes, "Paste Column")
+            self.undo_stack.push(command)
+
+    def cut_row(self, index):
+        self.copy_row(index)
+        self.clear_row_contents(index)
+
+    def copy_row(self, index):
+        text = ""
+        for c in range(self.columnCount()):
+            item = self.item(index, c)
+            text += str(item.get_data().get('value', '')) + '\t'
+        QApplication.clipboard().setText(text)
+
+    def paste_row(self, index):
+        clipboard_text = QApplication.clipboard().text()
+        cols = clipboard_text.strip('\t').split('\t')
+        changes = []
+        for c, cell_text in enumerate(cols):
+            if c < self.columnCount():
+                item = self.item(index, c)
+                old_data = item.get_data()
+                new_data = old_data.copy()
+                new_data['value'] = cell_text
+                changes.append((index, c, old_data, new_data))
+        if changes:
+            command = ChangeCellCommand(self, changes, "Paste Row")
+            self.undo_stack.push(command)
+
 
     def set_bold(self): self._toggle_font_property('bold')
     def set_italic(self): self._toggle_font_property('italic')
@@ -1074,16 +958,16 @@ class Spreadsheet(QTableWidget):
         for item in self.selectedItems():
             old_data = item.get_data()
             new_data = old_data.copy()
-            
+
             font_data = new_data.setdefault('font', {})
             font_data[prop_name] = not font_data.get(prop_name, False)
-            
+
             changes.append((item.row(), item.column(), old_data, new_data))
-        
+
         if changes:
             command = ChangeCellCommand(self, changes, f"Toggle {prop_name.title()}")
             self.undo_stack.push(command)
-            
+
     def set_text_color(self):
         self._set_color('text_color', "Set Text Color")
 
@@ -1128,24 +1012,24 @@ class Spreadsheet(QTableWidget):
     def paintEvent(self, event):
         super().paintEvent(event)
         painter = QPainter(self.viewport())
-        
+
         for (row, col), color in self.referenced_cells:
             rect = self.visualRect(self.model().index(row, col))
             if rect.isValid():
                 painter.setPen(QPen(color, 1, Qt.PenStyle.DashLine))
                 painter.setBrush(Qt.BrushStyle.NoBrush)
                 painter.drawRect(rect.adjusted(0, 0, -1, -1))
-        
+
         for (row, col) in self.highlighted_cells:
             rect = self.visualRect(self.model().index(row, col))
             if rect.isValid():
                 painter.setPen(QPen(QColor("blue"), 2))
                 painter.setBrush(Qt.BrushStyle.NoBrush)
                 painter.drawRect(rect.adjusted(0, 0, -1, -1))
-                
+
         if not self.selectionModel().hasSelection():
             return
-        
+
         selection = self.selectionModel().selection()
         current_index = self.currentIndex()
 
@@ -1157,11 +1041,11 @@ class Spreadsheet(QTableWidget):
                         painter.fillRect(rect, QColor(217, 217, 217, 128))
 
         selection_rect = self.visualRegionForSelection(selection).boundingRect()
-        
+
         painter.setPen(QPen(QColor(34, 139, 34), 2))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRect(selection_rect.adjusted(0, 0, -1, -1))
-        
+
         handle_rect = self.get_fill_handle_rect()
         if handle_rect:
             painter.setBrush(QBrush(QColor(34, 139, 34)))
@@ -1176,12 +1060,12 @@ class Spreadsheet(QTableWidget):
     def mousePressEvent(self, event):
         self.clear_highlights()
         comment_table = self.parent()
-        
+
         is_editing_in_formula_bar = comment_table.formula_bar.hasFocus() and comment_table.formula_bar.text().startswith('=')
-        
+
         is_editing_in_cell = self.state() == QAbstractItemView.State.EditingState
         editor = QApplication.focusWidget() if is_editing_in_cell else None
-        
+
         if is_editing_in_formula_bar or (is_editing_in_cell and isinstance(editor, QLineEdit) and editor.text().startswith('=')):
             index = self.indexAt(event.pos())
             if index.isValid():
@@ -1199,7 +1083,7 @@ class Spreadsheet(QTableWidget):
             self.setCursor(Qt.CursorShape.CrossCursor)
         else:
             super().mousePressEvent(event)
-    
+
     def mouseMoveEvent(self, event):
         if self._is_dragging_fill_handle:
             selection_range = self.selectedRanges()[0]
@@ -1238,12 +1122,12 @@ class Spreadsheet(QTableWidget):
                 source_row = source_range.topRow() + (i - 1) % source_range.rowCount()
                 source_item = self.item(source_row, col)
                 if not source_item: continue
-                
+
                 source_data = source_item.get_data()
                 source_text = str(source_data.get('value', ''))
-                
+
                 new_data = source_data.copy()
-                
+
                 if source_text.startswith('='):
                     offset = target_row - source_row
                     new_data['value'] = re.sub(r"([A-Z]+)(\d+)", lambda m: f"{m.group(1)}{int(m.group(2)) + offset}", source_text, flags=re.IGNORECASE)
@@ -1266,7 +1150,7 @@ class Spreadsheet(QTableWidget):
         if changes:
             command = ChangeCellCommand(self, changes, "Fill Drag")
             self.undo_stack.push(command)
-        
+
     def trace_precedents(self):
         current_item = self.currentItem()
         if not current_item:
@@ -1275,7 +1159,7 @@ class Spreadsheet(QTableWidget):
         if cell in self.precedents:
             self.highlighted_cells.update(self.precedents[cell])
             self.viewport().update()
-            
+
     def clear_highlights(self):
         self.highlighted_cells.clear()
         self.viewport().update()

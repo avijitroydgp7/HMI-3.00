@@ -1,5 +1,6 @@
 # main_window\menus\common_menu.py
 from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QSpinBox
 from ..services.icon_service import IconService
 
 class CommonMenu:
@@ -52,7 +53,7 @@ class CommonMenu:
         self.comment_menu.addAction(QAction(IconService.get_icon('common-import'), "Import", main_window))
         self.comment_menu.addAction(QAction(IconService.get_icon('common-export'), "Export", main_window))
         self.comment_menu.addSeparator()
-        
+
         self.add_column_action = QAction(IconService.get_icon('common-add-column'), "Add Column", main_window)
         self.comment_menu.addAction(self.add_column_action)
         self.add_row_action = QAction(IconService.get_icon('common-add-row'), "Add Row", main_window)
@@ -61,11 +62,11 @@ class CommonMenu:
         self.comment_menu.addAction(self.remove_column_action)
         self.remove_row_action = QAction(IconService.get_icon('common-remove-row'), "Remove Row", main_window)
         self.comment_menu.addAction(self.remove_row_action)
-        
+
         self.comment_menu.addSeparator()
         self.find_action = QAction(IconService.get_icon('common-find'), "Find", main_window)
         self.comment_menu.addAction(self.find_action)
-        
+
         style_submenu = self.comment_menu.addMenu(IconService.get_icon('common-style'), "Style")
         self.bold_action = QAction(IconService.get_icon('common-bold'), "Bold", main_window)
         self.italic_action = QAction(IconService.get_icon('common-italic'), "Italic", main_window)
@@ -77,6 +78,12 @@ class CommonMenu:
         style_submenu.addAction(self.underline_action)
         style_submenu.addAction(self.fill_text_action)
         style_submenu.addAction(self.fill_background_action)
+        self.rows_spinbox = QSpinBox(main_window)
+        self.rows_spinbox.setRange(1, 1000)
+        self.rows_spinbox.setValue(1)
+        self.cols_spinbox = QSpinBox(main_window)
+        self.cols_spinbox.setRange(1, 10)
+        self.cols_spinbox.setValue(1)
 
 
         # Alarm Submenu
