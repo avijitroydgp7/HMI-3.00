@@ -2,6 +2,7 @@
 import re
 import statistics
 import operator
+import math
 
 FUNCTION_HINTS = {
     "SUM": "SUM(value1, [value2], ...)",
@@ -35,7 +36,15 @@ FUNCTION_HINTS = {
     "OCT2DEC": "OCT2DEC(octal_number)",
     "OCT2BIN": "OCT2BIN(octal_number)",
     "OCT2HEX": "OCT2HEX(octal_number)",
+    "BITAND": "BITAND(number1, number2)",
+    "BITOR": "BITOR(number1, number2)",
+    "BITXOR": "BITXOR(number1, number2)",
+    "BITLSHIFT": "BITLSHIFT(number, shift_amount)",
+    "BITRSHIFT": "BITRSHIFT(number, shift_amount)",
     "CHAR": "CHAR(number)",
+    "CODE": "CODE(text)",
+    "BASE": "BASE(number, radix, [min_length])",
+    "DECIMAL": "DECIMAL(text, radix)",
     "VLOOKUP": "VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])",
     "HLOOKUP": "HLOOKUP(lookup_value, table_array, row_index_num, [range_lookup])",
     "TRIM": "TRIM(text)",
@@ -45,30 +54,76 @@ FUNCTION_HINTS = {
     "IFNA": "IFNA(value, value_if_na)",
 }
 
+def col_str_to_int(col_str):
+    num = 0
+    for char in col_str:
+        num = num * 26 + (ord(char.upper()) - ord('A')) + 1
+    return num - 1
+
+def col_int_to_str(col_idx):
+    col_str = ""
+    temp = col_idx
+    while temp >= 0:
+        col_str = chr(ord('A') + temp % 26) + col_str
+        temp = temp // 26 - 1
+    return col_str
+
+def adjust_formula_references(formula, row_offset, col_offset, min_row=0, min_col=0, delete_row=-1, delete_col=-1):
+    """
+    Adjusts cell references in a formula string.
+    Used for Copy/Paste (relative refs) and Insert/Delete (shifting refs).
+    """
+    if not formula.startswith('='):
+        return formula
+
+    ref_regex = re.compile(r"(\$?[A-Z]+)(\$?\d+)")
+
+    def replacement(match):
+        col_part = match.group(1)
+        row_part = match.group(2)
+        
+        if '$' in col_part or '$' in row_part:
+            return match.group(0)
+
+        col_idx = col_str_to_int(col_part)
+        row_idx = int(row_part) - 1
+
+        if (delete_row != -1 and row_idx == delete_row) or \
+           (delete_col != -1 and col_idx == delete_col):
+            return "#REF!"
+
+        if row_idx >= min_row:
+            row_idx += row_offset
+        if col_idx >= min_col:
+            col_idx += col_offset
+            
+        if row_idx < 0 or col_idx < 0:
+            return "#REF!"
+            
+        return f"{col_int_to_str(col_idx)}{row_idx + 1}"
+
+    parts = re.split(r'("[^"]*")', formula)
+    for i, part in enumerate(parts):
+        if not part.startswith('"'):
+            parts[i] = ref_regex.sub(replacement, part)
+    
+    return "".join(parts)
+
 
 class FormulaParser:
-    def __init__(self, table, cell):
-        self.table = table
-        self.cell = cell
-        self.ops = {
-            '+': operator.add, '-': operator.sub, '*': operator.mul, '/': operator.truediv,
-            '^': operator.pow,
-            '=': operator.eq, '==': operator.eq,
-            '<': operator.lt, '>': operator.gt,
-            '<=': operator.le, '>=': operator.ge,
-            '!=': operator.ne, '<>': operator.ne,
-        }
-        self.precedence = {
-            '+': 1, '-': 1, '*': 2, '/': 2, '^': 3,
-            '=': 0, '==': 0, '<': 0, '>': 0, '<=': 0, '>=': 0, '!=': 0, '<>': 0
-        }
+    def __init__(self, table_interface, current_cell_coords):
+        self.table = table_interface
+        self.current_cell = current_cell_coords
+        self.pos = 0
+        self.tokens = []
+        
+        # Map functions to lambdas or methods
         self.functions = {
-            'SUM': lambda *args: sum(args),
-            'AVERAGE': lambda *args: statistics.mean(args) if args else 0,
-            'MAX': max,
-            'MIN': min,
-            'COUNT': lambda *args: len(args),
-            'IF': lambda *args: args[1] if args[0] else (args[2] if len(args) > 2 else False),
+            'SUM': lambda *args: sum(float(x) for x in args if self._is_number(x)),
+            'AVERAGE': lambda *args: statistics.mean(float(x) for x in args if self._is_number(x)) if any(self._is_number(x) for x in args) else 0,
+            'MAX': lambda *args: max((float(x) for x in args if self._is_number(x)), default=0),
+            'MIN': lambda *args: min((float(x) for x in args if self._is_number(x)), default=0),
+            'COUNT': lambda *args: sum(1 for x in args if self._is_number(x)),
             'AND': lambda *args: all(args),
             'OR': lambda *args: any(args),
             'NOT': lambda x: not x,
@@ -82,65 +137,86 @@ class FormulaParser:
             'MID': lambda s, start, n: str(s)[int(start)-1:int(start)-1+int(n)],
             'CONCAT': lambda *args: "".join(map(str, args)),
             'INT': int,
-            'DEC2HEX': hex,
-            'DEC2BIN': bin,
-            'DEC2OCT': oct,
-            'HEX2DEC': lambda h: int(h, 16),
-            'HEX2BIN': lambda h: bin(int(h, 16)),
-            'HEX2OCT': lambda h: oct(int(h, 16)),
-            'BIN2DEC': lambda b: int(b, 2),
-            'BIN2HEX': lambda b: hex(int(b, 2)),
-            'BIN2OCT': lambda b: oct(int(b, 2)),
-            'OCT2DEC': lambda o: int(o, 8),
-            'OCT2BIN': lambda o: bin(int(o, 8)),
-            'OCT2HEX': lambda o: hex(int(o, 8)),
-            'CHAR': chr,
+            'TRIM': lambda s: str(s).strip(),
+            'CHAR': lambda n: chr(int(n)),
+            'CODE': lambda s: ord(str(s)[0]) if s else 0,
+            
+            # Data Conversion
+            'DEC2HEX': lambda n: hex(int(n))[2:].upper(),
+            'DEC2BIN': lambda n: bin(int(n))[2:],
+            'DEC2OCT': lambda n: oct(int(n))[2:],
+            
+            'HEX2DEC': lambda h: int(str(h), 16),
+            'HEX2BIN': lambda h: bin(int(str(h), 16))[2:],
+            'HEX2OCT': lambda h: oct(int(str(h), 16))[2:],
+            
+            'BIN2DEC': lambda b: int(str(b), 2),
+            'BIN2HEX': lambda b: hex(int(str(b), 2))[2:].upper(),
+            'BIN2OCT': lambda b: oct(int(str(b), 2))[2:],
+            
+            'OCT2DEC': lambda o: int(str(o), 8),
+            'OCT2BIN': lambda o: bin(int(str(o), 8))[2:],
+            'OCT2HEX': lambda o: hex(int(str(o), 8))[2:].upper(),
+
+            'BASE': self._base,
+            'DECIMAL': lambda text, radix: int(str(text), int(radix)),
+
+            # Bitwise Operations
+            'BITAND': lambda a, b: int(a) & int(b),
+            'BITOR': lambda a, b: int(a) | int(b),
+            'BITXOR': lambda a, b: int(a) ^ int(b),
+            'BITLSHIFT': lambda n, s: int(n) << int(s),
+            'BITRSHIFT': lambda n, s: int(n) >> int(s),
+            
             'VLOOKUP': self._vlookup,
             'HLOOKUP': self._hlookup,
-            'TRIM': lambda s: str(s).strip(),
-            'REPLACE': lambda old_text, start_num, num_chars, new_text: self._replace(old_text, start_num, num_chars, new_text),
-            'SUBSTITUTE': lambda text, old_text, new_text, instance_num=None: self._substitute(text, old_text, new_text, instance_num),
-            'IFERROR': self._iferror,
-            'IFNA': self._ifna,
+            'REPLACE': lambda old, start, n, new: str(old)[:int(start)-1] + str(new) + str(old)[int(start)-1+int(n):],
+            'SUBSTITUTE': self._substitute
         }
 
-    def evaluate(self, expression):
+    def _is_number(self, s):
         try:
-            tokens = self._tokenize(expression)
-            rpn = self._shunting_yard(tokens)
-            return self._evaluate_rpn(rpn)
+            float(s)
+            return True
+        except (ValueError, TypeError):
+            return False
+
+    def _base(self, number, radix, min_length=0):
+        res = ""
+        num = int(number)
+        rad = int(radix)
+        if rad < 2 or rad > 36: return "#NUM!"
+        
+        chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        if num == 0: res = "0"
+        else:
+            while num > 0:
+                res = chars[num % rad] + res
+                num //= rad
+        
+        if min_length and len(res) < int(min_length):
+            res = res.zfill(int(min_length))
+        return res
+
+    def _compare(self, a, b, op):
+        # Case-insensitive string comparison
+        if isinstance(a, str) and isinstance(b, str):
+            return op(a.lower(), b.lower())
+        try:
+            return op(a, b)
+        except TypeError:
+            # Fallback for incompatible types (e.g. string vs number) -> False
+            return False
+
+    def evaluate(self, expression):
+        if not expression: return ""
+        try:
+            self.tokens = self._tokenize(expression)
+            self.pos = 0
+            result = self._parse_expression()
+            return result
         except Exception as e:
-            # Check for IFERROR/IFNA at the top level
-            match = re.match(r"^\s*IF(ERROR|NA)\((.*)\)\s*$", expression, re.IGNORECASE)
-            if match:
-                func_type = match.group(1).upper()
-                inner_expr = match.group(2)
-                # This is a simplified fallback for top-level IFERROR/IFNA
-                # The robust solution is within _evaluate_rpn
-                try:
-                    # Attempt to evaluate the value part
-                    value_expr, value_if_error_expr = self._split_if_args(inner_expr)
-                    self.evaluate(value_expr) # This will raise an error if it fails
-                except Exception:
-                    _, value_if_error_expr = self._split_if_args(inner_expr)
-                    return self.evaluate(value_if_error_expr)
-
-            raise e # Re-raise if not a top-level IFERROR/IFNA
-
-    def _split_if_args(self, args_str):
-        paren_level = 0
-        split_index = -1
-        for i, char in enumerate(args_str):
-            if char == '(':
-                paren_level += 1
-            elif char == ')':
-                paren_level -= 1
-            elif char == ',' and paren_level == 0:
-                split_index = i
-                break
-        if split_index == -1:
-            raise ValueError("Invalid IFERROR/IFNA arguments")
-        return args_str[:split_index], args_str[split_index+1:]
+            return f"#ERROR: {str(e)}"
 
     def _tokenize(self, expression):
         token_specification = [
@@ -149,11 +225,17 @@ class FormulaParser:
             ('CELL',      r'[A-Z]+[0-9]+'),
             ('NUMBER',    r'[0-9]+(\.[0-9]*)?'),
             ('BOOLEAN',   r'TRUE|FALSE'),
-            ('OP',        r'<=|>=|<>|!=|==|<|>|[\+\-\*/\^]'),
+            ('STRING',    r'"[^"]*"'),
+            # FIX: Added '=' to OP_CMP. '==' must come before '=' in alternation or be careful.
+            # Regex engine tries alternatives in order. 
+            ('OP_CMP',    r'<=|>=|<>|!=|==|<|>|='), 
+            ('OP_ADD',    r'[\+\-]'),
+            ('OP_MUL',    r'[\*/]'),
+            ('OP_POW',    r'\^'),
             ('LPAREN',    r'\('),
             ('RPAREN',    r'\)'),
             ('COMMA',     r','),
-            ('STRING',    r'"[^"]*"'),
+            ('WHITESPACE',r'\s+'),
             ('MISMATCH',  r'.'),
         ]
         tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
@@ -161,155 +243,300 @@ class FormulaParser:
         for mo in re.finditer(tok_regex, expression, re.IGNORECASE):
             kind = mo.lastgroup
             value = mo.group()
+            if kind == 'WHITESPACE':
+                continue
             if kind == 'FUNCTION':
                 tokens.append((kind, value[:-1].upper()))
                 tokens.append(('LPAREN', '('))
-            elif kind not in ['MISMATCH']:
+            elif kind == 'STRING':
+                tokens.append((kind, value[1:-1]))
+            elif kind == 'BOOLEAN':
+                tokens.append((kind, value.upper() == 'TRUE'))
+            elif kind == 'NUMBER':
+                tokens.append((kind, float(value)))
+            elif kind == 'MISMATCH':
+                raise ValueError(f"Unexpected character: {value}")
+            else:
                 tokens.append((kind, value))
         return tokens
 
-    def _shunting_yard(self, tokens):
-        output = []
-        operators = []
-        arg_counts = []
+    def _peek(self):
+        if self.pos < len(self.tokens):
+            return self.tokens[self.pos]
+        return None
 
-        for i, (kind, value) in enumerate(tokens):
-            if kind in ('NUMBER', 'CELL', 'CELLRANGE', 'STRING', 'BOOLEAN'):
-                output.append((kind, value))
-            elif kind == 'FUNCTION':
-                operators.append((kind, value))
-                if i + 1 < len(tokens) and tokens[i+1][0] == 'RPAREN':
-                    arg_counts.append(0)
+    def _consume(self, kind=None):
+        token = self._peek()
+        if not token:
+            raise ValueError("Unexpected end of formula")
+        if kind and token[0] != kind:
+            raise ValueError(f"Expected {kind}, got {token[0]}")
+        self.pos += 1
+        return token
+
+    def _parse_expression(self):
+        return self._parse_comparison()
+
+    def _parse_comparison(self):
+        left = self._parse_additive()
+        while True:
+            token = self._peek()
+            if token and token[0] == 'OP_CMP':
+                op_str = self._consume()[1]
+                right = self._parse_additive()
+                # Handle standard spreadsheet '=' as equality
+                if op_str in ['=', '==']: left = self._compare(left, right, operator.eq)
+                elif op_str == '<': left = self._compare(left, right, operator.lt)
+                elif op_str == '>': left = self._compare(left, right, operator.gt)
+                elif op_str == '<=': left = self._compare(left, right, operator.le)
+                elif op_str == '>=': left = self._compare(left, right, operator.ge)
+                elif op_str in ['!=', '<>']: left = self._compare(left, right, operator.ne)
+            else:
+                break
+        return left
+
+    def _parse_additive(self):
+        left = self._parse_multiplicative()
+        while True:
+            token = self._peek()
+            if token and token[0] == 'OP_ADD':
+                op_str = self._consume()[1]
+                right = self._parse_multiplicative()
+                if op_str == '+': left += right
+                elif op_str == '-': left -= right
+            else:
+                break
+        return left
+
+    def _parse_multiplicative(self):
+        left = self._parse_power()
+        while True:
+            token = self._peek()
+            if token and token[0] == 'OP_MUL':
+                op_str = self._consume()[1]
+                right = self._parse_power()
+                if op_str == '*': left *= right
+                elif op_str == '/': 
+                    if right == 0: raise ValueError("Div by Zero")
+                    left /= right
+            else:
+                break
+        return left
+    
+    def _parse_power(self):
+        left = self._parse_atom()
+        token = self._peek()
+        if token and token[0] == 'OP_POW':
+            self._consume()
+            right = self._parse_power()
+            left = left ** right
+        return left
+
+    def _parse_atom(self):
+        token = self._peek()
+        if not token:
+            raise ValueError("Unexpected end of formula")
+
+        kind, value = token
+
+        if kind == 'NUMBER':
+            self._consume()
+            return value
+        elif kind == 'STRING':
+            self._consume()
+            return value
+        elif kind == 'BOOLEAN':
+            self._consume()
+            return value
+        elif kind == 'LPAREN':
+            self._consume()
+            val = self._parse_expression()
+            self._consume('RPAREN')
+            return val
+        elif kind == 'CELL':
+            self._consume()
+            return self._resolve_cell(value)
+        elif kind == 'CELLRANGE':
+            self._consume()
+            return self._resolve_range(value)
+        elif kind == 'FUNCTION':
+            self._consume()
+            return self._parse_function_call(value)
+        elif kind == 'OP_ADD' and value == '-':
+            self._consume()
+            return -self._parse_atom()
+        else:
+            raise ValueError(f"Unexpected token {value}")
+
+    def _parse_function_call(self, func_name):
+        self._consume('LPAREN')
+
+        if func_name == 'IF':
+            return self._handle_if()
+        elif func_name == 'IFERROR':
+            return self._handle_iferror()
+        elif func_name == 'IFNA':
+            return self._handle_ifna()
+        
+        args = []
+        if self._peek()[0] != 'RPAREN':
+            while True:
+                args.append(self._parse_expression())
+                if self._peek()[0] == 'COMMA':
+                    self._consume()
                 else:
-                    arg_counts.append(1)
-            elif kind == 'COMMA':
-                if not arg_counts: raise ValueError("Comma outside of function arguments")
-                arg_counts[-1] += 1
-                while operators and operators[-1][0] != 'LPAREN':
-                    output.append(operators.pop())
-            elif kind == 'OP':
-                while (operators and operators[-1][0] == 'OP' and
-                       self.precedence.get(operators[-1][1], 0) >= self.precedence.get(value, 0)):
-                    output.append(operators.pop())
-                operators.append((kind, value))
-            elif kind == 'LPAREN':
-                operators.append((kind, value))
-            elif kind == 'RPAREN':
-                while operators and operators[-1][0] != 'LPAREN':
-                    output.append(operators.pop())
-                if not operators or operators.pop()[0] != 'LPAREN':
-                    raise ValueError("Mismatched parentheses")
+                    break
+        self._consume('RPAREN')
+        
+        if func_name in ['VLOOKUP', 'HLOOKUP']:
+            final_args = args
+        else:
+            final_args = []
+            for arg in args:
+                if isinstance(arg, list):
+                    for sub in arg:
+                        if isinstance(sub, list): final_args.extend(sub)
+                        else: final_args.append(sub)
+                else:
+                    final_args.append(arg)
 
-                if operators and operators[-1][0] == 'FUNCTION':
-                    func_token = operators.pop()
-                    arg_count = arg_counts.pop() if arg_counts else 0
-                    output.append(('FUNCTION_EXEC', (func_token[1], arg_count)))
+        if func_name in self.functions:
+            return self.functions[func_name](*final_args)
+        else:
+            raise ValueError(f"Unknown function {func_name}")
 
+    def _handle_if(self):
+        condition = self._parse_expression()
+        self._consume('COMMA')
+        
+        result = False
+        if condition:
+            result = self._parse_expression()
+            if self._peek()[0] == 'COMMA':
+                self._consume()
+                self._skip_expression() 
+        else:
+            self._skip_expression()
+            if self._peek()[0] == 'COMMA':
+                self._consume()
+                result = self._parse_expression()
+            else:
+                result = False
+        
+        self._consume('RPAREN')
+        return result
 
-        while operators:
-            op_kind, op_val = operators.pop()
-            if op_kind in ('LPAREN', 'RPAREN'):
-                raise ValueError("Mismatched parentheses in operator stack")
-            output.append((op_kind, op_val))
-        return output
+    def _handle_iferror(self):
+        start_pos = self.pos
+        try:
+            val = self._parse_expression()
+            self._consume('COMMA')
+            self._skip_expression()
+            self._consume('RPAREN')
+            return val
+        except Exception:
+            self.pos = start_pos
+            self._skip_expression()
+            self._consume('COMMA')
+            val_error = self._parse_expression()
+            self._consume('RPAREN')
+            return val_error
 
-    def _evaluate_rpn(self, rpn_tokens):
-        stack = []
-        for kind, value in rpn_tokens:
-            if kind == 'NUMBER':
-                stack.append(float(value))
-            elif kind == 'BOOLEAN':
-                stack.append(value.upper() == 'TRUE')
-            elif kind == 'STRING':
-                stack.append(value[1:-1])
-            elif kind == 'CELL':
-                row, col = self.table.cell_ref_to_indices(value)
-                stack.append(self.table.get_cell_value(row, col, dependent_cell=self.cell))
-            elif kind == 'CELLRANGE':
-                stack.append(self._get_range_values(value))
-            elif kind == 'OP':
-                if len(stack) < 2: raise ValueError(f"Syntax Error: Not enough operands for '{value}'")
-                right, left = stack.pop(), stack.pop()
-                stack.append(self.ops[value](left, right))
-            elif kind == 'FUNCTION_EXEC':
-                func_name, arg_count = value
-                if len(stack) < arg_count: raise ValueError(f"Not enough arguments for {func_name}")
+    def _handle_ifna(self):
+        val = self._parse_expression()
+        self._consume('COMMA')
+        val_if_na = self._parse_expression()
+        self._consume('RPAREN')
+        if str(val) == "#N/A":
+            return val_if_na
+        return val
 
-                args = [stack.pop() for _ in range(arg_count)]
-                args.reverse()
+    def _skip_expression(self):
+        nesting = 0
+        while self.pos < len(self.tokens):
+            token = self.tokens[self.pos]
+            if token[0] == 'LPAREN':
+                nesting += 1
+            elif token[0] == 'RPAREN':
+                if nesting == 0: break
+                nesting -= 1
+            elif token[0] == 'COMMA':
+                if nesting == 0: break
+            self.pos += 1
 
-                flat_args = []
-                for arg in args:
-                    if isinstance(arg, list) and func_name not in ('VLOOKUP', 'HLOOKUP'):
-                        for row_list in arg:
-                            flat_args.extend(row_list)
-                    else:
-                        flat_args.append(arg)
+    def _resolve_cell(self, ref):
+        match = re.match(r"([A-Z]+)(\d+)", ref.upper())
+        if not match: raise ValueError("Invalid cell ref")
+        col_str, row_str = match.groups()
+        row = int(row_str) - 1
+        col = col_str_to_int(col_str)
+        if hasattr(self.table, 'add_dependency'):
+            self.table.add_dependency(self.current_cell, (row, col))
+        return self.table.get_cell_value(row, col)
 
-                result = self.functions[func_name](*flat_args)
-                stack.append(result)
+    def _resolve_range(self, ref_range):
+        start_ref, end_ref = ref_range.split(':')
+        r1, c1 = self._cell_coords(start_ref)
+        r2, c2 = self._cell_coords(end_ref)
+        vals = []
+        for r in range(min(r1, r2), max(r1, r2) + 1):
+            row_vals = []
+            for c in range(min(c1, c2), max(c1, c2) + 1):
+                if hasattr(self.table, 'add_dependency'):
+                    self.table.add_dependency(self.current_cell, (r, c))
+                row_vals.append(self.table.get_cell_value(r, c))
+            vals.append(row_vals)
+        return vals
 
-        return stack[0] if stack else 0
+    def _cell_coords(self, ref):
+        match = re.match(r"([A-Z]+)(\d+)", ref.upper())
+        col_str, row_str = match.groups()
+        return int(row_str) - 1, col_str_to_int(col_str)
 
-    def _get_range_values(self, range_str, as_string=False):
-        values = []
-        start_ref, end_ref = range_str.split(':')
-        start_row, start_col = self.table.cell_ref_to_indices(start_ref)
-        end_row, end_col = self.table.cell_ref_to_indices(end_ref)
-
-        if start_row > end_row: start_row, end_row = end_row, start_row
-        if start_col > end_col: start_col, end_col = end_col, start_col
-
-        for r in range(start_row, end_row + 1):
-            row_values = []
-            for c in range(start_col, end_col + 1):
-                 row_values.append(self.table.get_cell_value(r, c, as_string=as_string, dependent_cell=self.cell))
-            values.append(row_values)
-        return values
-
-    def _vlookup(self, lookup_value, table_array, col_index_num, range_lookup=True):
-        col_index_num = int(col_index_num) - 1
-
+    def _vlookup(self, lookup_val, table_array, col_idx_num, range_lookup=True):
+        col_idx = int(col_idx_num) - 1
+        lookup_str = str(lookup_val).lower()
+        if not isinstance(table_array, list) or not table_array: return "#N/A"
+        
+        if str(range_lookup).upper() == 'FALSE' or range_lookup is False or range_lookup == 0:
+            for row in table_array:
+                if len(row) > 0 and str(row[0]).lower() == lookup_str:
+                    return row[col_idx] if col_idx < len(row) else "#REF!"
+            return "#N/A"
+        
+        best = None
         for row in table_array:
-            if (range_lookup and str(lookup_value).lower() in str(row[0]).lower()) or \
-               (not range_lookup and str(lookup_value) == str(row[0])):
-                return row[col_index_num]
+            if not row: continue
+            val = row[0]
+            try:
+                if val == lookup_val: 
+                    return row[col_idx] if col_idx < len(row) else "#REF!"
+                if val <= lookup_val: 
+                    best = row
+                else: break
+            except: continue
+        
+        if best and col_idx < len(best): return best[col_idx]
         return "#N/A"
 
-    def _hlookup(self, lookup_value, table_array, row_index_num, range_lookup=True):
-        row_index_num = int(row_index_num) - 1
-
-        num_cols = len(table_array[0])
-        for c in range(num_cols):
-            if (range_lookup and str(lookup_value).lower() in str(table_array[0][c]).lower()) or \
-               (not range_lookup and str(lookup_value) == str(table_array[0][c])):
-                return table_array[row_index_num][c]
+    def _hlookup(self, lookup_val, table_array, row_idx_num, range_lookup=True):
+        row_idx = int(row_idx_num) - 1
+        lookup_str = str(lookup_val).lower()
+        if not isinstance(table_array, list) or not table_array: return "#N/A"
+        
+        if str(range_lookup).upper() == 'FALSE' or range_lookup is False:
+            for c in range(len(table_array[0])):
+                val = table_array[0][c]
+                if str(val).lower() == lookup_str:
+                    return table_array[row_idx][c] if row_idx < len(table_array) else "#REF!"
+            return "#N/A"
         return "#N/A"
 
-    def _replace(self, old_text, start_num, num_chars, new_text):
-        old_text = str(old_text)
-        start_num = int(start_num) - 1
-        num_chars = int(num_chars)
-        return old_text[:start_num] + str(new_text) + old_text[start_num + num_chars:]
-
-    def _substitute(self, text, old_text, new_text, instance_num=None):
-        text = str(text)
-        old_text = str(old_text)
-        new_text = str(new_text)
-        if instance_num:
-            return text.replace(old_text, new_text, int(instance_num))
-        return text.replace(old_text, new_text)
-
-    def _iferror(self, value, value_if_error):
-        # This will be called by the evaluation logic.
-        # The value is already evaluated at this point.
-        # We need a way to check if it was an error.
-        # A simple check for string error codes can work here.
-        if isinstance(value, str) and value.startswith('#'):
-            return value_if_error
-        return value
-
-    def _ifna(self, value, value_if_na):
-        if value == "#N/A":
-            return value_if_na
-        return value
+    def _substitute(self, text, old, new, instance=None):
+        text, old, new = str(text), str(old), str(new)
+        if instance:
+            count = int(instance)
+            parts = text.split(old)
+            if len(parts) <= count: return text
+            return old.join(parts[:count]) + new + old.join(parts[count:])
+        return text.replace(old, new)
