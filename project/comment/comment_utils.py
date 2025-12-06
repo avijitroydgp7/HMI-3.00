@@ -5,6 +5,7 @@ import operator
 import math
 
 FUNCTION_HINTS = {
+    # ... (keep existing dict)
     "SUM": "SUM(value1, [value2], ...)",
     "AVERAGE": "AVERAGE(value1, [value2], ...)",
     "MAX": "MAX(value1, [value2], ...)",
@@ -69,10 +70,6 @@ def col_int_to_str(col_idx):
     return col_str
 
 def adjust_formula_references(formula, row_offset, col_offset, min_row=0, min_col=0, delete_row=-1, delete_col=-1):
-    """
-    Adjusts cell references in a formula string.
-    Used for Copy/Paste (relative refs) and Insert/Delete (shifting refs).
-    """
     if not formula.startswith('='):
         return formula
 
@@ -117,7 +114,6 @@ class FormulaParser:
         self.pos = 0
         self.tokens = []
         
-        # Map functions to lambdas or methods
         self.functions = {
             'SUM': lambda *args: sum(float(x) for x in args if self._is_number(x)),
             'AVERAGE': lambda *args: statistics.mean(float(x) for x in args if self._is_number(x)) if any(self._is_number(x) for x in args) else 0,
@@ -140,34 +136,25 @@ class FormulaParser:
             'TRIM': lambda s: str(s).strip(),
             'CHAR': lambda n: chr(int(n)),
             'CODE': lambda s: ord(str(s)[0]) if s else 0,
-            
-            # Data Conversion
             'DEC2HEX': lambda n: hex(int(n))[2:].upper(),
             'DEC2BIN': lambda n: bin(int(n))[2:],
             'DEC2OCT': lambda n: oct(int(n))[2:],
-            
             'HEX2DEC': lambda h: int(str(h), 16),
             'HEX2BIN': lambda h: bin(int(str(h), 16))[2:],
             'HEX2OCT': lambda h: oct(int(str(h), 16))[2:],
-            
             'BIN2DEC': lambda b: int(str(b), 2),
             'BIN2HEX': lambda b: hex(int(str(b), 2))[2:].upper(),
             'BIN2OCT': lambda b: oct(int(str(b), 2))[2:],
-            
             'OCT2DEC': lambda o: int(str(o), 8),
             'OCT2BIN': lambda o: bin(int(str(o), 8))[2:],
             'OCT2HEX': lambda o: hex(int(str(o), 8))[2:].upper(),
-
             'BASE': self._base,
             'DECIMAL': lambda text, radix: int(str(text), int(radix)),
-
-            # Bitwise Operations
             'BITAND': lambda a, b: int(a) & int(b),
             'BITOR': lambda a, b: int(a) | int(b),
             'BITXOR': lambda a, b: int(a) ^ int(b),
             'BITLSHIFT': lambda n, s: int(n) << int(s),
             'BITRSHIFT': lambda n, s: int(n) >> int(s),
-            
             'VLOOKUP': self._vlookup,
             'HLOOKUP': self._hlookup,
             'REPLACE': lambda old, start, n, new: str(old)[:int(start)-1] + str(new) + str(old)[int(start)-1+int(n):],
@@ -199,13 +186,11 @@ class FormulaParser:
         return res
 
     def _compare(self, a, b, op):
-        # Case-insensitive string comparison
         if isinstance(a, str) and isinstance(b, str):
             return op(a.lower(), b.lower())
         try:
             return op(a, b)
         except TypeError:
-            # Fallback for incompatible types (e.g. string vs number) -> False
             return False
 
     def evaluate(self, expression):
@@ -226,8 +211,6 @@ class FormulaParser:
             ('NUMBER',    r'[0-9]+(\.[0-9]*)?'),
             ('BOOLEAN',   r'TRUE|FALSE'),
             ('STRING',    r'"[^"]*"'),
-            # FIX: Added '=' to OP_CMP. '==' must come before '=' in alternation or be careful.
-            # Regex engine tries alternatives in order. 
             ('OP_CMP',    r'<=|>=|<>|!=|==|<|>|='), 
             ('OP_ADD',    r'[\+\-]'),
             ('OP_MUL',    r'[\*/]'),
@@ -236,6 +219,7 @@ class FormulaParser:
             ('RPAREN',    r'\)'),
             ('COMMA',     r','),
             ('WHITESPACE',r'\s+'),
+            ('IDENTIFIER',r'[A-Z][A-Z0-9_]*'), # Catch-all for text like 'SUM' without parens or 's'
             ('MISMATCH',  r'.'),
         ]
         tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
@@ -254,6 +238,9 @@ class FormulaParser:
                 tokens.append((kind, value.upper() == 'TRUE'))
             elif kind == 'NUMBER':
                 tokens.append((kind, float(value)))
+            elif kind == 'IDENTIFIER':
+                # Keep it as is, will raise #NAME? in parser
+                tokens.append((kind, value))
             elif kind == 'MISMATCH':
                 raise ValueError(f"Unexpected character: {value}")
             else:
@@ -284,7 +271,6 @@ class FormulaParser:
             if token and token[0] == 'OP_CMP':
                 op_str = self._consume()[1]
                 right = self._parse_additive()
-                # Handle standard spreadsheet '=' as equality
                 if op_str in ['=', '==']: left = self._compare(left, right, operator.eq)
                 elif op_str == '<': left = self._compare(left, right, operator.lt)
                 elif op_str == '>': left = self._compare(left, right, operator.gt)
@@ -362,6 +348,10 @@ class FormulaParser:
         elif kind == 'FUNCTION':
             self._consume()
             return self._parse_function_call(value)
+        elif kind == 'IDENTIFIER':
+            self._consume()
+            # Treat unknown text as #NAME? error
+            raise ValueError(f"#NAME? {value}")
         elif kind == 'OP_ADD' and value == '-':
             self._consume()
             return -self._parse_atom()

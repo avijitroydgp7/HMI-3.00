@@ -78,12 +78,6 @@ class CommonMenu:
         style_submenu.addAction(self.underline_action)
         style_submenu.addAction(self.fill_text_action)
         style_submenu.addAction(self.fill_background_action)
-        self.rows_spinbox = QSpinBox(main_window)
-        self.rows_spinbox.setRange(1, 1000)
-        self.rows_spinbox.setValue(1)
-        self.cols_spinbox = QSpinBox(main_window)
-        self.cols_spinbox.setRange(1, 10)
-        self.cols_spinbox.setValue(1)
 
 
         # Alarm Submenu

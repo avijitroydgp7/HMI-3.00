@@ -10,7 +10,7 @@ from main_window.widgets.color_selector import ColorSelector
 from PyQt6.QtGui import (
     QColor, QBrush, QFont, QPainter, QPen, QKeySequence, QUndoStack, QUndoCommand, QAction
 )
-from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal
+from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QEvent
 from .comment_utils import FormulaParser, FUNCTION_HINTS, adjust_formula_references, col_str_to_int, col_int_to_str
 
 # --- Undo Commands ---
@@ -98,11 +98,6 @@ class CommentTable(QWidget):
         toolbar.addAction(self.common_menu.underline_action)
         toolbar.addAction(self.common_menu.fill_text_action)
         toolbar.addAction(self.common_menu.fill_background_action)
-        toolbar.addSeparator()
-        toolbar.addWidget(QLabel("Rows:"))
-        toolbar.addWidget(self.common_menu.rows_spinbox)
-        toolbar.addWidget(QLabel("Cols:"))
-        toolbar.addWidget(self.common_menu.cols_spinbox)
         return toolbar
 
     def _connect_signals(self):
@@ -211,6 +206,7 @@ class Spreadsheet(QTableWidget):
         self.dependents = collections.defaultdict(set) # Key: (row, col), Value: Set of dependent (row, col)
         self.precedents = collections.defaultdict(set) # Key: (row, col), Value: Set of precedent (row, col)
         self._evaluating = False # Flag to prevent recursion loops
+        self._updates_deferred = False # Flag for batch operations
 
         self._is_dragging_fill_handle = False
         self._drag_start_pos = None
@@ -222,12 +218,16 @@ class Spreadsheet(QTableWidget):
 
         # --- Formula Hinting Widgets ---
         self.formula_hint = QLabel(self)
-        self.formula_hint.setWindowFlags(Qt.WindowType.ToolTip) # Changed to ToolTip for global positioning
+        # Changed from ToolTip to Tool to prevent overlapping other apps while staying on top of parent
+        self.formula_hint.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
+        self.formula_hint.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.formula_hint.setStyleSheet("background-color: #FFFFE1; border: 1px solid #c0c0c0; padding: 4px; font-size: 9pt; color: #333;")
         self.formula_hint.hide()
 
         self.completer_popup = QListWidget(self)
-        self.completer_popup.setWindowFlags(Qt.WindowType.ToolTip) # Changed to ToolTip for global positioning
+        # Changed from ToolTip to Tool to prevent overlapping other apps while staying on top of parent
+        self.completer_popup.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
+        self.completer_popup.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.completer_popup.setStyleSheet("""
             QListWidget {
                 background-color: white;
@@ -241,6 +241,9 @@ class Spreadsheet(QTableWidget):
         self.completer_popup.hide()
         self.completer_popup.itemClicked.connect(self.complete_formula)
         # --- End Hinting Widgets ---
+        
+        # Install event filter on the application to detect focus changes globally
+        QApplication.instance().installEventFilter(self)
 
         self.setHorizontalHeader(ExcelHeaderView(Qt.Orientation.Horizontal, self))
         self.setVerticalHeader(ExcelHeaderView(Qt.Orientation.Vertical, self))
@@ -266,6 +269,25 @@ class Spreadsheet(QTableWidget):
         self.horizontalHeader().customContextMenuRequested.connect(self.show_header_context_menu)
         self.verticalHeader().setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.verticalHeader().customContextMenuRequested.connect(self.show_header_context_menu)
+
+    def set_updates_deferred(self, state):
+        """
+        Controls whether expensive operations like saving and evaluating
+        are performed immediately or deferred.
+        """
+        self._updates_deferred = state
+        if not state:
+            self.update_headers()
+            self.save_data_to_service()
+            self.evaluate_all_cells()
+
+    def eventFilter(self, obj, event):
+        """Global event filter to hide popups when application loses focus."""
+        if event.type() == QEvent.Type.ApplicationStateChange:
+             if QApplication.instance().applicationState() != Qt.ApplicationState.ApplicationActive:
+                 self.formula_hint.hide()
+                 self.completer_popup.hide()
+        return super().eventFilter(obj, event)
 
     # --- New Helper Methods to Fix AttributeError ---
     def isColumnSelected(self, column):
@@ -450,9 +472,11 @@ class Spreadsheet(QTableWidget):
             self.shift_formulas_for_insert_delete(col_threshold=index, col_shift=count)
         
         self.blockSignals(False)
-        self.update_headers()
-        self.save_data_to_service()
-        self.evaluate_all_cells()
+        
+        if not self._updates_deferred:
+            self.update_headers()
+            self.save_data_to_service()
+            self.evaluate_all_cells()
 
     def perform_remove(self, action, index):
         self.blockSignals(True)
@@ -474,9 +498,11 @@ class Spreadsheet(QTableWidget):
             self.shift_formulas_for_insert_delete(col_threshold=index, col_shift=-1, deleted_col=index)
 
         self.blockSignals(False)
-        self.update_headers()
-        self.save_data_to_service()
-        self.evaluate_all_cells()
+        
+        if not self._updates_deferred:
+            self.update_headers()
+            self.save_data_to_service()
+            self.evaluate_all_cells()
         return saved_data
 
     def perform_insert_with_restore(self, action, index, saved_data):
@@ -499,7 +525,10 @@ class Spreadsheet(QTableWidget):
                     self.setItem(r, index, item)
                 item.set_data(data)
         self.blockSignals(False)
-        self.evaluate_all_cells()
+        
+        if not self._updates_deferred:
+            self.save_data_to_service()
+            self.evaluate_all_cells()
 
     def shift_formulas_for_insert_delete(self, row_threshold=0, col_threshold=0, row_shift=0, col_shift=0, deleted_row=-1, deleted_col=-1):
         """
@@ -614,8 +643,15 @@ class Spreadsheet(QTableWidget):
         if changes:
             self.undo_stack.push(ChangeCellCommand(self, changes, "Delete"))
     
-    def undo(self): self.undo_stack.undo()
-    def redo(self): self.undo_stack.redo()
+    def undo(self):
+        self.set_updates_deferred(True)
+        self.undo_stack.undo()
+        self.set_updates_deferred(False)
+
+    def redo(self):
+        self.set_updates_deferred(True)
+        self.undo_stack.redo()
+        self.set_updates_deferred(False)
     
     def load_data_from_service(self):
         if not self.comment_service: return
@@ -664,7 +700,7 @@ class Spreadsheet(QTableWidget):
                  count += r.columnCount()
              idx = selected_cols[0].leftColumn()
         else:
-             count = self.parent().common_menu.cols_spinbox.value()
+             count = 1
              idx = self.currentColumn()
              if idx < 0: idx = self.columnCount() # If no selection, append? Standard excel inserts before active cell.
         
@@ -686,7 +722,7 @@ class Spreadsheet(QTableWidget):
                  count += r.rowCount()
              idx = selected_rows[0].topRow()
         else:
-             count = self.parent().common_menu.rows_spinbox.value()
+             count = 1
              idx = self.currentRow()
              if idx < 0: idx = self.rowCount()
 
@@ -731,11 +767,15 @@ class Spreadsheet(QTableWidget):
         sorted_cols = sorted(list(cols_to_remove), reverse=True)
         if not sorted_cols: return
 
+        self.set_updates_deferred(True)
         self.undo_stack.beginMacro("Delete Columns")
-        for c in sorted_cols:
-            if self.columnCount() > 0:
-                self.undo_stack.push(ResizeCommand(self, 'remove_col', c))
-        self.undo_stack.endMacro()
+        try:
+            for c in sorted_cols:
+                if self.columnCount() > 0:
+                    self.undo_stack.push(ResizeCommand(self, 'remove_col', c))
+        finally:
+            self.undo_stack.endMacro()
+            self.set_updates_deferred(False)
 
     def remove_row(self, index=None):
         # FIX: Ensure index is strictly an int and not bool (from signal)
@@ -763,11 +803,15 @@ class Spreadsheet(QTableWidget):
         sorted_rows = sorted(list(rows_to_remove), reverse=True)
         if not sorted_rows: return
 
+        self.set_updates_deferred(True)
         self.undo_stack.beginMacro("Delete Rows")
-        for r in sorted_rows:
-            if self.rowCount() > 0:
-                self.undo_stack.push(ResizeCommand(self, 'remove_row', r))
-        self.undo_stack.endMacro()
+        try:
+            for r in sorted_rows:
+                if self.rowCount() > 0:
+                    self.undo_stack.push(ResizeCommand(self, 'remove_row', r))
+        finally:
+            self.undo_stack.endMacro()
+            self.set_updates_deferred(False)
 
     def insert_column(self, index):
         # Context menu insert
@@ -830,7 +874,9 @@ class Spreadsheet(QTableWidget):
         for i in self.selectedItems():
             o = i.get_data()
             n = o.copy()
-            n.setdefault('font', {})[p] = not n['font'].get(p, False)
+            if 'font' not in n:
+                n['font'] = {}
+            n['font'][p] = not n['font'].get(p, False)
             changes.append((i.row(), i.column(), o, n))
         if changes: self.undo_stack.push(ChangeCellCommand(self, changes, f"Toggle {p}"))
 
