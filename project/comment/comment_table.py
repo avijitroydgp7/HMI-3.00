@@ -4,7 +4,8 @@ import collections
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem,
     QLineEdit, QMessageBox, QAbstractItemView, QHeaderView, QApplication, QLabel,
-    QStyledItemDelegate, QMenu, QListWidget, QSpinBox
+    QStyledItemDelegate, QMenu, QListWidget, QSpinBox, QDialog, QFormLayout, 
+    QPushButton, QHBoxLayout
 )
 from main_window.widgets.color_selector import ColorSelector
 from PyQt6.QtGui import (
@@ -13,7 +14,73 @@ from PyQt6.QtGui import (
 from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QEvent
 from .comment_utils import FormulaParser, FUNCTION_HINTS, adjust_formula_references, col_str_to_int, col_int_to_str
 
-# --- Undo Commands ---
+# --- Insert Quantity Dialog ---
+
+class InsertQuantityDialog(QDialog):
+    """Dialog to ask user how many rows or columns to insert."""
+    def __init__(self, mode='row', current_count=0, parent=None):
+        """
+        Parameters:
+        - mode: 'row' or 'column' to specify what type of insertion
+        - current_count: current number of rows or columns in the table
+        - parent: parent widget
+        """
+        super().__init__(parent)
+        self.mode = mode
+        self.quantity = 1
+        
+        # Set dialog properties
+        if mode == 'row':
+            self.setWindowTitle("Insert Rows")
+            self.max_per_insertion = 10000  # Max rows per single insertion
+            self.max_total = 1000000  # Max total rows in table
+            remaining = self.max_total - current_count
+            self.max_limit = min(self.max_per_insertion, remaining)
+            label_text = f"Number of rows to insert (max {self.max_limit}):"
+        else:
+            self.setWindowTitle("Insert Columns")
+            self.max_per_insertion = 30  # Max columns per single insertion
+            self.max_total = 30  # Max total columns in table
+            remaining = self.max_total - current_count
+            self.max_limit = min(self.max_per_insertion, remaining)
+            label_text = f"Number of columns to insert (max {self.max_limit}):"
+        
+        # Create layout
+        layout = QVBoxLayout(self)
+        form_layout = QFormLayout()
+        
+        # Create spin box for quantity
+        self.quantity_spinbox = QSpinBox()
+        self.quantity_spinbox.setMinimum(1)
+        self.quantity_spinbox.setMaximum(self.max_limit)
+        self.quantity_spinbox.setValue(1)
+        
+        form_layout.addRow(label_text, self.quantity_spinbox)
+        
+        # Create buttons
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton("OK")
+        cancel_button = QPushButton("Cancel")
+        
+        ok_button.clicked.connect(self.accept)
+        cancel_button.clicked.connect(self.reject)
+        
+        button_layout.addStretch()
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        
+        layout.addLayout(form_layout)
+        layout.addLayout(button_layout)
+        
+        self.setMinimumWidth(350)
+    
+    def get_quantity(self):
+        """Returns the quantity entered by the user."""
+        return self.quantity_spinbox.value()
+
+# --- End Insert Quantity Dialog ---
+
+
 
 class ChangeCellCommand(QUndoCommand):
     """An undo command for changing the data of one or more cells."""
@@ -221,7 +288,7 @@ class Spreadsheet(QTableWidget):
         # Changed from ToolTip to Tool to prevent overlapping other apps while staying on top of parent
         self.formula_hint.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
         self.formula_hint.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
-        self.formula_hint.setStyleSheet("background-color: #FFFFE1; border: 1px solid #c0c0c0; padding: 4px; font-size: 9pt; color: #333;")
+        self.formula_hint.setStyleSheet("background-color: #353535; border: 1px solid #555555; padding: 4px; font-size: 9pt; color: #ffffff;")
         self.formula_hint.hide()
 
         self.completer_popup = QListWidget(self)
@@ -230,13 +297,13 @@ class Spreadsheet(QTableWidget):
         self.completer_popup.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.completer_popup.setStyleSheet("""
             QListWidget {
-                background-color: white;
-                border: 1px solid #c0c0c0;
+                background-color: #191919;
+                border: 1px solid #555555;
                 font-size: 9pt;
-                color: black;
+                color: white;
             }
-            QListWidget::item:hover { background-color: #f0f0f0; }
-            QListWidget::item:selected { background-color: #0078d7; color: white; }
+            QListWidget::item:hover { background-color: #353535; }
+            QListWidget::item:selected { background-color: #2a82da; color: white; }
         """)
         self.completer_popup.hide()
         self.completer_popup.itemClicked.connect(self.complete_formula)
@@ -256,10 +323,10 @@ class Spreadsheet(QTableWidget):
         self.itemSelectionChanged.connect(self.on_selection_changed)
         parent.formula_bar.textChanged.connect(self.on_formula_bar_text_changed)
 
-        # UPDATED STYLESHEET: Removed 'color: white' for selected items so text remains visible
+        # UPDATED STYLESHEET: Dark fusion theme colors matching main.py palette
         self.setStyleSheet("""
-            QTableWidget { gridline-color: #d0d0d0; outline: none; selection-background-color: transparent; }
-            QTableWidget::item:selected { background-color: transparent; }
+            QTableWidget { gridline-color: #353535; outline: none; selection-background-color: transparent; }
+            QTableWidget::item:selected { background-color: #2a82da; }
         """)
         
         self.load_data_from_service()
@@ -705,8 +772,8 @@ class Spreadsheet(QTableWidget):
              if idx < 0: idx = self.columnCount() # If no selection, append? Standard excel inserts before active cell.
         
         if count == 0: count = 1
-        if self.columnCount() + count > 50:
-            QMessageBox.warning(self, "Limit", "Max 50 cols.")
+        if self.columnCount() + count > 30:
+            QMessageBox.warning(self, "Limit", "Max 30 columns allowed.")
             return
         
         self.undo_stack.push(ResizeCommand(self, 'add_col', idx, count))
@@ -727,8 +794,8 @@ class Spreadsheet(QTableWidget):
              if idx < 0: idx = self.rowCount()
 
         if count == 0: count = 1
-        if self.rowCount() + count > 100000:
-            QMessageBox.warning(self, "Limit", "Max 100,000 rows.")
+        if self.rowCount() + count > 1000000:
+            QMessageBox.warning(self, "Limit", "Max 1,000,000 rows allowed.")
             return
             
         self.undo_stack.push(ResizeCommand(self, 'add_row', idx, count))
@@ -814,30 +881,35 @@ class Spreadsheet(QTableWidget):
             self.set_updates_deferred(False)
 
     def insert_column(self, index):
-        # Context menu insert
-        count = 0
-        # Check if selection spans multiple columns
-        selection_model = self.selectionModel()
-        if selection_model.isColumnSelected(index, self.rootIndex()):
-             for r in self.selectedRanges():
-                 count += r.columnCount()
-        else:
-            count = 1
+        # Context menu insert - show dialog to ask how many columns
+        dialog = InsertQuantityDialog(mode='column', current_count=self.columnCount(), parent=self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
         
-        if self.columnCount() + count > 50: return
+        count = dialog.get_quantity()
+        if count <= 0:
+            return
+        
+        if self.columnCount() + count > 30:
+            QMessageBox.warning(self, "Limit", "Max 30 columns allowed.")
+            return
+        
         self.undo_stack.push(ResizeCommand(self, 'add_col', index, count))
 
     def insert_row(self, index):
-        # Context menu insert
-        count = 0
-        selection_model = self.selectionModel()
-        if selection_model.isRowSelected(index, self.rootIndex()):
-            for r in self.selectedRanges():
-                count += r.rowCount()
-        else:
-            count = 1
+        # Context menu insert - show dialog to ask how many rows
+        dialog = InsertQuantityDialog(mode='row', current_count=self.rowCount(), parent=self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        
+        count = dialog.get_quantity()
+        if count <= 0:
+            return
             
-        if self.rowCount() + count > 100000: return
+        if self.rowCount() + count > 1000000:
+            QMessageBox.warning(self, "Limit", "Max 1,000,000 rows allowed.")
+            return
+        
         self.undo_stack.push(ResizeCommand(self, 'add_row', index, count))
 
     def clear_column_contents(self, index):

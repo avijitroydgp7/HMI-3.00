@@ -32,7 +32,7 @@ class ColorPickerButton(QPushButton):
             self.color_changed.emit(self._color)
 
     def _update_style(self):
-        self.setStyleSheet(f"background-color: {self._color.name()}; border: 1px solid grey;")
+        self.setStyleSheet(f"background-color: {self._color.name()}; border: 1px solid #555555;")
 
     def _open_color_picker(self):
         """Opens the color selector dialog to choose a new color."""

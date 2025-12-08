@@ -436,6 +436,26 @@ class TagTable(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.setRootIsDecorated(True)
         
+        # Apply dark fusion theme stylesheet
+        self.table.setStyleSheet("""
+            QTreeWidget {
+                background-color: #191919;
+                alternate-background-color: #252525;
+                color: white;
+                gridline-color: #353535;
+            }
+            QTreeWidget::item:selected {
+                background-color: #2a82da;
+                color: white;
+            }
+            QHeaderView::section {
+                background-color: #353535;
+                color: white;
+                padding: 3px;
+                border: 1px solid #555555;
+            }
+        """)
+        
         self.table.itemChanged.connect(self.on_item_changed)
         layout.addWidget(self.table)
 

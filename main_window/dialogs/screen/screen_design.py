@@ -109,7 +109,7 @@ class ScreenDesignDialog(QDialog):
             QPushButton {{
                 background-color: {color.name()};
                 color: {text_color};
-                border: 1px solid grey;
+                border: 1px solid #555555;
                 border-radius: 4px;
                 text-align: center;
                 padding: 5px;
@@ -161,7 +161,7 @@ class ScreenDesignDialog(QDialog):
         self.gradient_preview_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: qlineargradient({gradient_stops}, stop: 0 {color1_hex}, stop: 1 {color2_hex});
-                border: 1px solid grey;
+                border: 1px solid #555555;
                 border-radius: 4px;
             }}
             QPushButton:hover {{
@@ -228,7 +228,7 @@ class ScreenDesignDialog(QDialog):
         
         self.pattern_preview_button.setStyleSheet("""
             QPushButton {
-                border: 1px solid grey;
+                border: 1px solid #555555;
                 border-radius: 4px;
             }
             QPushButton:hover {
