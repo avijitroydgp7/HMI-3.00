@@ -4,12 +4,19 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QHeaderView,
     QToolBar, QComboBox, QMessageBox, QStyledItemDelegate, QCheckBox,
     QAbstractItemView, QLineEdit, QApplication, QSizePolicy,
-    QDateEdit, QTimeEdit, QDateTimeEdit, QTreeWidgetItemIterator
+    QDateEdit, QTimeEdit, QDateTimeEdit, QTreeWidgetItemIterator, QProgressDialog
 )
 from PyQt6.QtCore import Qt, QMimeData, QDate, QTime, QDateTime
 from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence, QColor, QBrush
 from main_window.services.icon_service import IconService
 from main_window.widgets.tree import CustomTreeWidget
+
+# Import optimization utilities
+try:
+    from .optimized_tag_operations import OptimizedTagDeletion, OptimizedTagAddition
+except ImportError:
+    OptimizedTagDeletion = None
+    OptimizedTagAddition = None
 
 # Define validation ranges for data types
 DATA_TYPE_RANGES = {
@@ -68,26 +75,50 @@ class TagAddCommand(QUndoCommand):
         self.table.save_data()
 
 class TagRemoveCommand(QUndoCommand):
-    """Command for removing tags."""
+    """Command for removing tags with optimized batch processing for large deletions."""
     def __init__(self, table, rows_data, text="Remove Tag"):
         super().__init__(text)
         self.table = table
         # rows_data is a list of tuples: (row_index, tag_data_dict)
         # Sort by row index descending to handle removals correctly
         self.rows_data = sorted(rows_data, key=lambda x: x[0], reverse=True)
+        self.is_batch = len(rows_data) > 10  # Flag for batch operations
 
     def redo(self):
         self.table.block_signals(True)
-        for row, _ in self.rows_data:
-            self.table.table.takeTopLevelItem(row)
+        
+        # Use optimized batch deletion if available and needed
+        if self.is_batch and OptimizedTagDeletion:
+            try:
+                rows_to_delete = [row for row, _ in self.rows_data]
+                OptimizedTagDeletion.delete_multiple_tags_optimized(
+                    self.table, rows_to_delete, parent_widget=self.table
+                )
+            except Exception:
+                # Fallback to standard deletion if optimization fails
+                for row, _ in self.rows_data:
+                    self.table.table.takeTopLevelItem(row)
+        else:
+            # Standard deletion for small operations
+            for row, _ in self.rows_data:
+                self.table.table.takeTopLevelItem(row)
+        
         self.table.block_signals(False)
         self.table.save_data()
 
     def undo(self):
         self.table.block_signals(True)
+        
         # Re-insert in reverse order of removal (ascending index)
-        for row, data in reversed(self.rows_data):
-            self.table._insert_tag_item(row, data)
+        if self.is_batch:
+            # Batch re-insertion with deferred updates
+            for row, data in reversed(self.rows_data):
+                self.table._insert_tag_item(row, data)
+        else:
+            # Standard re-insertion for small operations
+            for row, data in reversed(self.rows_data):
+                self.table._insert_tag_item(row, data)
+        
         self.table.block_signals(False)
         self.table.save_data()
 
@@ -794,12 +825,22 @@ class TagTable(QWidget):
 
         if not rows_to_remove: return
 
-        rows_data = []
-        for r in rows_to_remove:
-            rows_data.append((r, self._get_row_data(r)))
+        # Optimize for large deletions using batch processing
+        if OptimizedTagDeletion and len(rows_to_remove) > 10:
+            rows_data = []
+            for r in sorted(rows_to_remove):
+                rows_data.append((r, self._get_row_data(r)))
+            
+            command = TagRemoveCommand(self, rows_data)
+            self.undo_stack.push(command)
+        else:
+            # Standard deletion for small operations
+            rows_data = []
+            for r in rows_to_remove:
+                rows_data.append((r, self._get_row_data(r)))
 
-        command = TagRemoveCommand(self, rows_data)
-        self.undo_stack.push(command)
+            command = TagRemoveCommand(self, rows_data)
+            self.undo_stack.push(command)
         
     def delete(self):
         self.remove_tag()

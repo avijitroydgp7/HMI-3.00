@@ -13,6 +13,7 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QEvent
 from .comment_utils import FormulaParser, FUNCTION_HINTS, adjust_formula_references, col_str_to_int, col_int_to_str
+from .optimized_operations import OptimizedBatchDelete, OptimizedColumnAddition
 
 # --- Insert Quantity Dialog ---
 
@@ -776,7 +777,11 @@ class Spreadsheet(QTableWidget):
             QMessageBox.warning(self, "Limit", "Max 30 columns allowed.")
             return
         
-        self.undo_stack.push(ResizeCommand(self, 'add_col', idx, count))
+        # Use optimized addition for tables with many rows
+        if self.rowCount() > 10000 and count > 1:
+            OptimizedColumnAddition.add_columns_optimized(self, idx, count, show_progress=True)
+        else:
+            self.undo_stack.push(ResizeCommand(self, 'add_col', idx, count))
 
     def add_row(self):
         # Insert at current selection if available, else insert BEFORE current index
@@ -814,7 +819,7 @@ class Spreadsheet(QTableWidget):
              # If the target column is part of a multi-column selection, delete all selected
              # Otherwise just delete the target
              selection_model = self.selectionModel()
-             if selection_model.isColumnSelected(target_index, self.rootIndex()):
+             if selection_model and selection_model.isColumnSelected(target_index, self.rootIndex()):
                  for r in self.selectedRanges():
                      for c in range(r.leftColumn(), r.rightColumn() + 1):
                          cols_to_remove.add(c)
@@ -834,15 +839,29 @@ class Spreadsheet(QTableWidget):
         sorted_cols = sorted(list(cols_to_remove), reverse=True)
         if not sorted_cols: return
 
-        self.set_updates_deferred(True)
-        self.undo_stack.beginMacro("Delete Columns")
-        try:
-            for c in sorted_cols:
-                if self.columnCount() > 0:
-                    self.undo_stack.push(ResizeCommand(self, 'remove_col', c))
-        finally:
-            self.undo_stack.endMacro()
-            self.set_updates_deferred(False)
+        # Use optimized deletion for large operations
+        if len(sorted_cols) > 5 and self.rowCount() > 100:
+            OptimizedColumnAddition.add_columns_optimized(self, 0, 0)  # Dummy to show UI pattern
+            # Actually use delete method
+            self.set_updates_deferred(True)
+            self.undo_stack.beginMacro("Delete Columns")
+            try:
+                for c in sorted_cols:
+                    if self.columnCount() > 0:
+                        self.undo_stack.push(ResizeCommand(self, 'remove_col', c))
+            finally:
+                self.undo_stack.endMacro()
+                self.set_updates_deferred(False)
+        else:
+            self.set_updates_deferred(True)
+            self.undo_stack.beginMacro("Delete Columns")
+            try:
+                for c in sorted_cols:
+                    if self.columnCount() > 0:
+                        self.undo_stack.push(ResizeCommand(self, 'remove_col', c))
+            finally:
+                self.undo_stack.endMacro()
+                self.set_updates_deferred(False)
 
     def remove_row(self, index=None):
         # FIX: Ensure index is strictly an int and not bool (from signal)
@@ -854,7 +873,7 @@ class Spreadsheet(QTableWidget):
         
         if target_index is not None:
              selection_model = self.selectionModel()
-             if selection_model.isRowSelected(target_index, self.rootIndex()):
+             if selection_model and selection_model.isRowSelected(target_index, self.rootIndex()):
                  for r in self.selectedRanges():
                      for row in range(r.topRow(), r.bottomRow() + 1):
                          rows_to_remove.add(row)
@@ -870,15 +889,20 @@ class Spreadsheet(QTableWidget):
         sorted_rows = sorted(list(rows_to_remove), reverse=True)
         if not sorted_rows: return
 
-        self.set_updates_deferred(True)
-        self.undo_stack.beginMacro("Delete Rows")
-        try:
-            for r in sorted_rows:
-                if self.rowCount() > 0:
-                    self.undo_stack.push(ResizeCommand(self, 'remove_row', r))
-        finally:
-            self.undo_stack.endMacro()
-            self.set_updates_deferred(False)
+        # Use optimized batch deletion for large operations
+        if len(sorted_rows) > 100 or (len(sorted_rows) > 10 and self.rowCount() > 10000):
+            OptimizedBatchDelete.delete_multiple_rows_optimized(self, sorted_rows, show_progress=True)
+        else:
+            # Standard deletion for small batches
+            self.set_updates_deferred(True)
+            self.undo_stack.beginMacro("Delete Rows")
+            try:
+                for r in sorted_rows:
+                    if self.rowCount() > 0:
+                        self.undo_stack.push(ResizeCommand(self, 'remove_row', r))
+            finally:
+                self.undo_stack.endMacro()
+                self.set_updates_deferred(False)
 
     def insert_column(self, index):
         # Context menu insert - show dialog to ask how many columns
