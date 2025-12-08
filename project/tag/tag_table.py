@@ -1,10 +1,12 @@
 import re
 import copy
+import json
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QHeaderView,
     QToolBar, QComboBox, QMessageBox, QStyledItemDelegate, QCheckBox,
     QAbstractItemView, QLineEdit, QApplication, QSizePolicy,
-    QDateEdit, QTimeEdit, QDateTimeEdit, QTreeWidgetItemIterator, QProgressDialog
+    QDateEdit, QTimeEdit, QDateTimeEdit, QTreeWidgetItemIterator, QProgressDialog,
+    QMenu
 )
 from PyQt6.QtCore import Qt, QMimeData, QDate, QTime, QDateTime
 from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence, QColor, QBrush
@@ -122,6 +124,50 @@ class TagRemoveCommand(QUndoCommand):
         self.table.block_signals(False)
         self.table.save_data()
 
+class TagCutCommand(QUndoCommand):
+    """Command for cutting (removing) tags."""
+    def __init__(self, table, rows_data, text="Cut Tags"):
+        super().__init__(text)
+        self.table = table
+        self.rows_data = sorted(rows_data, key=lambda x: x[0], reverse=True)
+
+    def redo(self):
+        self.table.block_signals(True)
+        for row, _ in self.rows_data:
+            self.table.table.takeTopLevelItem(row)
+        self.table.block_signals(False)
+        self.table.save_data()
+
+    def undo(self):
+        self.table.block_signals(True)
+        for row, data in reversed(self.rows_data):
+            self.table._insert_tag_item(row, data)
+        self.table.block_signals(False)
+        self.table.save_data()
+
+class TagPasteCommand(QUndoCommand):
+    """Command for pasting tags."""
+    def __init__(self, table, row_index, tags_data, text="Paste Tags"):
+        super().__init__(text)
+        self.table = table
+        self.row_index = row_index
+        self.tags_data = tags_data
+
+    def redo(self):
+        self.table.block_signals(True)
+        for idx, tag_data in enumerate(self.tags_data):
+            self.table._insert_tag_item(self.row_index + idx, tag_data)
+        self.table.block_signals(False)
+        self.table.save_data()
+
+    def undo(self):
+        self.table.block_signals(True)
+        for i in range(len(self.tags_data)):
+            self.table.table.takeTopLevelItem(self.row_index)
+        self.table.block_signals(False)
+        self.table.save_data()
+
+
 # --- Delegates ---
 
 class ArrayElementsDelegate(QStyledItemDelegate):
@@ -200,18 +246,24 @@ class DataTypeDelegate(QStyledItemDelegate):
             root = self.tag_table.table.invisibleRootItem()
             row = root.indexOfChild(item)
 
+            # Determine the default initial value based on the new datatype
+            default_init_val = TagTable._get_default_value_for_type(new_val)
+
             self.tag_table.undo_stack.beginMacro("Change Data Type")
             cmd_type = TagChangeCommand(self.tag_table, row, index.column(), old_val, new_val, text="Change Data Type")
             self.tag_table.undo_stack.push(cmd_type)
 
-            # Reset Initial Value to "0" for parent
+            # Reset Initial Value to appropriate default based on datatype
             init_val_col = 2
             old_init_val = item.text(init_val_col)
-            # Reset always on type change
-            cmd_reset = TagChangeCommand(self.tag_table, row, init_val_col, old_init_val, "0", text="Reset Initial Value")
+            cmd_reset = TagChangeCommand(self.tag_table, row, init_val_col, old_init_val, default_init_val, text="Reset Initial Value")
             self.tag_table.undo_stack.push(cmd_reset)
 
             self.tag_table.undo_stack.endMacro()
+    
+    def _get_default_value_for_type(self, data_type):
+        """Returns the default initial value based on the datatype."""
+        return TagTable._get_default_value_for_type(data_type)
 
 class TagNameDelegate(QStyledItemDelegate):
     def __init__(self, tag_table, parent=None):
@@ -270,7 +322,7 @@ class InitialValueDelegate(QStyledItemDelegate):
 
         if data_type == "Date":
             editor = QDateEdit(parent)
-            editor.setDisplayFormat("yyyy-MM-dd")
+            editor.setDisplayFormat("dd-MM-yyyy")
             editor.setCalendarPopup(True)
             return editor
         elif data_type == "Time":
@@ -279,7 +331,7 @@ class InitialValueDelegate(QStyledItemDelegate):
             return editor
         elif data_type == "Date Time":
             editor = QDateTimeEdit(parent)
-            editor.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
+            editor.setDisplayFormat("dd-MM-yyyy HH:mm:ss")
             editor.setCalendarPopup(True)
             return editor
 
@@ -288,13 +340,13 @@ class InitialValueDelegate(QStyledItemDelegate):
     def setEditorData(self, editor, index):
         value_str = str(index.model().data(index, Qt.ItemDataRole.EditRole))
         if isinstance(editor, QDateEdit):
-            qdate = QDate.fromString(value_str, "yyyy-MM-dd")
+            qdate = QDate.fromString(value_str, "dd-MM-yyyy")
             editor.setDate(qdate if qdate.isValid() else QDate.currentDate())
         elif isinstance(editor, QTimeEdit):
             qtime = QTime.fromString(value_str, "HH:mm:ss")
             editor.setTime(qtime if qtime.isValid() else QTime.currentTime())
         elif isinstance(editor, QDateTimeEdit):
-            qdt = QDateTime.fromString(value_str, "yyyy-MM-dd HH:mm:ss")
+            qdt = QDateTime.fromString(value_str, "dd-MM-yyyy HH:mm:ss")
             editor.setDateTime(qdt if qdt.isValid() else QDateTime.currentDateTime())
         elif isinstance(editor, QLineEdit):
             editor.setText(value_str)
@@ -303,9 +355,9 @@ class InitialValueDelegate(QStyledItemDelegate):
         old_val_str = str(index.model().data(index, Qt.ItemDataRole.EditRole))
         new_val_str = ""
 
-        if isinstance(editor, QDateEdit): new_val_str = editor.date().toString("yyyy-MM-dd")
+        if isinstance(editor, QDateEdit): new_val_str = editor.date().toString("dd-MM-yyyy")
         elif isinstance(editor, QTimeEdit): new_val_str = editor.time().toString("HH:mm:ss")
-        elif isinstance(editor, QDateTimeEdit): new_val_str = editor.dateTime().toString("yyyy-MM-dd HH:mm:ss")
+        elif isinstance(editor, QDateTimeEdit): new_val_str = editor.dateTime().toString("dd-MM-yyyy HH:mm:ss")
         elif isinstance(editor, QLineEdit):
             new_val_str = editor.text().strip()
             
@@ -388,6 +440,7 @@ class TagTreeWidget(CustomTreeWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setHeaderHidden(False)
+        self.tag_table = None  # Will be set by TagTable
         
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
@@ -397,6 +450,13 @@ class TagTreeWidget(CustomTreeWidget):
             # Only if it's a top-level item (parent is invalid)
             if index.column() == 1 and not index.parent().isValid():
                 self.edit(index)
+
+    def contextMenuEvent(self, event):
+        """Show context menu on right-click."""
+        if self.tag_table:
+            self.tag_table.show_context_menu(event.globalPos())
+        else:
+            super().contextMenuEvent(event)
 
 # --- Main Widget ---
 
@@ -413,6 +473,21 @@ class TagTable(QWidget):
         self.setup_ui()
         self.load_data()
 
+    @staticmethod
+    def _get_default_value_for_type(data_type):
+        """Returns the default initial value based on the datatype."""
+        if data_type == "Date":
+            return QDate.currentDate().toString("dd-MM-yyyy")
+        elif data_type == "Time":
+            return QTime.currentTime().toString("HH:mm:ss")
+        elif data_type == "Date Time":
+            return QDateTime.currentDateTime().toString("dd-MM-yyyy HH:mm:ss")
+        elif data_type == "Timer":
+            return "00:00:00.000"
+        else:
+            # For Bit, Int, Real, String, Counter, etc.
+            return "0"
+
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -424,6 +499,7 @@ class TagTable(QWidget):
         
         self.add_action = QAction(IconService.get_icon('common-add-row'), "Add Tag", self)
         self.add_action.triggered.connect(self.add_tag)
+        self.add_action.setShortcut(QKeySequence("Ctrl+N"))
         self.toolbar.addAction(self.add_action)
 
         self.remove_action = QAction(IconService.get_icon('common-remove-row'), "Remove Tag", self)
@@ -438,6 +514,7 @@ class TagTable(QWidget):
 
         # --- Tree Widget ---
         self.table = TagTreeWidget()
+        self.table.tag_table = self  # Set reference for context menu
         self.table.setColumnCount(6)
         self.table.setHeaderLabels([
             "Tag Name", "Data Type", "Initial Value", 
@@ -489,6 +566,12 @@ class TagTable(QWidget):
         
         self.table.itemChanged.connect(self.on_item_changed)
         layout.addWidget(self.table)
+        
+        # Initialize clipboard for copy/paste
+        self.clipboard_data = None
+        
+        # Setup keyboard shortcuts
+        self.setup_keyboard_shortcuts()
 
     def block_signals(self, block):
         self.table.blockSignals(block)
@@ -584,9 +667,9 @@ class TagTable(QWidget):
             child.setText(1, parent_item.text(1)) 
             
             # Column 2: Initial Value (Editable)
-            # Default to "0" if no specific child data exists and parent is array string
-            parent_val = parent_item.text(2)
-            default_val = "0"
+            # Use datatype-specific default if no child data exists
+            parent_type = parent_item.text(1)
+            default_val = TagTable._get_default_value_for_type(parent_type)
             
             # Use existing value from child data if present
             val_to_set = c_data.get('initial_value', default_val)
@@ -744,16 +827,20 @@ class TagTable(QWidget):
             # If Data Type changed (col 1), propagate to children and reset values
             if col == 1:
                 self.table.blockSignals(True)
+                
+                # Get the appropriate default value based on new datatype
+                default_val = TagTable._get_default_value_for_type(str(value))
+                
                 def update_type_recursive(parent):
                     for i in range(parent.childCount()):
                         child = parent.child(i)
                         child.setText(1, str(value))
-                        # Also reset initial value to 0 for children
-                        child.setText(2, "0")
+                        # Reset initial value to datatype-specific default
+                        child.setText(2, default_val)
                         update_type_recursive(child)
                 update_type_recursive(item)
                 
-                # Update parent array display string since all children are now "0"
+                # Update parent array display string since all children are now set to default
                 self._update_parent_array_display(item)
                 self.table.blockSignals(False)
 
@@ -851,14 +938,129 @@ class TagTable(QWidget):
     def redo(self):
         self.undo_stack.redo()
 
+    def setup_keyboard_shortcuts(self):
+        """Setup keyboard shortcuts for various operations.
+        Note: Cut, Copy, Paste, Undo, Redo are already handled by Edit Menu.
+        Only register Insert shortcut here.
+        """
+        # Insert: Ctrl+I
+        insert_action = QAction(self)
+        insert_action.setShortcut(QKeySequence("Ctrl+I"))
+        insert_action.triggered.connect(self.add_tag)
+        self.addAction(insert_action)
+
+    def show_context_menu(self, position):
+        """Display context menu with cut, copy, paste, delete, insert options."""
+        menu = QMenu(self)
+        
+        # Cut
+        cut_action = menu.addAction("Cut")
+        cut_action.triggered.connect(self.cut)
+        
+        # Copy
+        copy_action = menu.addAction("Copy")
+        copy_action.triggered.connect(self.copy)
+        
+        # Paste
+        paste_action = menu.addAction("Paste")
+        paste_action.triggered.connect(self.paste)
+        paste_action.setEnabled(self.clipboard_data is not None)
+        
+        menu.addSeparator()
+        
+        # Delete
+        delete_action = menu.addAction("Delete")
+        delete_action.triggered.connect(self.delete)
+        
+        # Insert
+        insert_action = menu.addAction("Insert")
+        insert_action.triggered.connect(self.add_tag)
+        
+        menu.exec(position)
+
     def copy(self):
-        pass
+        """Copy selected tags to clipboard."""
+        selected_items = self.table.selectedItems()
+        rows_to_copy = set()
+        
+        root = self.table.invisibleRootItem()
+        for item in selected_items:
+            top_item = item
+            while top_item.parent():
+                top_item = top_item.parent()
+            
+            row = root.indexOfChild(top_item)
+            if row != -1:
+                rows_to_copy.add(row)
+        
+        if not rows_to_copy and self.table.currentItem():
+            item = self.table.currentItem()
+            top_item = item
+            while top_item.parent():
+                top_item = top_item.parent()
+            row = root.indexOfChild(top_item)
+            if row != -1:
+                rows_to_copy.add(row)
+        
+        if rows_to_copy:
+            self.clipboard_data = []
+            for r in sorted(rows_to_copy):
+                self.clipboard_data.append(self._get_row_data(r))
+            QMessageBox.information(self, "Copy", f"Copied {len(rows_to_copy)} tag(s) to clipboard.")
+        else:
+            QMessageBox.warning(self, "Copy", "No tags selected to copy.")
 
     def cut(self):
-        pass
+        """Cut selected tags (copy and delete)."""
+        self.copy()
+        if self.clipboard_data:
+            self.remove_tag()
 
     def paste(self):
-        pass
+        """Paste tags from clipboard."""
+        if not self.clipboard_data:
+            QMessageBox.warning(self, "Paste", "Clipboard is empty. No tags to paste.")
+            return
+        
+        # Ensure unique tag names
+        existing_names = set()
+        for i in range(self.table.topLevelItemCount()):
+            item = self.table.topLevelItem(i)
+            if item:
+                existing_names.add(item.text(0))
+        
+        # Paste at the end or at current row position
+        insert_row = self.table.topLevelItemCount()
+        current_item = self.table.currentItem()
+        if current_item:
+            root = self.table.invisibleRootItem()
+            top_item = current_item
+            while top_item.parent():
+                top_item = top_item.parent()
+            insert_row = root.indexOfChild(top_item) + 1
+        
+        # Make copies with unique names
+        tags_to_paste = []
+        for tag_data in self.clipboard_data:
+            new_tag = copy.deepcopy(tag_data)
+            base_name = new_tag['name']
+            count = 1
+            new_name = f"{base_name}_copy"
+            
+            while new_name in existing_names:
+                count += 1
+                new_name = f"{base_name}_copy_{count}"
+            
+            new_tag['name'] = new_name
+            existing_names.add(new_name)
+            tags_to_paste.append(new_tag)
+        
+        # Create paste command
+        command = TagPasteCommand(self, insert_row, tags_to_paste)
+        self.undo_stack.push(command)
+        
+        QMessageBox.information(self, "Paste", f"Pasted {len(tags_to_paste)} tag(s).")
+
 
     def save_data(self):
         tags = []
