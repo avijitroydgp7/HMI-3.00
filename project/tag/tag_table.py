@@ -442,6 +442,63 @@ class TagTreeWidget(CustomTreeWidget):
         self.setHeaderHidden(False)
         self.tag_table = None  # Will be set by TagTable
         
+        # Apply tag-specific stylesheet that includes header styling
+        self._apply_tag_stylesheet()
+    
+    def _apply_tag_stylesheet(self):
+        """Apply stylesheet specific to tag table with branch icons and header styling."""
+        expand_path = self._expand_icon_path
+        collapse_path = self._collapse_icon_path
+        
+        stylesheet = f"""
+            QTreeWidget {{
+                background-color: #191919;
+                alternate-background-color: #252525;
+                color: white;
+                gridline-color: #353535;
+            }}
+            QTreeWidget::item {{
+                padding: 4px 2px;
+                border-left: 2px solid #34a853;
+                color: white;
+            }}
+            QTreeWidget::item:hover {{
+                background-color: rgba(52, 168, 83, 0.1);
+                border-left: 2px solid #34a853;
+            }}
+            QTreeWidget::item:selected {{
+                background-color: #2a82da;
+                border-left: 2px solid #34a853;
+                color: white;
+            }}
+            QTreeWidget::branch:has-children:closed {{
+                image: url("{expand_path}");
+                background-color: transparent;
+                width: 20px;
+                height: 20px;
+            }}
+            QTreeWidget::branch:has-children:open {{
+                image: url("{collapse_path}");
+                background-color: transparent;
+                width: 20px;
+                height: 20px;
+            }}
+            QTreeWidget::branch:has-siblings {{
+                border-image: none;
+            }}
+            QTreeWidget::branch {{
+                background-color: transparent;
+                margin-right: 4px;
+            }}
+            QHeaderView::section {{
+                background-color: #353535;
+                color: white;
+                padding: 3px;
+                border: 1px solid #555555;
+            }}
+        """
+        self.setStyleSheet(stylesheet)
+        
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
         index = self.indexAt(event.position().toPoint())
@@ -543,26 +600,6 @@ class TagTable(QWidget):
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.table.setAlternatingRowColors(True)
         self.table.setRootIsDecorated(True)
-        
-        # Apply dark fusion theme stylesheet
-        self.table.setStyleSheet("""
-            QTreeWidget {
-                background-color: #191919;
-                alternate-background-color: #252525;
-                color: white;
-                gridline-color: #353535;
-            }
-            QTreeWidget::item:selected {
-                background-color: #2a82da;
-                color: white;
-            }
-            QHeaderView::section {
-                background-color: #353535;
-                color: white;
-                padding: 3px;
-                border: 1px solid #555555;
-            }
-        """)
         
         self.table.itemChanged.connect(self.on_item_changed)
         layout.addWidget(self.table)

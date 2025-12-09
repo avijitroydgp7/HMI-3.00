@@ -247,6 +247,8 @@ class IconService:
         "object-slider": "object-slider.svg",
         "object-document": "object-document.svg",
         "object-web-browser": "object-web-browser.svg",
+        "icon-park-solid-add": "icon-park-solid-add.svg",
+        "icon-park-solid-subtract.svg": "icon-park-solid-subtract.svg",
         
 
     }

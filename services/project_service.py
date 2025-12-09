@@ -21,7 +21,7 @@ class ProjectService:
                 "width": 1920,
                 "height": 1080,
                 "type": "color",
-                "color": "#191919"
+                "color": "#FFFFFF"
             }
         }
 

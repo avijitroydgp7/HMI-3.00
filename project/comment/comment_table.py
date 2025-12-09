@@ -265,7 +265,7 @@ class SpreadsheetDelegate(QStyledItemDelegate):
 
 class Spreadsheet(QTableWidget):
     def __init__(self, parent=None, comment_service=None, comment_number=None):
-        super().__init__(20, 10, parent)
+        super().__init__(1000, 2, parent)
         self.comment_service = comment_service
         self.comment_number = comment_number
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
