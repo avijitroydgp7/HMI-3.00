@@ -79,25 +79,37 @@ def adjust_formula_references(formula, row_offset, col_offset, min_row=0, min_co
         col_part = match.group(1)
         row_part = match.group(2)
         
-        if '$' in col_part or '$' in row_part:
-            return match.group(0)
+        # Check if column is absolute (starts with $)
+        is_col_absolute = col_part.startswith('$')
+        # Check if row is absolute (contains $)
+        is_row_absolute = row_part.startswith('$')
+        
+        # Extract column letter (without $) and row number (without $)
+        col_letter = col_part.lstrip('$')
+        row_number = row_part.lstrip('$')
+        
+        col_idx = col_str_to_int(col_letter)
+        row_idx = int(row_number) - 1
 
-        col_idx = col_str_to_int(col_part)
-        row_idx = int(row_part) - 1
-
+        # Check for deleted row/column references
         if (delete_row != -1 and row_idx == delete_row) or \
            (delete_col != -1 and col_idx == delete_col):
             return "#REF!"
 
-        if row_idx >= min_row:
+        # Only shift row if it's not absolute and >= threshold
+        if not is_row_absolute and row_idx >= min_row:
             row_idx += row_offset
-        if col_idx >= min_col:
+        # Only shift column if it's not absolute and >= threshold
+        if not is_col_absolute and col_idx >= min_col:
             col_idx += col_offset
             
         if row_idx < 0 or col_idx < 0:
             return "#REF!"
-            
-        return f"{col_int_to_str(col_idx)}{row_idx + 1}"
+        
+        # Reconstruct reference with proper $ markers
+        col_str = ('$' if is_col_absolute else '') + col_int_to_str(col_idx)
+        row_str = ('$' if is_row_absolute else '') + str(row_idx + 1)
+        return f"{col_str}{row_str}"
 
     parts = re.split(r'("[^"]*")', formula)
     for i, part in enumerate(parts):

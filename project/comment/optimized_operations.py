@@ -83,29 +83,7 @@ class OptimizedBatchDelete:
                 spreadsheet
             )
             progress.setWindowTitle("Deleting Rows")
-            progress.setStyleSheet("""
-                QProgressDialog {
-                    background-color: #353535;
-                    color: white;
-                    border: 1px solid #555555;
-                }
-                QProgressBar {
-                    border: 1px solid #555555;
-                    border-radius: 3px;
-                    background-color: #191919;
-                }
-                QProgressBar::chunk {
-                    background-color: #2a82da;
-                }
-                QPushButton {
-                    background-color: #555555;
-                    color: white;
-                    border: none;
-                    border-radius: 3px;
-                    padding: 3px;
-                    min-width: 40px;
-                }
-            """)
+            # REMOVED: Stylesheet now handled by global stylesheet.qss
         
         spreadsheet.set_updates_deferred(True)
         try:
@@ -228,29 +206,7 @@ class OptimizedBatchDelete:
                 spreadsheet
             )
             progress.setWindowTitle("Clearing Table")
-            progress.setStyleSheet("""
-                QProgressDialog {
-                    background-color: #353535;
-                    color: white;
-                    border: 1px solid #555555;
-                }
-                QProgressBar {
-                    border: 1px solid #555555;
-                    border-radius: 3px;
-                    background-color: #191919;
-                }
-                QProgressBar::chunk {
-                    background-color: #2a82da;
-                }
-                QPushButton {
-                    background-color: #555555;
-                    color: white;
-                    border: none;
-                    border-radius: 3px;
-                    padding: 3px;
-                    min-width: 40px;
-                }
-            """)
+            # REMOVED: Stylesheet now handled by global stylesheet.qss
         
         spreadsheet.set_updates_deferred(True)
         try:

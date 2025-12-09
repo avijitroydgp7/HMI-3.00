@@ -2,6 +2,9 @@
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsWidget, QVBoxLayout, QLabel
 from PyQt6.QtGui import QPainter, QColor, QBrush, QLinearGradient, QPixmap, QPen, QFont
 from PyQt6.QtCore import Qt, QRectF, pyqtSignal, QPointF
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CanvasWidget(QGraphicsWidget):
@@ -201,8 +204,10 @@ class CanvasBaseScreen(QGraphicsView):
                 self.scale(self.zoom_factor, self.zoom_factor)
                 self.zoom_changed.emit(self.zoom_factor)
 
-        except (ValueError, ZeroDivisionError):
-            pass
+        except ValueError as e:
+            logger.error(f"Value error in zoom calculation: {e}")
+        except ZeroDivisionError as e:
+            logger.error(f"Division by zero in zoom calculation: {e}")
 
     def fit_screen(self):
         """Fit the entire screen content within the view."""

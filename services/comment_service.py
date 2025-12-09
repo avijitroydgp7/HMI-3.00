@@ -1,4 +1,7 @@
 # services/comment_service.py
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CommentService:
     """
@@ -37,7 +40,7 @@ class CommentService:
         if comment_number_str in self._comments_data:
             self._comments_data[comment_number_str]['table_data'] = table_data
         else:
-            print(f"Warning: Attempted to update data for non-existent comment {comment_number}")
+            logger.warning(f"Attempted to update data for non-existent comment {comment_number}")
 
     def add_comment(self, comment_metadata):
         """Adds a new comment with its metadata and an empty table."""

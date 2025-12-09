@@ -4,6 +4,10 @@ Performance configuration and utilities for the comment table system.
 Centralized settings for optimization behavior.
 """
 
+# Global configuration constants
+MAX_COLUMNS = 30
+MAX_ROWS = 1000000
+
 class PerformanceConfig:
     """
     Configuration for performance optimizations.

@@ -50,10 +50,10 @@ class CustomTreeWidget(QTreeWidget):
         stylesheet = f"""
             QTreeWidget {{
                 border: none;
-                background-color: #191919;
+                background-color: #252525;
                 alternate-background-color: #252525;
                 color: white;
-                gridline-color: #353535;
+                gridline-color: #252525;
                 outline: none;
                 margin-left: 0px;
             }}
@@ -90,6 +90,9 @@ class CustomTreeWidget(QTreeWidget):
             QTreeWidget::branch {{
                 background-color: transparent;
                 margin-right: 4px;
+                margin-left: 4px;
+                margin-top: 4px;
+                margin-bottom: 4px;
             }}
             QHeaderView::section {{
                 background-color: #353535;

@@ -1,6 +1,9 @@
 # main_window\services\icon_service.py
 from PyQt6.QtGui import QIcon
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class IconService:
     """
@@ -248,7 +251,7 @@ class IconService:
         "object-document": "object-document.svg",
         "object-web-browser": "object-web-browser.svg",
         "icon-park-solid-add": "icon-park-solid-add.svg",
-        "icon-park-solid-subtract.svg": "icon-park-solid-subtract.svg",
+        "icon-park-solid-subtract": "icon-park-solid-subtract.svg",
         
 
     }
@@ -266,12 +269,12 @@ class IconService:
         """
         filename = IconService.ICONS.get(name)
         if not filename:
-            print(f"Warning: Icon '{name}' not found in the icon dictionary.")
+            logger.warning(f"Icon '{name}' not found in the icon dictionary.")
             return QIcon()
             
         path = os.path.join(IconService.ICON_DIR, filename)
         if not os.path.exists(path):
-            print(f"Warning: Icon file '{filename}' for '{name}' not found at '{path}'")
+            logger.warning(f"Icon file '{filename}' for '{name}' not found at '{path}'")
             return QIcon()
             
         return QIcon(path)

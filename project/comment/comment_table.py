@@ -1,6 +1,7 @@
 # project/comment/comment_table.py
 import re
 import collections
+import logging
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem,
     QLineEdit, QMessageBox, QAbstractItemView, QHeaderView, QApplication, QLabel,
@@ -14,6 +15,9 @@ from PyQt6.QtGui import (
 from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QEvent
 from .comment_utils import FormulaParser, FUNCTION_HINTS, adjust_formula_references, col_str_to_int, col_int_to_str
 from .optimized_operations import OptimizedBatchDelete, OptimizedColumnAddition
+from .performance_config import MAX_COLUMNS, MAX_ROWS
+
+logger = logging.getLogger(__name__)
 
 # --- Insert Quantity Dialog ---
 
@@ -324,11 +328,8 @@ class Spreadsheet(QTableWidget):
         self.itemSelectionChanged.connect(self.on_selection_changed)
         parent.formula_bar.textChanged.connect(self.on_formula_bar_text_changed)
 
-        # UPDATED STYLESHEET: Dark fusion theme colors matching main.py palette
-        self.setStyleSheet("""
-            QTableWidget { gridline-color: #353535; outline: none; selection-background-color: transparent; }
-            QTableWidget::item:selected { background-color: #2a82da; }
-        """)
+        # REMOVED: Stylesheet now handled by global stylesheet.qss
+        # The global stylesheet provides consistent theming across the application
         
         self.load_data_from_service()
         
@@ -458,7 +459,9 @@ class Spreadsheet(QTableWidget):
 
         # 3. Propagate to dependents
         if propagate and (row, col) in self.dependents:
-            for dep_row, dep_col in self.dependents[(row, col)]:
+            # Create a copy of the set to avoid "Set changed size during iteration" error
+            # when recursive calls modify the dependents set
+            for dep_row, dep_col in list(self.dependents[(row, col)]):
                 self.evaluate_cell(dep_row, dep_col, propagate=True)
 
     def evaluate_all_cells(self):
@@ -773,8 +776,8 @@ class Spreadsheet(QTableWidget):
              if idx < 0: idx = self.columnCount() # If no selection, append? Standard excel inserts before active cell.
         
         if count == 0: count = 1
-        if self.columnCount() + count > 30:
-            QMessageBox.warning(self, "Limit", "Max 30 columns allowed.")
+        if self.columnCount() + count > MAX_COLUMNS:
+            QMessageBox.warning(self, "Limit", f"Max {MAX_COLUMNS} columns allowed.")
             return
         
         # Use optimized addition for tables with many rows
@@ -799,8 +802,8 @@ class Spreadsheet(QTableWidget):
              if idx < 0: idx = self.rowCount()
 
         if count == 0: count = 1
-        if self.rowCount() + count > 1000000:
-            QMessageBox.warning(self, "Limit", "Max 1,000,000 rows allowed.")
+        if self.rowCount() + count > MAX_ROWS:
+            QMessageBox.warning(self, "Limit", f"Max {MAX_ROWS:,} rows allowed.")
             return
             
         self.undo_stack.push(ResizeCommand(self, 'add_row', idx, count))
@@ -914,8 +917,8 @@ class Spreadsheet(QTableWidget):
         if count <= 0:
             return
         
-        if self.columnCount() + count > 30:
-            QMessageBox.warning(self, "Limit", "Max 30 columns allowed.")
+        if self.columnCount() + count > MAX_COLUMNS:
+            QMessageBox.warning(self, "Limit", f"Max {MAX_COLUMNS} columns allowed.")
             return
         
         self.undo_stack.push(ResizeCommand(self, 'add_col', index, count))
@@ -930,8 +933,8 @@ class Spreadsheet(QTableWidget):
         if count <= 0:
             return
             
-        if self.rowCount() + count > 1000000:
-            QMessageBox.warning(self, "Limit", "Max 1,000,000 rows allowed.")
+        if self.rowCount() + count > MAX_ROWS:
+            QMessageBox.warning(self, "Limit", f"Max {MAX_ROWS:,} rows allowed.")
             return
         
         self.undo_stack.push(ResizeCommand(self, 'add_row', index, count))
@@ -1186,7 +1189,8 @@ class Spreadsheet(QTableWidget):
                             new_data['value'] = f"{prefix}{new_value}"
                         else:
                             new_data['value'] = source_text
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Error processing cell copy value: {e}")
                         new_data['value'] = source_text
                 target_item = self.item(target_row, col)
                 old_data = target_item.get_data() if target_item else {'value': ''}
