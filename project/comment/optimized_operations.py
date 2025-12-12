@@ -6,16 +6,16 @@ Prevents freeze when handling 10,000+ rows
 
 import threading
 from typing import List, Callable
-from PyQt6.QtCore import QTimer, QThread, pyqtSignal
-from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QApplication
+from PySide6.QtCore import QTimer, QThread, Signal
+from PySide6.QtWidgets import QMessageBox, QProgressDialog, QApplication
 
 
 class AsyncOperationThread(QThread):
     """Thread for async operations to prevent UI freeze."""
     
-    progress = pyqtSignal(int, int)  # current, total
-    finished = pyqtSignal()
-    error = pyqtSignal(str)
+    progress = Signal(int, int)  # current, total
+    finished = Signal()
+    error = Signal(str)
     
     def __init__(self, operation: Callable, batch_size: int = 100):
         super().__init__()

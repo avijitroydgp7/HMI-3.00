@@ -1,17 +1,17 @@
 # main_window/widgets/pattern_widget.py
 import sys
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QGroupBox, QPushButton, QLabel, QFrame
 )
-from PyQt6.QtGui import QColor, QPainter, QBrush, QPen
-from PyQt6.QtCore import pyqtSignal, Qt
+from PySide6.QtGui import QColor, QPainter, QBrush, QPen
+from PySide6.QtCore import Signal, Qt
 
 from .color_selector import ColorSelector
 
 class ColorPickerButton(QPushButton):
     """A button that displays a color and opens a color picker when clicked."""
-    color_changed = pyqtSignal(QColor)
+    color_changed = Signal(QColor)
 
     def __init__(self, color='white', parent=None):
         super().__init__(parent)
@@ -43,7 +43,7 @@ class ColorPickerButton(QPushButton):
 
 class PatternPreviewWidget(QWidget):
     """A widget to display a single fill pattern."""
-    clicked = pyqtSignal()
+    clicked = Signal()
 
     def __init__(self, pattern, fg_color, bg_color, parent=None):
         super().__init__(parent)

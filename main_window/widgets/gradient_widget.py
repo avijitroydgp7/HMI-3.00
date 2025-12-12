@@ -1,17 +1,17 @@
 # main_window/widgets/gradient_widget.py
 import sys
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QGroupBox, QRadioButton, QPushButton, QLabel, QButtonGroup
 )
-from PyQt6.QtGui import QColor, QPainter, QLinearGradient, QBrush, QPen
-from PyQt6.QtCore import pyqtSignal, QPointF, Qt
+from PySide6.QtGui import QColor, QPainter, QLinearGradient, QBrush, QPen
+from PySide6.QtCore import Signal, QPointF, Qt
 
 from .color_selector import ColorSelector
 
 class ColorPickerButton(QPushButton):
     """A button that displays a color and opens a color picker when clicked."""
-    color_changed = pyqtSignal(QColor)
+    color_changed = Signal(QColor)
 
     def __init__(self, color='white', parent=None):
         super().__init__(parent)
@@ -42,7 +42,7 @@ class ColorPickerButton(QPushButton):
 
 class GradientPreviewWidget(QWidget):
     """A widget to display a single gradient preview."""
-    clicked = pyqtSignal()
+    clicked = Signal()
 
     def __init__(self, color1, color2, stops, parent=None):
         super().__init__(parent)

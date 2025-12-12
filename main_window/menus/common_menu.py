@@ -1,6 +1,6 @@
 # main_window\menus\common_menu.py
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QSpinBox
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QSpinBox
 from ..services.icon_service import IconService
 
 class CommonMenu:

@@ -1,8 +1,8 @@
 # main_window\docking_windows\project_tree_dock.py
 import copy
-from PyQt6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog, QMessageBox
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QKeySequence
+from PySide6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog, QMessageBox
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeySequence
 from ..widgets.tree import CustomTreeWidget
 from ..services.icon_service import IconService
 from ..dialogs.project_tree.project_information_dialog import ProjectInformationDialog

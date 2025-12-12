@@ -1,10 +1,10 @@
 # main_window\dialogs\screen\window_screen.py
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLabel, QDialogButtonBox,
     QSpinBox, QLineEdit, QTextEdit, QMessageBox,
     QWidget, QHBoxLayout, QGroupBox
 )
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 
 class WindowScreenDialog(QDialog):
     """

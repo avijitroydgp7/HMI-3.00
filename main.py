@@ -1,16 +1,20 @@
 # main.py
 import sys
-from PyQt6.QtWidgets import QApplication, QStyleFactory
-from PyQt6.QtGui import QIcon, QPalette, QColor
-from PyQt6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QStyleFactory
+from PySide6.QtGui import QIcon, QPalette, QColor
+from PySide6.QtCore import Qt
 from main_window.main_window import MainWindow
 from services.settings_service import SettingsService
 from main_window.services.icon_service import IconService
+from debug_utils import setup_logging
 
 def main():
     """
     The main function to launch the application.
     """
+    # Set up logging
+    setup_logging(debug_mode=True)
+
     # Create an instance of QApplication
     app = QApplication(sys.argv)
     

@@ -1,8 +1,8 @@
 # main_window\docking_windows\screen_tree_dock.py
 import copy
-from PyQt6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog, QMessageBox
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QKeySequence
+from PySide6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog, QMessageBox
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeySequence
 from ..dialogs.screen.screen_design import ScreenDesignDialog
 from ..dialogs.screen.base_screen import BaseScreenDialog
 from ..dialogs.screen.window_screen import WindowScreenDialog

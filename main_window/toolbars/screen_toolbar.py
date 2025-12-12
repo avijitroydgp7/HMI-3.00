@@ -1,5 +1,5 @@
 # main_window\toolbars\screen_toolbar.py
-from PyQt6.QtWidgets import QToolBar
+from PySide6.QtWidgets import QToolBar
 
 class ScreenToolbar(QToolBar):
     def __init__(self, main_window, screen_menu):

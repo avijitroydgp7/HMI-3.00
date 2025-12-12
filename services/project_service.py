@@ -4,7 +4,7 @@ import os
 import logging
 import tempfile
 import shutil
-from PyQt6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QMessageBox
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 # main_window\docking_windows\controller_list_dock.py
-from PyQt6.QtWidgets import QDockWidget, QTextEdit
+from PySide6.QtWidgets import QDockWidget, QTextEdit
 
 class ControllerListDock(QDockWidget):
     """

@@ -1,8 +1,8 @@
 # main_window\main_window.py
 import sys
-from PyQt6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog, QTabWidget, QApplication, QLineEdit, QLabel, QStatusBar, QWidget, QHBoxLayout
-from PyQt6.QtCore import Qt, QSize, QByteArray
-from PyQt6.QtGui import QAction
+from PySide6.QtWidgets import QMainWindow, QCheckBox, QTextEdit, QMessageBox, QFileDialog, QTabWidget, QApplication, QLineEdit, QLabel, QStatusBar, QWidget, QHBoxLayout
+from PySide6.QtCore import Qt, QSize, QByteArray
+from PySide6.QtGui import QAction, QActionGroup
 
 # Import the menu classes from the new modules
 from .menus.file_menu import FileMenu
@@ -24,6 +24,10 @@ from .toolbars.figure_toolbar import FigureToolbar
 from .toolbars.object_toolbar import ObjectToolbar
 from .toolbars.debug_toolbar import DebugToolbar
 
+# Import tools
+from .toolbars.drawing_tools.rectangle_tool import RectangleTool
+from .toolbars.drawing_tools.ellipse_tool import EllipseTool
+
 # Import the dock widget factory
 from .docking_windows.dock_widget_factory import DockWidgetFactory
 from .docking_windows.screen_tree_dock import ScreenTreeDock
@@ -32,6 +36,7 @@ from .services.icon_service import IconService
 from services.project_service import ProjectService
 from services.edit_service import EditService
 from services.comment_service import CommentService
+from main_window.services.view_service import ViewService
 from screen.base.canvas_base_screen import CanvasBaseScreen
 from project.comment.comment_table import CommentTable, Spreadsheet
 from project.tag.tag_table import TagTable
@@ -50,6 +55,7 @@ class MainWindow(QMainWindow):
         self.project_service = ProjectService()
         self.comment_service = CommentService()
         self.edit_service = EditService()
+        self.view_service = ViewService(self)
         self.open_screens = {} # Dictionary to track open screens {(type, number): widget}
         self.open_comments = {} # Dictionary to track open comment tables {comment_number: widget}
         self.open_tags = {} # Dictionary to track open tag tables {tag_number: widget}
@@ -82,6 +88,9 @@ class MainWindow(QMainWindow):
 
         # Create the menu bar by instantiating the menu classes
         self._create_menu_bar()
+        # Setup tools group for mutual exclusion
+        self._setup_tool_groups()
+        
         # Create the toolbars
         self._create_toolbars()
         # Create the dock widgets
@@ -103,31 +112,57 @@ class MainWindow(QMainWindow):
 
     def _create_status_bar(self):
         """Creates the status bar and its widgets."""
-        self.setStatusBar(QStatusBar(self))
+        status_bar = QStatusBar(self)
+        status_bar.setStyleSheet("""
+            QStatusBar {
+                background-color: #2c3e50; /* A dark blue-grey */
+                color: white;
+            }
+            QStatusBar::item {
+                border: none; /* No borders between items */
+            }
+            QLabel { /* Ensure labels in the status bar inherit the color */
+                color: white;
+                padding-left: 2px;
+                padding-right: 2px;
+            }
+        """)
+        self.setStatusBar(status_bar)
 
         # Left side widget for messages
         self.status_message_label = QLabel("Ready")
-        self.statusBar().addWidget(self.status_message_label)
+        self.statusBar().addWidget(self.status_message_label, 1) # Give it a stretch factor
 
-        # Right side widgets
-        self.mouse_pos_label = QLabel("X: 0, Y: 0")
-        self.screen_size_label = QLabel("W: 0, H: 0")
-        self.zoom_label = QLabel("Zoom: 100%")
-        self.object_pos_label = QLabel("Obj X: 0, Y: 0")
-        self.object_size_label = QLabel("Obj W: 0, H: 0")
+        # --- Helper to create icon+label widgets ---
+        def create_status_widget(icon_name, initial_text, fixed_width):
+            widget = QWidget()
+            layout = QHBoxLayout(widget)
+            layout.setContentsMargins(5, 0, 5, 0)
+            layout.setSpacing(5)
+            
+            icon_label = QLabel()
+            if icon_name:
+                icon_label.setPixmap(IconService.get_icon(icon_name).pixmap(16, 16))
+            
+            text_label = QLabel(initial_text)
+            
+            layout.addWidget(icon_label)
+            layout.addWidget(text_label)
+            widget.setFixedWidth(fixed_width)
+            return widget, text_label
 
-        # Set fixed widths to prevent resizing
-        self.mouse_pos_label.setFixedWidth(100)
-        self.screen_size_label.setFixedWidth(120)
-        self.zoom_label.setFixedWidth(100)
-        self.object_pos_label.setFixedWidth(120)
-        self.object_size_label.setFixedWidth(120)
+        # --- Right side widgets ---
+        mouse_widget, self.mouse_pos_label = create_status_widget('mouse-cursor', "0, 0", 100)
+        screen_size_widget, self.screen_size_label = create_status_widget('view-screen', "0 x 0", 120)
+        zoom_widget, self.zoom_label = create_status_widget('view-zoom', "100%", 80)
+        obj_pos_widget, self.object_pos_label = create_status_widget('view-transform-line', "X: 0, Y: 0", 120)
+        obj_size_widget, self.object_size_label = create_status_widget('view-transform-line', "W: 0, H: 0", 120)
 
-        self.statusBar().addPermanentWidget(self.mouse_pos_label)
-        self.statusBar().addPermanentWidget(self.screen_size_label)
-        self.statusBar().addPermanentWidget(self.zoom_label)
-        self.statusBar().addPermanentWidget(self.object_pos_label)
-        self.statusBar().addPermanentWidget(self.object_size_label)
+        self.statusBar().addPermanentWidget(mouse_widget)
+        self.statusBar().addPermanentWidget(screen_size_widget)
+        self.statusBar().addPermanentWidget(zoom_widget)
+        self.statusBar().addPermanentWidget(obj_pos_widget)
+        self.statusBar().addPermanentWidget(obj_size_widget)
 
     def update_window_title(self):
         """Updates the window title based on the project state."""
@@ -250,9 +285,10 @@ class MainWindow(QMainWindow):
                 self.central_widget.setCurrentWidget(widget_to_activate)
             return
 
-        screen_widget = CanvasBaseScreen(screen_data, self.project_service, parent=self)
+        screen_widget = CanvasBaseScreen(screen_data, self.project_service, self.view_service, parent=self)
         screen_widget.zoom_changed.connect(lambda zf, sw=screen_widget: self.sync_zoom_controls(sw))
         screen_widget.mouse_moved.connect(self.update_mouse_position)
+        screen_widget.tool_reset.connect(self.on_tool_reset)
         
         if screen_type == 'base':
             tab_title = f"[B] - {screen_number} - {screen_data.get('name')}"
@@ -269,6 +305,11 @@ class MainWindow(QMainWindow):
         self.open_screens[screen_id] = screen_widget
         self.central_widget.setCurrentWidget(screen_widget)
         self.update_status_bar(screen_widget)
+
+    def on_tool_reset(self):
+        """Handles resetting the tool to selection mode."""
+        self.edit_menu.select_mode_action.setChecked(True)
+        # This will trigger on_tool_changed via signal but it's fine
 
     def open_comment_table(self, comment_data):
         """
@@ -484,6 +525,26 @@ class MainWindow(QMainWindow):
                         toolbar_action.toggled.connect(
                              lambda checked, name=dock_name: self.set_dock_widget_visibility(name, checked)
                         )
+        
+        # --- Tool Selection ---
+        self.tools_group.triggered.connect(self.on_tool_changed)
+
+    def on_tool_changed(self, action):
+        """Handles switching between tools."""
+        active_screen = self.get_active_screen_widget()
+        if not isinstance(active_screen, CanvasBaseScreen):
+            return
+
+        if action == self.edit_menu.select_mode_action:
+            active_screen.set_tool(None)
+        elif action == self.figure_menu.rectangle_action:
+            active_screen.set_tool(RectangleTool(active_screen))
+        elif action == self.figure_menu.ellipse_action:
+            active_screen.set_tool(EllipseTool(active_screen))
+        # Add logic for other tools here as they are implemented
+        else:
+            # Placeholder for tools not yet implemented
+            pass
 
     def get_active_screen_widget(self):
         """Returns the widget from the currently active tab."""
@@ -493,6 +554,12 @@ class MainWindow(QMainWindow):
         """Handles syncing UI when the current tab is changed."""
         widget = self.central_widget.widget(index)
         self.update_status_bar(widget)
+        
+        # Sync tool state to the newly active tab
+        if isinstance(widget, CanvasBaseScreen):
+            # Check currently selected tool in the action group
+            checked_action = self.tools_group.checkedAction()
+            self.on_tool_changed(checked_action)
             
     # --- Zoom Handlers ---
     def on_zoom_action_triggered(self, action):
@@ -691,60 +758,6 @@ class MainWindow(QMainWindow):
                 widget.copy_screen(selected_items[0])
                 widget.paste_screen(selected_items[0])
 
-    def _create_status_bar(self):
-        """Creates the status bar and its widgets."""
-        status_bar = QStatusBar(self)
-        status_bar.setStyleSheet("""
-            QStatusBar {
-                background-color: #2c3e50; /* A dark blue-grey */
-                color: white;
-            }
-            QStatusBar::item {
-                border: none; /* No borders between items */
-            }
-            QLabel { /* Ensure labels in the status bar inherit the color */
-                color: white;
-                padding-left: 2px;
-                padding-right: 2px;
-            }
-        """)
-        self.setStatusBar(status_bar)
-
-        # Left side widget for messages
-        self.status_message_label = QLabel("Ready")
-        self.statusBar().addWidget(self.status_message_label, 1) # Give it a stretch factor
-
-        # --- Helper to create icon+label widgets ---
-        def create_status_widget(icon_name, initial_text, fixed_width):
-            widget = QWidget()
-            layout = QHBoxLayout(widget)
-            layout.setContentsMargins(5, 0, 5, 0)
-            layout.setSpacing(5)
-            
-            icon_label = QLabel()
-            if icon_name:
-                icon_label.setPixmap(IconService.get_icon(icon_name).pixmap(16, 16))
-            
-            text_label = QLabel(initial_text)
-            
-            layout.addWidget(icon_label)
-            layout.addWidget(text_label)
-            widget.setFixedWidth(fixed_width)
-            return widget, text_label
-
-        # --- Right side widgets ---
-        mouse_widget, self.mouse_pos_label = create_status_widget('mouse-cursor', "0, 0", 100)
-        screen_size_widget, self.screen_size_label = create_status_widget('view-screen', "0 x 0", 120)
-        zoom_widget, self.zoom_label = create_status_widget('view-zoom', "100%", 80)
-        obj_pos_widget, self.object_pos_label = create_status_widget('view-transform-line', "X: 0, Y: 0", 120)
-        obj_size_widget, self.object_size_label = create_status_widget('view-transform-line', "W: 0, H: 0", 120)
-
-        self.statusBar().addPermanentWidget(mouse_widget)
-        self.statusBar().addPermanentWidget(screen_size_widget)
-        self.statusBar().addPermanentWidget(zoom_widget)
-        self.statusBar().addPermanentWidget(obj_pos_widget)
-        self.statusBar().addPermanentWidget(obj_size_widget)
-
     def _create_menu_bar(self):
         """
         Creates the menu bar for the main window by instantiating
@@ -762,11 +775,30 @@ class MainWindow(QMainWindow):
         self.figure_menu = FigureMenu(self, menu_bar)
         self.object_menu = ObjectMenu(self, menu_bar)
 
+    def _setup_tool_groups(self):
+        """
+        Groups tool actions (select, figure, object) into a mutually exclusive group.
+        This ensures only one tool is active at a time.
+        """
+        self.tools_group = QActionGroup(self)
+        self.tools_group.setExclusive(True)
+
+        # Add "Select" tool from Edit menu
+        self.tools_group.addAction(self.edit_menu.select_mode_action)
+
+        # Add all Figure tools
+        for action in self.figure_menu.actions:
+            self.tools_group.addAction(action)
+
+        # Add all Object tools
+        for action in self.object_menu.all_actions:
+            self.tools_group.addAction(action)
+
     def _create_toolbars(self):
         """Creates the toolbars for the main window."""
         self.toolbars = {}
         self.toolbars["Window Display"] = DockingToolbar(self, self.view_menu)
-        self.toolbars["View"] = ViewToolbar(self, self.view_menu)
+        self.toolbars["View"] = ViewToolbar(self, self.view_menu, self.view_service)
         self.toolbars["Screen"] = ScreenToolbar(self, self.screen_menu)
         self.toolbars["Edit"] = EditToolbar(self, self.edit_menu)
         self.toolbars["Alignment"] = AlignmentToolbar(self, self.edit_menu)

@@ -1,5 +1,5 @@
 # main_window\menus\file_menu.py
-from PyQt6.QtGui import QAction
+from PySide6.QtGui import QAction
 from ..services.icon_service import IconService
 
 class FileMenu:

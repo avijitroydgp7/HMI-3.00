@@ -1,5 +1,5 @@
 # main_window\dialogs\project_tree\time_action_dialog.py
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel
 
 class TimeActionDialog(QDialog):
     def __init__(self, parent=None):

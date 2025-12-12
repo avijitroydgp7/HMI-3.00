@@ -1,6 +1,6 @@
 # main_window\toolbars\object_toolbar.py
-from PyQt6.QtWidgets import QToolBar, QToolButton, QMenu
-from PyQt6.QtCore import Qt
+from PySide6.QtWidgets import QToolBar, QToolButton, QMenu
+from PySide6.QtCore import Qt
 
 class ObjectToolbar(QToolBar):
     def __init__(self, main_window, object_menu):
@@ -38,9 +38,34 @@ class ObjectToolbar(QToolBar):
         tool_button.setIcon(icon)
         tool_button.setToolTip(tooltip)
         tool_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        tool_button.setCheckable(True) # Enable checkable state for the button itself
 
         menu = QMenu(self)
         menu.addActions(actions)
         tool_button.setMenu(menu)
+
+        # Function to update the main button when a sub-action is toggled
+        def update_button_state():
+            checked_action = None
+            for action in actions:
+                if action.isChecked():
+                    checked_action = action
+                    break
+            
+            if checked_action:
+                # If a sub-action is checked, update icon and set button as checked
+                tool_button.setIcon(checked_action.icon())
+                tool_button.setToolTip(checked_action.text())
+                tool_button.setChecked(True)
+            else:
+                # If no sub-action is checked (another tool selected elsewhere), uncheck button
+                tool_button.setChecked(False)
+                # We retain the last used icon here, which is standard behavior.
+                # If you want to reset to the default group icon, uncomment the line below:
+                # tool_button.setIcon(icon)
+
+        # Connect the toggled signal of all child actions to the updater
+        for action in actions:
+            action.toggled.connect(update_button_state)
 
         self.addWidget(tool_button)

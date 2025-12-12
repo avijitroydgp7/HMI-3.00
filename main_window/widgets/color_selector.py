@@ -1,12 +1,12 @@
 "main_window/widgets/color_selector.py"
 import sys
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QDialog, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QPushButton, QDialogButtonBox, QLineEdit, QSlider, QFrame, QComboBox, QTabWidget,
     QGroupBox
 )
-from PyQt6.QtGui import QColor, QPainter, QLinearGradient, QPen, QBrush, QFont, QFontMetrics
-from PyQt6.QtCore import Qt, pyqtSignal, QPointF, QRectF
+from PySide6.QtGui import QColor, QPainter, QLinearGradient, QPen, QBrush, QFont, QFontMetrics
+from PySide6.QtCore import Qt, Signal, QPointF, QRectF
 import math
 import random
 
@@ -56,7 +56,7 @@ def calculate_harmonies(base_color):
 
 class ColorSquare(QWidget):
     """A widget to select saturation and value from a square."""
-    color_changed = pyqtSignal(QColor)
+    color_changed = Signal(QColor)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -126,7 +126,7 @@ class ColorSquare(QWidget):
 
 class HueSlider(QWidget):
     """A slider for selecting the hue."""
-    hue_changed = pyqtSignal(float)
+    hue_changed = Signal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -168,7 +168,7 @@ class HueSlider(QWidget):
 
 class AlphaSlider(QWidget):
     """A slider for selecting the alpha/transparency."""
-    alpha_changed = pyqtSignal(float)
+    alpha_changed = Signal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -227,7 +227,7 @@ class AlphaSlider(QWidget):
 
 class PaletteWidget(QWidget):
     """Widget to display a color palette."""
-    color_clicked = pyqtSignal(QColor)
+    color_clicked = Signal(QColor)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -254,7 +254,7 @@ class PaletteWidget(QWidget):
 
 class ColorButton(QPushButton):
     """A button that displays a color and emits a signal when clicked."""
-    color_clicked = pyqtSignal(QColor)
+    color_clicked = Signal(QColor)
 
     def __init__(self, color, parent=None):
         super().__init__(parent)
@@ -300,7 +300,7 @@ class ColorButton(QPushButton):
 
 class ColorSelector(QDialog):
     """A modern dialog for selecting a color, inspired by the screenshot."""
-    color_selected = pyqtSignal(QColor)
+    color_selected = Signal(QColor)
 
     def __init__(self, initial_color=QColor("white"), parent=None):
         super().__init__(parent)

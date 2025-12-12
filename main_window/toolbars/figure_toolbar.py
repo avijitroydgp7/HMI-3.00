@@ -1,5 +1,5 @@
 # main_window\toolbars\figure_toolbar.py
-from PyQt6.QtWidgets import QToolBar
+from PySide6.QtWidgets import QToolBar
 
 class FigureToolbar(QToolBar):
     def __init__(self, main_window, figure_menu):
@@ -11,6 +11,7 @@ class FigureToolbar(QToolBar):
         self.addAction(figure_menu.line_action)
         self.addAction(figure_menu.polyline_action)
         self.addAction(figure_menu.rectangle_action)
+        self.addAction(figure_menu.ellipse_action)
         self.addAction(figure_menu.polygon_action)
         self.addAction(figure_menu.circle_action)
         self.addAction(figure_menu.arc_action)

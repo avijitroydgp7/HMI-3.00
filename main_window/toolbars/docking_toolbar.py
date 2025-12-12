@@ -1,6 +1,6 @@
 # main_window\toolbars\docking_toolbar.py
-from PyQt6.QtWidgets import QToolBar, QCheckBox
-from PyQt6.QtGui import QAction
+from PySide6.QtWidgets import QToolBar, QCheckBox
+from PySide6.QtGui import QAction
 from ..services.icon_service import IconService
 
 class DockingToolbar(QToolBar):

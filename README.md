@@ -1,6 +1,6 @@
 # HMI Designer
 
-A powerful Human-Machine Interface (HMI) design application built with PyQt6, providing an intuitive graphical environment for creating and managing HMI projects, screens, comments, and tags.
+A powerful Human-Machine Interface (HMI) design application built with PySide6, providing an intuitive graphical environment for creating and managing HMI projects, screens, comments, and tags.
 
 ## Description
 
@@ -25,7 +25,7 @@ HMI Designer is a desktop application that allows users to design and develop Hu
 ### Prerequisites
 
 - Python 3.7 or higher
-- PyQt6
+- PySide6
 - qtawesome
 
 ### Setup
@@ -64,7 +64,7 @@ HMI Designer is a desktop application that allows users to design and develop Hu
 
 ## Requirements
 
-- PyQt6: For the GUI framework
+- PySide6: For the GUI framework
 - qtawesome: For icon support
 - Python 3.7+: Minimum Python version required
 
@@ -116,7 +116,7 @@ Contributions to HMI Designer are welcome! Please follow these guidelines:
 1. Follow the installation steps above
 2. Ensure you have a compatible Python environment
 3. Test changes across different screen resolutions
-4. Verify compatibility with different PyQt6 versions
+4. Verify compatibility with different PySide6 versions
 
 ## License
 

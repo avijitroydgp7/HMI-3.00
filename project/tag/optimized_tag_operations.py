@@ -4,8 +4,8 @@ Provides batching, progress tracking, and UI responsiveness for tag deletion and
 """
 
 import time
-from PyQt6.QtWidgets import QProgressDialog, QApplication
-from PyQt6.QtCore import Qt
+from PySide6.QtWidgets import QProgressDialog, QApplication
+from PySide6.QtCore import Qt
 
 
 class OptimizedTagDeletion:

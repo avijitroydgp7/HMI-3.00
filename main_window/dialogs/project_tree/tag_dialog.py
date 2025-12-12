@@ -1,5 +1,5 @@
 # main_window\dialogs\project_tree\tag_dialog.py
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLabel, QDialogButtonBox,
     QSpinBox, QLineEdit, QTextEdit, QMessageBox, QGroupBox
 )

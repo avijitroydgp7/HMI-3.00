@@ -2,17 +2,17 @@
 import re
 import collections
 import logging
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem,
     QLineEdit, QMessageBox, QAbstractItemView, QHeaderView, QApplication, QLabel,
     QStyledItemDelegate, QMenu, QListWidget, QSpinBox, QDialog, QFormLayout, 
     QPushButton, QHBoxLayout
 )
 from main_window.widgets.color_selector import ColorSelector
-from PyQt6.QtGui import (
+from PySide6.QtGui import (
     QColor, QBrush, QFont, QPainter, QPen, QKeySequence, QUndoStack, QUndoCommand, QAction
 )
-from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QEvent
+from PySide6.QtCore import Qt, QRectF, QPointF, Signal, QEvent
 from .comment_utils import FormulaParser, FUNCTION_HINTS, adjust_formula_references, col_str_to_int, col_int_to_str
 from .optimized_operations import OptimizedBatchDelete, OptimizedColumnAddition
 from .performance_config import MAX_COLUMNS, MAX_ROWS
@@ -246,7 +246,7 @@ class ExcelHeaderView(QHeaderView):
             self.parentWidget().selectRow(logicalIndex)
 
 class SpreadsheetDelegate(QStyledItemDelegate):
-    editingTextChanged = pyqtSignal(str)
+    editingTextChanged = Signal(str)
     def createEditor(self, parent, option, index):
         editor = super().createEditor(parent, option, index)
         if isinstance(editor, QLineEdit):

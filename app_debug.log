@@ -1,0 +1,664 @@
+2025-12-12 16:22:58 - root - INFO - Logging initialized.
+2025-12-12 16:23:03 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:03 - screen.base.canvas_base_screen - DEBUG - 0 items selected.
+2025-12-12 16:23:03 - screen.base.canvas_base_screen - DEBUG - clear_transform_handler
+2025-12-12 16:23:03 - screen.base.canvas_base_screen - DEBUG - 0 valid items found.
+2025-12-12 16:23:05 - screen.base.canvas_base_screen - DEBUG - clear_transform_handler
+2025-12-12 16:23:05 - screen.base.canvas_base_screen - DEBUG - Mouse press at scene pos: PySide6.QtCore.QPointF(567.733550, 143.493095)
+2025-12-12 16:23:05 - screen.base.canvas_base_screen - DEBUG - Passing mouse press to tool: RectangleTool
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - Mouse release at scene pos: PySide6.QtCore.QPointF(831.324127, 332.217709)
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - Passing mouse release to tool: RectangleTool
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - In drawing mode, ignoring selection change.
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - In drawing mode, ignoring selection change.
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - Saving items to screen data.
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - Saved 1 items.
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - 0 items selected.
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - clear_transform_handler
+2025-12-12 16:23:06 - screen.base.canvas_base_screen - DEBUG - 0 valid items found.
+2025-12-12 16:23:07 - screen.base.canvas_base_screen - DEBUG - Mouse press at scene pos: PySide6.QtCore.QPointF(739.301381, 251.112916)
+2025-12-12 16:23:07 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:07 - screen.base.canvas_base_screen - DEBUG - 1 items selected.
+2025-12-12 16:23:07 - screen.base.canvas_base_screen - DEBUG - clear_transform_handler
+2025-12-12 16:23:07 - screen.base.canvas_base_screen - DEBUG - 1 valid items found.
+2025-12-12 16:23:07 - screen.base.canvas_base_screen - DEBUG - Creating TransformHandler for single item.
+2025-12-12 16:23:07 - main_window.toolbars.transform_handler - DEBUG - TransformHandler.__init__
+2025-12-12 16:23:07 - screen.base.canvas_base_screen - DEBUG - Mouse release at scene pos: PySide6.QtCore.QPointF(737.741673, 249.553209)
+2025-12-12 16:23:07 - screen.base.canvas_base_screen - DEBUG - Saving items after mouse release.
+2025-12-12 16:23:07 - screen.base.canvas_base_screen - DEBUG - Saving items to screen data.
+2025-12-12 16:23:07 - screen.base.canvas_base_screen - DEBUG - Saved 1 items.
+2025-12-12 16:23:08 - screen.base.canvas_base_screen - DEBUG - Mouse press at scene pos: PySide6.QtCore.QPointF(831.324127, 330.658002)
+2025-12-12 16:23:08 - screen.base.canvas_base_screen - DEBUG - Activating resize handle: br
+2025-12-12 16:23:08 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:08 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(828.204712, 329.098294)
+2025-12-12 16:23:08 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:08 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:08 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(815.727051, 318.180341)
+2025-12-12 16:23:08 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:08 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:08 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(807.928513, 313.501219)
+2025-12-12 16:23:08 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:08 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:08 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(803.249391, 307.262388)
+2025-12-12 16:23:08 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(795.450853, 304.142973)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(787.652315, 299.463851)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(782.973193, 293.225020)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(776.734362, 290.105605)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(772.055240, 285.426483)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(765.816409, 279.187652)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(761.137287, 276.068237)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(754.898457, 271.389115)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(753.338749, 269.829407)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(748.659626, 265.150284)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(743.980504, 260.471162)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(740.861089, 255.792039)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(739.301381, 254.232331)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(736.181966, 252.672624)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(734.622258, 249.553209)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(731.502843, 247.993501)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(729.943136, 244.874086)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(728.383428, 243.314379)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(725.264013, 241.754671)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(723.704305, 238.635256)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(720.584890, 237.075548)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(719.025183, 233.956133)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(715.905768, 232.396426)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(715.905768, 229.277011)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(712.786353, 229.277011)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(712.786353, 227.717303)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(711.226645, 226.157595)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(709.666937, 224.597888)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(708.107230, 224.597888)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(706.547522, 223.038180)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(704.987815, 221.478473)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(704.987815, 219.918765)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(703.428107, 219.918765)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(701.868400, 219.918765)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(700.308692, 218.359058)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(698.748985, 218.359058)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(694.069862, 218.359058)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(692.510154, 218.359058)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(690.950447, 218.359058)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(687.831032, 216.799350)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(686.271324, 216.799350)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(684.711617, 215.239643)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(681.592201, 215.239643)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(680.032494, 215.239643)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(678.472786, 215.239643)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(675.353371, 215.239643)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:09 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(673.793664, 215.239643)
+2025-12-12 16:23:09 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(672.233956, 213.679935)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(669.114541, 213.679935)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(667.554833, 212.120227)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(665.995126, 212.120227)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(664.435418, 212.120227)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(661.316003, 212.120227)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(659.756296, 210.560520)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(658.196588, 210.560520)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(656.636881, 210.560520)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(655.077173, 210.560520)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(653.517465, 210.560520)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(651.957758, 210.560520)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(650.398050, 210.560520)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(648.838343, 210.560520)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(647.278635, 210.560520)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(645.718928, 210.560520)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(644.159220, 209.000812)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(642.599513, 209.000812)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(641.039805, 209.000812)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(641.039805, 207.441105)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(639.480097, 207.441105)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(639.480097, 205.881397)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(637.920390, 204.321690)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(636.360682, 204.321690)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(634.800975, 202.761982)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(633.241267, 202.761982)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(631.681560, 201.202275)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(630.121852, 198.082859)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(625.442729, 196.523152)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(622.323314, 191.844029)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(620.763607, 188.724614)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(614.524777, 184.045491)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(609.845654, 177.806661)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(603.606824, 173.127539)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(594.248578, 166.888708)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(589.569456, 162.209586)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(581.770918, 155.970755)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(575.532088, 152.851340)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(570.852965, 149.731925)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(567.733550, 146.612510)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(561.494720, 145.052803)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(558.375305, 141.933387)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(555.255890, 140.373680)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(553.696182, 137.254265)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(549.017059, 135.694557)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(545.897644, 132.575142)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(544.337937, 131.015435)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(541.218522, 129.455727)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(539.658814, 127.896019)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(538.099106, 126.336312)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(534.979691, 126.336312)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(533.419984, 124.776604)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(530.300569, 123.216897)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(528.740861, 123.216897)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(527.181154, 123.216897)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(525.621446, 120.097482)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(522.502031, 118.537774)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(519.382616, 115.418359)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(517.822908, 113.858652)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(514.703493, 110.739236)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(511.584078, 107.619821)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(508.464663, 106.060114)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(506.904955, 102.940699)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(505.345248, 101.380991)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(502.225833, 98.261576)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(500.666125, 96.701868)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(497.546710, 95.142161)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(495.987002, 92.022746)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(494.427295, 90.463038)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(491.307880, 88.903331)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(489.748172, 87.343623)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(486.628757, 87.343623)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(485.069050, 84.224208)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(483.509342, 84.224208)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(483.509342, 82.664500)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(481.949634, 81.104793)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:10 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(480.389927, 79.545085)
+2025-12-12 16:23:10 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(478.830219, 79.545085)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(477.270512, 76.425670)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(475.710804, 74.865963)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(474.151097, 74.865963)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(472.591389, 73.306255)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(471.031682, 73.306255)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(469.471974, 71.746548)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(467.912266, 70.186840)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(467.912266, 68.627132)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(466.352559, 68.627132)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(464.792851, 67.067425)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(463.233144, 67.067425)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(461.673436, 65.507717)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(460.113729, 63.948010)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(456.994314, 63.948010)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(456.994314, 62.388302)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(455.434606, 62.388302)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(453.874898, 62.388302)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(453.874898, 60.828595)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(452.315191, 59.268887)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(450.755483, 59.268887)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(449.195776, 59.268887)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(447.636068, 57.709180)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(446.076361, 57.709180)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(442.956946, 57.709180)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(441.397238, 56.149472)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(439.837530, 56.149472)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(438.277823, 54.589764)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(436.718115, 54.589764)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(435.158408, 53.030057)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(432.038993, 53.030057)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(430.479285, 51.470349)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(428.919578, 51.470349)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(427.359870, 51.470349)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(427.359870, 49.910642)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(425.800162, 48.350934)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(424.240455, 48.350934)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(421.121040, 46.791227)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(419.561332, 46.791227)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(418.001625, 45.231519)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(416.441917, 45.231519)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(416.441917, 43.671812)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(413.322502, 43.671812)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(413.322502, 42.112104)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(411.762794, 42.112104)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(410.203087, 38.992689)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(408.643379, 38.992689)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(408.643379, 37.432981)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(407.083672, 35.873274)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(405.523964, 35.873274)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(403.964257, 34.313566)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(402.404549, 32.753859)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(400.844842, 31.194151)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(400.844842, 29.634444)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(399.285134, 29.634444)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(397.725426, 28.074736)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(396.165719, 26.515028)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(394.606011, 24.955321)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(394.606011, 23.395613)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(391.486596, 23.395613)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(391.486596, 21.835906)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(389.926889, 21.835906)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(389.926889, 20.276198)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(388.367181, 20.276198)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(388.367181, 18.716491)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(386.807474, 17.156783)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(385.247766, 17.156783)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(383.688058, 17.156783)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(383.688058, 15.597076)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(383.688058, 14.037368)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:11 - screen.base.canvas_base_screen - DEBUG - Passing mouse move to transform handler. Handle: br
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Handling mouse move for single item. Drag mode: br, Scene pos: PySide6.QtCore.QPointF(382.128351, 14.037368)
+2025-12-12 16:23:11 - main_window.toolbars.transform_handler - DEBUG - Successfully handled mouse move for single item.
+2025-12-12 16:23:12 - screen.base.canvas_base_screen - DEBUG - Mouse release at scene pos: PySide6.QtCore.QPointF(382.128351, 14.037368)
+2025-12-12 16:23:12 - screen.base.canvas_base_screen - DEBUG - Finished resizing handle: br
+2025-12-12 16:23:12 - screen.base.canvas_base_screen - DEBUG - Saving items to screen data.
+2025-12-12 16:23:12 - screen.base.canvas_base_screen - DEBUG - Saved 1 items.
+2025-12-12 16:23:14 - screen.base.canvas_base_screen - DEBUG - clear_transform_handler
+2025-12-12 16:23:14 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:14 - screen.base.canvas_base_screen - DEBUG - In drawing mode, ignoring selection change.
+2025-12-12 16:23:15 - screen.base.canvas_base_screen - DEBUG - Mouse press at scene pos: PySide6.QtCore.QPointF(446.076361, 67.067425)
+2025-12-12 16:23:15 - screen.base.canvas_base_screen - DEBUG - Passing mouse press to tool: RectangleTool
+2025-12-12 16:23:16 - screen.base.canvas_base_screen - DEBUG - Mouse release at scene pos: PySide6.QtCore.QPointF(665.995126, 212.120227)
+2025-12-12 16:23:16 - screen.base.canvas_base_screen - DEBUG - Passing mouse release to tool: RectangleTool
+2025-12-12 16:23:16 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:16 - screen.base.canvas_base_screen - DEBUG - In drawing mode, ignoring selection change.
+2025-12-12 16:23:16 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:16 - screen.base.canvas_base_screen - DEBUG - In drawing mode, ignoring selection change.
+2025-12-12 16:23:16 - screen.base.canvas_base_screen - DEBUG - Saving items to screen data.
+2025-12-12 16:23:16 - screen.base.canvas_base_screen - DEBUG - Saved 2 items.
+2025-12-12 16:23:17 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:17 - screen.base.canvas_base_screen - DEBUG - 0 items selected.
+2025-12-12 16:23:17 - screen.base.canvas_base_screen - DEBUG - clear_transform_handler
+2025-12-12 16:23:17 - screen.base.canvas_base_screen - DEBUG - 0 valid items found.
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - Mouse press at scene pos: PySide6.QtCore.QPointF(346.255077, -17.156783)
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - 1 items selected.
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - clear_transform_handler
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - 1 valid items found.
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - Creating TransformHandler for single item.
+2025-12-12 16:23:18 - main_window.toolbars.transform_handler - DEBUG - TransformHandler.__init__
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - Selection changed.
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - 2 items selected.
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - clear_transform_handler
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - 2 valid items found.
+2025-12-12 16:23:18 - screen.base.canvas_base_screen - DEBUG - Creating AverageTransformHandler for multiple items.
+2025-12-12 16:23:18 - main_window.toolbars.transform_handler - DEBUG - AverageTransformHandler.__init__

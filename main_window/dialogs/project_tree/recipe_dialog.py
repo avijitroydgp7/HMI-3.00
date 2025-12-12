@@ -1,5 +1,5 @@
 # main_window\dialogs\project_tree\recipe_dialog.py
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel
 
 class RecipeDialog(QDialog):
     def __init__(self, parent=None):

@@ -10,15 +10,15 @@ import re
 import threading
 from typing import Dict, List, Tuple, Set, Any
 from dataclasses import dataclass
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QAbstractScrollArea, QAbstractItemView, QHeaderView, QMenu, 
     QMessageBox, QApplication, QLabel, QLineEdit, QWidget, QVBoxLayout
 )
-from PyQt6.QtCore import (
-    Qt, QRect, QSize, QPoint, pyqtSignal, QTimer, QMutex, 
-    QThread, pyqtSlot, QEvent
+from PySide6.QtCore import (
+    Qt, QRect, QSize, QPoint, Signal, QTimer, QMutex, 
+    QThread, Slot, QEvent
 )
-from PyQt6.QtGui import (
+from PySide6.QtGui import (
     QPainter, QPen, QColor, QBrush, QFont, QIcon, QCursor, QUndoStack, QUndoCommand
 )
 from .comment_utils import FormulaParser, FUNCTION_HINTS, adjust_formula_references, col_str_to_int, col_int_to_str
@@ -209,8 +209,8 @@ class LazyDataStore:
 class BackgroundCalculationThread(QThread):
     """Background thread for formula evaluation and saving."""
     
-    progress = pyqtSignal(str)
-    finished_calculation = pyqtSignal()
+    progress = Signal(str)
+    finished_calculation = Signal()
     
     def __init__(self, spreadsheet, cells_to_evaluate):
         super().__init__()
@@ -236,8 +236,8 @@ class VirtualSpreadsheet(QAbstractScrollArea):
     Only renders visible rows/columns. Perfect for 10,000+ rows.
     """
     
-    currentCellChanged = pyqtSignal(int, int, int, int)  # newRow, newCol, oldRow, oldCol
-    cellClicked = pyqtSignal(int, int)
+    currentCellChanged = Signal(int, int, int, int)  # newRow, newCol, oldRow, oldCol
+    cellClicked = Signal(int, int)
     
     def __init__(self, parent=None, comment_service=None, comment_number=None):
         super().__init__(parent)

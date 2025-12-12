@@ -7,17 +7,17 @@ Enables handling of 10,000+ rows without performance degradation
 
 import threading
 from typing import List, Tuple, Set
-from PyQt6.QtWidgets import QTableWidget, QApplication, QMessageBox
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread, QObject
-from PyQt6.QtGui import QColor
+from PySide6.QtWidgets import QTableWidget, QApplication, QMessageBox
+from PySide6.QtCore import Qt, QTimer, Signal, QThread, QObject
+from PySide6.QtGui import QColor
 
 
 class BatchOperationWorker(QThread):
     """Worker thread for large batch operations."""
     
-    progress = pyqtSignal(str)
-    finished = pyqtSignal()
-    error = pyqtSignal(str)
+    progress = Signal(str)
+    finished = Signal()
+    error = Signal(str)
     
     def __init__(self, operation, *args):
         super().__init__()

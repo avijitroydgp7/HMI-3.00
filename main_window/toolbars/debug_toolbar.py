@@ -1,5 +1,5 @@
 # main_window\toolbars\debug_toolbar.py
-from PyQt6.QtWidgets import QToolBar
+from PySide6.QtWidgets import QToolBar
 
 class DebugToolbar(QToolBar):
     """

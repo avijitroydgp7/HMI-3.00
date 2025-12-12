@@ -1,5 +1,5 @@
 # main_window\docking_windows\system_tree_dock.py
-from PyQt6.QtWidgets import QDockWidget
+from PySide6.QtWidgets import QDockWidget
 from ..widgets.tree import CustomTreeWidget
 
 class SystemTreeDock(QDockWidget):

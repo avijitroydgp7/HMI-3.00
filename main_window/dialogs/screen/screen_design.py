@@ -1,14 +1,14 @@
 # main_window\dialogs\screen\screen_design.py
 import sys
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QDialogButtonBox,
     QRadioButton, QButtonGroup, QStackedWidget, QWidget, QGroupBox,
     QPushButton, QFileDialog, QLineEdit, QFormLayout, QSpinBox
 )
-from PyQt6.QtGui import (
+from PySide6.QtGui import (
     QColor, QPixmap, QIcon, QPainter, QLinearGradient, QBrush
 )
-from PyQt6.QtCore import Qt, QEvent, QPointF, QSize
+from PySide6.QtCore import Qt, QEvent, QPointF, QSize
 
 # Import the refactored widgets
 from ...widgets.color_selector import ColorSelector

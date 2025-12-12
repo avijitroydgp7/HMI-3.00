@@ -1,11 +1,11 @@
 # main_window\dialogs\screen\base_screen.py
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLabel, QDialogButtonBox,
     QSpinBox, QLineEdit, QTextEdit, QCheckBox, QPushButton, QMessageBox,
     QWidget, QHBoxLayout, QApplication, QGroupBox
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QBrush, QPainter, QPixmap
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QBrush, QPainter, QPixmap
 
 from .screen_design import ScreenDesignDialog
 

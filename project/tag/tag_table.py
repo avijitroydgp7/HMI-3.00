@@ -1,15 +1,15 @@
 import re
 import copy
 import json
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QHeaderView,
     QToolBar, QComboBox, QMessageBox, QStyledItemDelegate, QCheckBox,
     QAbstractItemView, QLineEdit, QApplication, QSizePolicy,
     QDateEdit, QTimeEdit, QDateTimeEdit, QTreeWidgetItemIterator, QProgressDialog,
     QMenu
 )
-from PyQt6.QtCore import Qt, QMimeData, QDate, QTime, QDateTime
-from PyQt6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence, QColor, QBrush
+from PySide6.QtCore import Qt, QMimeData, QDate, QTime, QDateTime
+from PySide6.QtGui import QAction, QUndoStack, QUndoCommand, QKeySequence, QColor, QBrush
 from main_window.services.icon_service import IconService
 from main_window.widgets.tree import CustomTreeWidget
 

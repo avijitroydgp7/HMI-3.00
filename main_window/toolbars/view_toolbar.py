@@ -1,29 +1,46 @@
 # main_window\toolbars\view_toolbar.py
-from PyQt6.QtWidgets import QToolBar, QComboBox, QToolButton, QCheckBox, QSpinBox
-from PyQt6.QtCore import Qt
+from PySide6.QtWidgets import QToolBar, QComboBox, QToolButton, QCheckBox, QSpinBox
+from PySide6.QtCore import Qt
 from ..services.icon_service import IconService
 
 class ViewToolbar(QToolBar):
-    def __init__(self, main_window, view_menu):
+    def __init__(self, main_window, view_menu, view_service):
         super().__init__("View", main_window)
         self.main_window = main_window
         self.view_menu = view_menu
+        self.view_service = view_service
         self.setMovable(True)
         self.current_state = 0
         self.max_states = 64
 
-        # Snap Dropdown
+        # --- Snap Controls ---
         self.snap_combo = QComboBox()
-        self.snap_combo.setFixedWidth(100)
-        self.snap_combo.addItems(["1", "2", "4", "5", "8", "10", "16", "20", "32", "40"])
-        self.snap_combo.setCurrentText("10")
+        self.snap_combo.setFixedWidth(70)
+        self.snap_combo.addItems(["1", "2", "4", "8", "16", "32"])
+        self.snap_combo.setCurrentText(str(self.view_service.grid_size))
+        # Use a lambda to capture the text and convert to int for the service
+        self.snap_combo.currentTextChanged.connect(
+            lambda text: setattr(self.view_service, 'grid_size', int(text))
+        )
+        # Connect service changes back to the UI
+        self.view_service.grid_size_changed.connect(
+            lambda size: self.snap_combo.setCurrentText(str(size))
+        )
         self.addWidget(self.snap_combo)
 
-        # Object Snap Checkbox
         self.object_snap_checkbox = QCheckBox("Object Snap")
-        self.object_snap_checkbox.setChecked(True)
-        self.object_snap_checkbox.toggled.connect(self.view_menu.object_snap_checkbox.setChecked)
-        self.view_menu.object_snap_checkbox.toggled.connect(self.object_snap_checkbox.setChecked)
+        self.object_snap_checkbox.setChecked(self.view_service.snap_enabled)
+        # UI controls update the service
+        self.object_snap_checkbox.toggled.connect(
+            lambda checked: setattr(self.view_service, 'snap_enabled', checked)
+        )
+        self.view_menu.object_snap_checkbox.toggled.connect(
+            lambda checked: setattr(self.view_service, 'snap_enabled', checked)
+        )
+        # Service signals update the UI to keep them in sync
+        self.view_service.snap_changed.connect(self.object_snap_checkbox.setChecked)
+        self.view_service.snap_changed.connect(self.view_menu.object_snap_checkbox.setChecked)
+
         self.addWidget(self.object_snap_checkbox)
         self.addSeparator()
 

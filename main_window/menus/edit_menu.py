@@ -1,5 +1,5 @@
 # main_window\menus\edit_menu.py
-from PyQt6.QtGui import QAction
+from PySide6.QtGui import QAction
 from ..services.icon_service import IconService
 
 class EditMenu:
@@ -20,6 +20,7 @@ class EditMenu:
         delete_icon = IconService.get_icon('edit-delete')
         consecutive_copy_icon = IconService.get_icon('edit-consecutive-copy')
         select_all_icon = IconService.get_icon('edit-select-all')
+        select_mode_icon = IconService.get_icon('mouse-cursor')
         
         # Actions
         self.undo_action = QAction(undo_icon,"Undo", self.main_window)
@@ -32,6 +33,12 @@ class EditMenu:
         self.select_all_action = QAction(select_all_icon, "Select All", self.main_window)
         self.delete_action = QAction(delete_icon,"Delete", self.main_window)
         
+        # Select Mode Action (Default Tool)
+        self.select_mode_action = QAction(select_mode_icon, "Select", self.main_window)
+        self.select_mode_action.setCheckable(True)
+        self.select_mode_action.setChecked(True)
+        self.select_mode_action.setToolTip("Select Mode (Cursor)")
+        
         self.undo_action.setShortcut("Ctrl+Z")
         self.redo_action.setShortcut("Ctrl+Y")
         self.cut_action.setShortcut("Ctrl+X")
@@ -43,6 +50,8 @@ class EditMenu:
         self.delete_action.setShortcut("Del")
 
         # Add actions to the Edit menu
+        edit_menu.addAction(self.select_mode_action)
+        edit_menu.addSeparator()
         edit_menu.addAction(self.cut_action)
         edit_menu.addAction(self.copy_action)
         edit_menu.addAction(self.paste_action)

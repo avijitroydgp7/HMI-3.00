@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView
-from PyQt6.QtGui import QIcon, QPixmap
-from PyQt6.QtCore import Qt
+from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView
+from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtCore import Qt
 from pathlib import Path
 from typing import Optional
 

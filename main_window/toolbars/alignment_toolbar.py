@@ -1,5 +1,5 @@
 # main_window\toolbars\alignment_toolbar.py
-from PyQt6.QtWidgets import QToolBar
+from PySide6.QtWidgets import QToolBar
 
 class AlignmentToolbar(QToolBar):
     def __init__(self, main_window, edit_menu):
