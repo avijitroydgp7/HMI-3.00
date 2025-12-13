@@ -1,4 +1,4 @@
-"services/settings_service.py"
+# services\settings_service.py"
 import json
 import os
 from PySide6.QtCore import QSettings

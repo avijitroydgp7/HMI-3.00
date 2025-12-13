@@ -1,4 +1,4 @@
-# project/comment/viewport_optimizer.py
+# project\comment\viewport_optimizer.py
 """
 Viewport Optimizer for existing QTableWidget
 Patches the spreadsheet to only render visible cells

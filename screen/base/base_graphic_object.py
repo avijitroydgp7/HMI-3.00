@@ -1,3 +1,4 @@
+# screen\base\base_graphic_object.py
 from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsEllipseItem, QGraphicsItem
 from PySide6.QtCore import QRectF, QPointF
 from debug_utils import get_logger

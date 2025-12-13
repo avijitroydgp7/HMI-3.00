@@ -1,4 +1,4 @@
-# main_window/widgets/gradient_widget.py
+# main_window\widgets\gradient_widget.py
 import sys
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,

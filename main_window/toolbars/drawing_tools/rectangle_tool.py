@@ -1,3 +1,4 @@
+# main_window\toolbars\drawing_tools\rectangle_tool.py
 from PySide6.QtWidgets import QGraphicsRectItem
 from PySide6.QtGui import QPen, QColor, QBrush
 from PySide6.QtCore import Qt, QRectF

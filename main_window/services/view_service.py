@@ -1,3 +1,4 @@
+# main_window\services\view_service.py
 from PySide6.QtCore import QObject, Signal
 
 class ViewService(QObject):

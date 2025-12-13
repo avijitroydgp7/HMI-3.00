@@ -1,4 +1,4 @@
-# project/comment/virtual_spreadsheet.py
+# project\comment\virtual_spreadsheet.py
 """
 Advanced Virtual Viewport Spreadsheet Implementation
 Efficiently handles 10,000+ rows/columns with intelligent rendering.

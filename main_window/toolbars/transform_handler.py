@@ -19,13 +19,24 @@ class TransformHandle(QGraphicsRectItem):
     """A single handle (square) for resizing or rotating."""
     
     def __init__(self, cursor_shape, parent=None):
-        # 6x6 pixel handle centered relative to its pos
-        super().__init__(-3, -3, 6, 6, parent)
+        # Hit area: 12x12 pixel square (larger than visual for easier clicking)
+        # Centered relative to its pos (-6, -6)
+        super().__init__(-6, -6, 12, 12, parent)
         self.setCursor(cursor_shape)
         self.setBrush(QBrush(QColor("white")))
-        self.setPen(QPen(QColor("#0078D7"), 1))
+        self.setPen(QPen(QColor("#00FFFF"), 2))
         # Ensure handles stay consistent size regardless of zoom
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations, True)
+
+    def paint(self, painter, option, widget=None):
+        """
+        Draws the visual representation of the handle.
+        We draw a smaller 6x6 square inside the larger 12x12 hit area.
+        """
+        painter.setPen(self.pen())
+        painter.setBrush(self.brush())
+        # Visual area: 6x6 centered
+        painter.drawRect(-3, -3, 6, 6)
 
 
 class BaseTransformHandler(QGraphicsItem):
@@ -44,7 +55,7 @@ class BaseTransformHandler(QGraphicsItem):
         
         # Pen for the border line
         if not hasattr(self, 'border_pen'):
-            self.border_pen = QPen(QColor("#0078D7"), 1, Qt.PenStyle.SolidLine)
+            self.border_pen = QPen(QColor("#00FFFF"), 2, Qt.PenStyle.SolidLine)
             self.border_pen.setCosmetic(True)
         
         # State management
@@ -54,9 +65,7 @@ class BaseTransformHandler(QGraphicsItem):
         
         self._create_handles()
         
-        # CRITICAL FIX: Do NOT call addItem(self) here. 
-        # Adding to scene during __init__ causes virtual function calls (boundingRect)
-        # on partially constructed objects, leading to crashes.
+        # CRITICAL: Do NOT call addItem(self) here. 
         # Subclasses must call addToScene() explicitly at the end of their __init__.
 
     def addToScene(self):
@@ -111,7 +120,10 @@ class BaseTransformHandler(QGraphicsItem):
         pass
     
     def get_handle_at(self, scene_pos):
-        """Returns the name of the handle under the mouse, if any."""
+        """
+        Returns the name of the handle under the mouse using scene coordinates.
+        Note: Use get_handle_from_items for more robust view-based detection.
+        """
         if not self._is_valid or not self.scene_ref:
             return None
         
@@ -121,13 +133,24 @@ class BaseTransformHandler(QGraphicsItem):
                 Qt.ItemSelectionMode.IntersectsItemShape, 
                 Qt.SortOrder.DescendingOrder
             )
-            for item in items:
-                for name, handle in self._handles.items():
-                    if item == handle:
-                        return name
+            return self.get_handle_from_items(items)
         except Exception as e:
             logger.debug(f"Error getting handle at position: {e}")
         
+        return None
+
+    def get_handle_from_items(self, items):
+        """
+        Finds a handle name from a list of QGraphicsItems.
+        This is preferred for use with QGraphicsView.items(pos).
+        """
+        if not self._is_valid:
+            return None
+            
+        for item in items:
+            for name, handle in self._handles.items():
+                if item == handle:
+                    return name
         return None
     
     def handle_mouse_press(self, handle_name, pos, scene_pos):
@@ -146,9 +169,6 @@ class BaseTransformHandler(QGraphicsItem):
     def cleanup(self):
         """Clean up resources safely."""
         try:
-            # Simplification: Just remove self from scene.
-            # Handles are children of self, so they are removed automatically.
-            # Manually detaching and removing them caused "scene (0x0)" errors.
             if self.scene() and self.scene_ref and self.scene() == self.scene_ref:
                 self.scene_ref.removeItem(self)
         except Exception as e:
@@ -255,9 +275,6 @@ class TransformHandler(BaseTransformHandler):
                 h['bl'].setPos(rect.bottomLeft())
                 h['l'].setPos(QPointF(rect.left(), rect.center().y()))
             
-            # CRITICAL: prepareGeometryChange must be called if bounds might have changed
-            # although update_geometry is usually called AFTER bounds change,
-            # calling it here handles handle movements.
             self.prepareGeometryChange()
             self.update()
         except Exception as e:
@@ -342,9 +359,6 @@ class TransformHandler(BaseTransformHandler):
             snapped_width = round(final_rect.width())
             snapped_height = round(final_rect.height())
 
-            # CRITICAL FIX: Since our boundingRect() returns target_item.boundingRect(),
-            # we MUST call prepareGeometryChange() on SELF before the target item changes size.
-            # Otherwise, the scene index corrupts because our bounds change without notification.
             self.prepareGeometryChange()
 
             self.target_item.set_geometry(QRectF(0, 0, snapped_width, snapped_height))
@@ -368,7 +382,7 @@ class AverageTransformHandler(BaseTransformHandler):
         self._initial_avg_rect = QRectF()
         self._average_rect = QRectF()
         
-        self.border_pen = QPen(QColor("#34a853"), 1, Qt.PenStyle.SolidLine)
+        self.border_pen = QPen(QColor("#00FFFF"), 2, Qt.PenStyle.SolidLine)
         self.border_pen.setCosmetic(True)
         
         super().__init__(scene, view_service)
@@ -464,6 +478,33 @@ class AverageTransformHandler(BaseTransformHandler):
         if not self.validate() or self._average_rect.isNull() or not painter:
             return
         try:
+            # Draw individual highlights for selected items
+            # Use a dashed blue line for individual items to distinguish them
+            painter.save()
+            individual_pen = QPen(QColor("#FF4FF0"), 2, Qt.PenStyle.DashLine)
+            individual_pen.setCosmetic(True)
+            painter.setPen(individual_pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+
+            handler_pos = self.pos()
+
+            for item in self.target_items:
+                try:
+                    if item and item.scene():
+                        # Get item's rect in scene coordinates
+                        scene_rect = item.sceneBoundingRect()
+                        
+                        # Calculate position relative to this handler
+                        local_x = scene_rect.x() - handler_pos.x()
+                        local_y = scene_rect.y() - handler_pos.y()
+                        
+                        painter.drawRect(QRectF(local_x, local_y, scene_rect.width(), scene_rect.height()))
+                except Exception as e:
+                    logger.debug(f"Error drawing individual selection: {e}")
+            
+            painter.restore()
+
+            # Draw the main group bounding box (Green)
             painter.setPen(self.border_pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             local_rect = QRectF(0, 0, self._average_rect.width(), self._average_rect.height())
@@ -482,8 +523,6 @@ class AverageTransformHandler(BaseTransformHandler):
                 self.setVisible(False)
                 return
             
-            # CRITICAL FIX: prepareGeometryChange MUST be called BEFORE updating self._average_rect
-            # because boundingRect() relies on self._average_rect
             self.prepareGeometryChange()
             self._average_rect = new_rect
             

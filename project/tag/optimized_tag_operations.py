@@ -1,3 +1,4 @@
+# project\tag\optimized_tag_operations.py
 """
 Optimized tag table operations for large-scale batch processing.
 Provides batching, progress tracking, and UI responsiveness for tag deletion and addition.

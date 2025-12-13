@@ -1,4 +1,4 @@
-# project/comment/optimized_operations.py
+# project\comment\optimized_operations.py
 """
 Optimized batch operations for comment table
 Prevents freeze when handling 10,000+ rows

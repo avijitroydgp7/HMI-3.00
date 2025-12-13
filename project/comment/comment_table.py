@@ -1,4 +1,4 @@
-# project/comment/comment_table.py
+# project\comment\comment_table.py
 import re
 import collections
 import logging

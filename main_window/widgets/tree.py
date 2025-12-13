@@ -1,3 +1,4 @@
+# main_window\widgets\tree.py
 from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt

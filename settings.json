@@ -27,7 +27,7 @@
         "data_view": false
     },
     "view_settings": {
-        "object_snap": false,
+        "object_snap": true,
         "snap_distance": "1",
         "state_number": 1
     }

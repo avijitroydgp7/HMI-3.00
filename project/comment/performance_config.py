@@ -1,4 +1,4 @@
-# project/comment/performance_config.py
+# project\comment\performance_config.py
 """
 Performance configuration and utilities for the comment table system.
 Centralized settings for optimization behavior.

@@ -1,4 +1,4 @@
-"main_window/widgets/color_selector.py"
+# main_window\widgets\color_selector.py
 import sys
 from PySide6.QtWidgets import (
     QApplication, QDialog, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,

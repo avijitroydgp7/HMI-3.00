@@ -1,4 +1,4 @@
-"services/edit_service.py"
+# services\edit_service.py
 from PySide6.QtWidgets import QApplication
 
 class EditService:

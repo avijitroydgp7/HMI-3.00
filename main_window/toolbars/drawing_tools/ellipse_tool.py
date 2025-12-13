@@ -1,4 +1,4 @@
-
+# main_window\toolbars\drawing_tools\ellipse_tool.py
 from PySide6.QtWidgets import QGraphicsEllipseItem
 from PySide6.QtGui import QPen, QColor, QBrush
 from PySide6.QtCore import Qt, QRectF

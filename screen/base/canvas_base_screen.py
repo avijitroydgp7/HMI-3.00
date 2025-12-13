@@ -399,7 +399,12 @@ class CanvasBaseScreen(QGraphicsView):
         
         if self.transform_handler and not self.current_tool:
             try:
-                handle_name = self.transform_handler.get_handle_at(scene_pos)
+                # Use view-based hit testing (event.pos()) for accuracy with items that ignore transformations.
+                # This ensures handles (which have ItemIgnoresTransformations set) are detected correctly
+                # regardless of zoom level, preventing "click-through" to objects or background.
+                items_at_pos = self.items(event.pos())
+                handle_name = self.transform_handler.get_handle_from_items(items_at_pos)
+                
                 if handle_name:
                     logger.debug(f"Activating resize handle: {handle_name}")
                     self._resizing_handle = handle_name
