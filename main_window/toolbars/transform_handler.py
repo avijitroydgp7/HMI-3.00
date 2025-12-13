@@ -33,25 +33,19 @@ class BaseTransformHandler(QGraphicsItem):
     Base class for transform handlers with robust state management.
     Provides common functionality and error handling for all handlers.
     """
-    transformed = Signal()
 
     def __init__(self, scene, view_service):
         super().__init__()
         self._is_resizing = False
         self.scene_ref = scene
         self.view_service = view_service
-        if self.scene_ref:
-            try:
-                self.scene_ref.addItem(self)
-            except Exception as e:
-                logger.error(f"Error adding handler to scene: {e}")
-                self.scene_ref = None
         
         self.setZValue(9999)  # Always on top
         
         # Pen for the border line
-        self.border_pen = QPen(QColor("#0078D7"), 1, Qt.PenStyle.SolidLine)
-        self.border_pen.setCosmetic(True)
+        if not hasattr(self, 'border_pen'):
+            self.border_pen = QPen(QColor("#0078D7"), 1, Qt.PenStyle.SolidLine)
+            self.border_pen.setCosmetic(True)
         
         # State management
         self._drag_mode = None
@@ -59,7 +53,24 @@ class BaseTransformHandler(QGraphicsItem):
         self._handles = {}
         
         self._create_handles()
-    
+        
+        # CRITICAL FIX: Do NOT call addItem(self) here. 
+        # Adding to scene during __init__ causes virtual function calls (boundingRect)
+        # on partially constructed objects, leading to crashes.
+        # Subclasses must call addToScene() explicitly at the end of their __init__.
+
+    def addToScene(self):
+        """Safely add the handler to the scene after full initialization."""
+        if self.scene_ref:
+            try:
+                # Check if already in a scene to avoid errors
+                if self.scene() == self.scene_ref:
+                    return
+                self.scene_ref.addItem(self)
+            except Exception as e:
+                logger.error(f"Error adding handler to scene: {e}")
+                self.scene_ref = None
+
     def get_items(self):
         """Return the item(s) being transformed."""
         raise NotImplementedError
@@ -131,36 +142,15 @@ class BaseTransformHandler(QGraphicsItem):
     def handle_mouse_release(self):
         """Called when the mouse is released after a transform."""
         self._is_resizing = False
-        self.transformed.emit()
 
-    
     def cleanup(self):
-        """Clean up resources."""
+        """Clean up resources safely."""
         try:
-            if self.scene_ref:
-                # Remove all handles from scene
-                handles_to_remove = list(self._handles.values())
-                for handle in handles_to_remove:
-                    try:
-                        if handle and handle.scene():
-                            # Only remove if the handle belongs to this scene
-                            if handle.scene() == self.scene_ref:
-                                self.scene_ref.removeItem(handle)
-                    except RuntimeError:
-                        # Handle already removed, ignore
-                        pass
-                    except Exception as e:
-                        logger.debug(f"Error removing handle: {e}")
-                
-                # Remove self from scene only if we're in it
-                try:
-                    if self.scene() == self.scene_ref:
-                        self.scene_ref.removeItem(self)
-                except RuntimeError:
-                    # Already removed, ignore
-                    pass
-                except Exception as e:
-                    logger.debug(f"Error removing self from scene: {e}")
+            # Simplification: Just remove self from scene.
+            # Handles are children of self, so they are removed automatically.
+            # Manually detaching and removing them caused "scene (0x0)" errors.
+            if self.scene() and self.scene_ref and self.scene() == self.scene_ref:
+                self.scene_ref.removeItem(self)
         except Exception as e:
             logger.warning(f"Error during handler cleanup: {e}")
         finally:
@@ -172,7 +162,6 @@ class BaseTransformHandler(QGraphicsItem):
 class TransformHandler(BaseTransformHandler):
     """
     Manages selection handles for a single QGraphicsItem.
-    Robust version with proper state isolation and error handling.
     """
     
     def __init__(self, target_item, scene, view_service):
@@ -182,11 +171,14 @@ class TransformHandler(BaseTransformHandler):
         self._initial_rect = QRectF()
         self._initial_scene_rect = QRectF()
 
+        # Initialize base class WITHOUT adding to scene yet
         super().__init__(scene, view_service)
         
         try:
             if self.validate():
                 self.update_geometry()
+                # NOW it is safe to add to scene because we are fully initialized
+                self.addToScene() 
         except Exception as e:
             logger.error(f"Error initializing TransformHandler: {e}")
             self._is_valid = False
@@ -263,6 +255,9 @@ class TransformHandler(BaseTransformHandler):
                 h['bl'].setPos(rect.bottomLeft())
                 h['l'].setPos(QPointF(rect.left(), rect.center().y()))
             
+            # CRITICAL: prepareGeometryChange must be called if bounds might have changed
+            # although update_geometry is usually called AFTER bounds change,
+            # calling it here handles handle movements.
             self.prepareGeometryChange()
             self.update()
         except Exception as e:
@@ -319,23 +314,20 @@ class TransformHandler(BaseTransformHandler):
                 w = new_rect.width()
                 h = new_rect.height()
                 
-                # Use the dimension that has changed more relative to the aspect ratio
                 if abs(w / h) > abs(self._aspect_ratio):
-                    # Width is the leading dimension for change
                     h = w / self._aspect_ratio
-                    if 't' in self._drag_mode:
-                        new_rect.setTop(new_rect.bottom() - h)
-                    else: # 'b' handle
-                        new_rect.setBottom(new_rect.top() + h)
+                    if 't' in self._drag_mode: new_rect.setTop(new_rect.bottom() - h)
+                    else: new_rect.setBottom(new_rect.top() + h)
                 else:
-                    # Height is the leading dimension
                     w = h * self._aspect_ratio
-                    if 'l' in self._drag_mode:
-                        new_rect.setLeft(new_rect.right() - w)
-                    else: # 'r' handle
-                        new_rect.setRight(new_rect.left() + w)
+                    if 'l' in self._drag_mode: new_rect.setLeft(new_rect.right() - w)
+                    else: new_rect.setRight(new_rect.left() + w)
 
             final_rect = new_rect.normalized()
+
+            # Enforce Minimum Size
+            if final_rect.width() < 1: final_rect.setWidth(1)
+            if final_rect.height() < 1: final_rect.setHeight(1)
 
             # Optimization: only update if geometry has changed
             current_scene_rect = self.target_item.sceneBoundingRect()
@@ -347,9 +339,13 @@ class TransformHandler(BaseTransformHandler):
 
             self.target_item.setPos(round(final_rect.left()), round(final_rect.top()))
             
-            # Snap width and height to the nearest integer
             snapped_width = round(final_rect.width())
             snapped_height = round(final_rect.height())
+
+            # CRITICAL FIX: Since our boundingRect() returns target_item.boundingRect(),
+            # we MUST call prepareGeometryChange() on SELF before the target item changes size.
+            # Otherwise, the scene index corrupts because our bounds change without notification.
+            self.prepareGeometryChange()
 
             self.target_item.set_geometry(QRectF(0, 0, snapped_width, snapped_height))
             self.update_geometry()
@@ -359,12 +355,9 @@ class TransformHandler(BaseTransformHandler):
             logger.error(f"CRITICAL: Exception in TransformHandler.handle_mouse_move: {e}", exc_info=True)
 
 
-
 class AverageTransformHandler(BaseTransformHandler):
     """
     Manages selection handles for multiple QGraphicsItems.
-    Displays an average bounding box around all selected items.
-    Robust version with safe coordinate handling and state isolation.
     """
     
     def __init__(self, target_items, scene, view_service):
@@ -375,7 +368,6 @@ class AverageTransformHandler(BaseTransformHandler):
         self._initial_avg_rect = QRectF()
         self._average_rect = QRectF()
         
-        # Use different color for multi-select
         self.border_pen = QPen(QColor("#34a853"), 1, Qt.PenStyle.SolidLine)
         self.border_pen.setCosmetic(True)
         
@@ -384,6 +376,8 @@ class AverageTransformHandler(BaseTransformHandler):
         try:
             if self.validate():
                 self.update_geometry()
+                # NOW it is safe to add to scene
+                self.addToScene()
         except Exception as e:
             logger.error(f"Error initializing AverageTransformHandler: {e}")
             self._is_valid = False
@@ -398,7 +392,6 @@ class AverageTransformHandler(BaseTransformHandler):
                 self._is_valid = False
                 return False
             
-            # Check all items are still valid
             valid_count = 0
             for item in self.target_items:
                 try:
@@ -432,13 +425,9 @@ class AverageTransformHandler(BaseTransformHandler):
             has_valid_item = False
             for item in self.target_items:
                 try:
-                    # Check if item is still valid before accessing it
-                    if not item or not item.scene():
-                        continue
+                    if not item or not item.scene(): continue
                     
                     scene_rect = item.sceneBoundingRect()
-                    
-                    # Validate the rect before using it
                     if scene_rect.isNull() or scene_rect.width() < 1 or scene_rect.height() < 1:
                         continue
                     
@@ -457,7 +446,6 @@ class AverageTransformHandler(BaseTransformHandler):
             width = max_x - min_x
             height = max_y - min_y
             
-            # Ensure result is valid
             if width < 1 or height < 1:
                 return QRectF()
             
@@ -470,14 +458,11 @@ class AverageTransformHandler(BaseTransformHandler):
         """Return the bounding rect for the handler."""
         if self._average_rect.isNull():
             return QRectF()
-        # Return local coordinates
         return QRectF(0, 0, self._average_rect.width(), self._average_rect.height())
 
     def paint(self, painter, option, widget=None):
-        """Draws the average bounding box outline."""
         if not self.validate() or self._average_rect.isNull() or not painter:
             return
-        
         try:
             painter.setPen(self.border_pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -487,28 +472,27 @@ class AverageTransformHandler(BaseTransformHandler):
             logger.debug(f"Error painting average transform handler: {e}")
 
     def update_geometry(self):
-        """Updates the handler to match the current state of selected items."""
         if not self.validate():
             self.setVisible(False)
             return
 
         try:
-            self._average_rect = self._calculate_average_rect()
-            
-            if self._average_rect.isNull():
+            new_rect = self._calculate_average_rect()
+            if new_rect.isNull():
                 self.setVisible(False)
                 return
             
-            self.setVisible(True)
+            # CRITICAL FIX: prepareGeometryChange MUST be called BEFORE updating self._average_rect
+            # because boundingRect() relies on self._average_rect
+            self.prepareGeometryChange()
+            self._average_rect = new_rect
             
-            # Position the handler at the top-left of the average rect
+            self.setVisible(True)
             self.setPos(self._average_rect.topLeft())
             
-            # Update handle positions based on the average rect
             h = self._handles
             if self._average_rect.width() > 0 and self._average_rect.height() > 0:
                 local_rect = QRectF(0, 0, self._average_rect.width(), self._average_rect.height())
-                
                 h['tl'].setPos(local_rect.topLeft())
                 h['t'].setPos(QPointF(local_rect.center().x(), local_rect.top()))
                 h['tr'].setPos(local_rect.topRight())
@@ -518,29 +502,21 @@ class AverageTransformHandler(BaseTransformHandler):
                 h['bl'].setPos(local_rect.bottomLeft())
                 h['l'].setPos(QPointF(local_rect.left(), local_rect.center().y()))
             
-            self.prepareGeometryChange()
             self.update()
         except Exception as e:
             logger.error(f"Error updating average transform handler geometry: {e}")
             self._is_valid = False
 
     def handle_mouse_press(self, handle_name, pos, scene_pos):
-        """Called when a handle is pressed."""
-        logger.debug("AverageTransformHandler.handle_mouse_press")
-        if not self.validate():
-            return
-        
+        if not self.validate(): return
         super().handle_mouse_press(handle_name, pos, scene_pos)
         
         try:
-            # Store initial state for all items using object references
             self._initial_rects = {}
             self._initial_positions = {}
             for item in self.target_items:
                 try:
                     if isinstance(item, BaseGraphicObject) and item.scene():
-                        # Use the item object itself as key instead of id(item)
-                        # This avoids stale references
                         item_id = id(item)
                         self._initial_rects[item_id] = (QRectF(item.boundingRect()), item)
                         self._initial_positions[item_id] = (QPointF(round(item.pos().x()), round(item.pos().y())), item)
@@ -550,82 +526,47 @@ class AverageTransformHandler(BaseTransformHandler):
             if self._initial_rects:
                 avg_rect = self._calculate_average_rect()
                 if not avg_rect.isNull():
-                    self._initial_avg_rect = QRectF(round(avg_rect.x()),
-                                                    round(avg_rect.y()),
-                                                    round(avg_rect.width()),
-                                                    round(avg_rect.height()))
-            else:
-                logger.warning("No valid items to transform")
-                self._initial_avg_rect = QRectF()
+                    self._initial_avg_rect = QRectF(round(avg_rect.x()), round(avg_rect.y()), round(avg_rect.width()), round(avg_rect.height()))
         except Exception as e:
             logger.warning(f"Error in handle_mouse_press: {e}")
 
     def handle_mouse_move(self, scene_pos, modifiers=Qt.KeyboardModifier.NoModifier):
-        """Logic to resize all selected items proportionally."""
-        logger.debug("AverageTransformHandler.handle_mouse_move")
-        if not self._drag_mode or not self.validate():
-            return
-        
-        if self._initial_avg_rect.isNull():
-            return
+        if not self._drag_mode or not self.validate(): return
+        if self._initial_avg_rect.isNull(): return
         
         try:
-            logger.debug(f"Handling mouse move for multiple items. Drag mode: {self._drag_mode}, Scene pos: {scene_pos}")
-            # Determine new rect based on which handle is being dragged
             new_rect = QRectF(self._initial_avg_rect)
-            
             snapped_pos = scene_pos
             
-            if 'r' in str(self._drag_mode):
-                new_rect.setRight(snapped_pos.x())
-            if 'l' in str(self._drag_mode):
-                new_rect.setLeft(snapped_pos.x())
-            if 'b' in str(self._drag_mode):
-                new_rect.setBottom(snapped_pos.y())
-            if 't' in str(self._drag_mode):
-                new_rect.setTop(snapped_pos.y())
+            if 'r' in str(self._drag_mode): new_rect.setRight(snapped_pos.x())
+            if 'l' in str(self._drag_mode): new_rect.setLeft(snapped_pos.x())
+            if 'b' in str(self._drag_mode): new_rect.setBottom(snapped_pos.y())
+            if 't' in str(self._drag_mode): new_rect.setTop(snapped_pos.y())
             
             new_rect = new_rect.normalized()
             
-            # Optimization: only update if geometry has changed
-            if (round(self._average_rect.x()) == round(new_rect.x()) and
-                round(self._average_rect.y()) == round(new_rect.y()) and
-                round(self._average_rect.width()) == round(new_rect.width()) and
-                round(self._average_rect.height()) == round(new_rect.height())):
-                return
-
-            # Calculate scale factors with safety checks
             old_width = self._initial_avg_rect.width()
             old_height = self._initial_avg_rect.height()
             new_width = new_rect.width()
             new_height = new_rect.height()
             
-            # Prevent division by zero and handle minimum size
             if old_width < 1 or old_height < 1 or new_width < 1 or new_height < 1:
-                logger.debug("Skipping resize: dimensions too small")
                 return
             
             scale_x = new_width / old_width
             scale_y = new_height / old_height
-            logger.debug(f"Scale factors: x={scale_x}, y={scale_y}")
             
-            # Apply transformations to all items
             for item_id, (initial_rect, item) in self._initial_rects.items():
                 try:
                     if isinstance(item, BaseGraphicObject) and item.scene():
-                        # Ensure scaled dimensions are valid
                         scaled_width = round(initial_rect.width() * scale_x)
                         scaled_height = round(initial_rect.height() * scale_y)
                         
-                        if scaled_width < 1 or scaled_height < 1:
-                            logger.debug(f"Skipping item transform: scaled dimensions too small")
-                            continue
+                        if scaled_width < 1 or scaled_height < 1: continue
                         
-                        # Scale the item size
                         new_item_rect = QRectF(0, 0, scaled_width, scaled_height)
                         item.set_geometry(new_item_rect)
                         
-                        # Calculate new position
                         initial_pos, _ = self._initial_positions.get(item_id, (QPointF(0, 0), None))
                         offset_x = initial_pos.x() - self._initial_avg_rect.left()
                         offset_y = initial_pos.y() - self._initial_avg_rect.top()
@@ -638,22 +579,14 @@ class AverageTransformHandler(BaseTransformHandler):
                     logger.debug(f"Error transforming item: {e}")
             
             self.update_geometry()
-            logger.debug("Successfully handled mouse move for multiple items.")
         except Exception as e:
             logger.error(f"CRITICAL: Exception in AverageTransformHandler.handle_mouse_move: {e}", exc_info=True)
 
-
     def cleanup(self):
-        """Clean up and release references."""
-        logger.debug("AverageTransformHandler.cleanup")
         try:
-            # Clear all item references
-            if self.target_items:
-                self.target_items.clear()
-            if self._initial_rects:
-                self._initial_rects.clear()
-            if self._initial_positions:
-                self._initial_positions.clear()
+            if self.target_items: self.target_items.clear()
+            if self._initial_rects: self._initial_rects.clear()
+            if self._initial_positions: self._initial_positions.clear()
         except Exception as e:
             logger.debug(f"Error during average handler cleanup: {e}")
         finally:
