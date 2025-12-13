@@ -41,12 +41,9 @@ def main():
     dark_palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)
     app.setPalette(dark_palette)
 
-    # Load and apply the stylesheet for custom styling
-    try:
-        with open('stylesheet.qss', 'r') as f:
-            app.setStyleSheet(f.read())
-    except FileNotFoundError:
-        print("stylesheet.qss not found. Using default styles.") # Or handle this more gracefully
+    # Load and apply centralized stylesheets
+    from styles import stylesheets
+    app.setStyleSheet(stylesheets.get_tool_button_stylesheet())
     
     # Initialize the settings service
     settings_service = SettingsService('settings.json')

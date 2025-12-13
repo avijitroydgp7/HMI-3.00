@@ -4,6 +4,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
 from pathlib import Path
 from typing import Optional
+from styles import stylesheets
 
 class CustomTreeWidget(QTreeWidget):
     """
@@ -48,60 +49,7 @@ class CustomTreeWidget(QTreeWidget):
     
     def _apply_default_stylesheet(self, expand_icon_path, collapse_icon_path):
         """Apply the default stylesheet. Can be overridden by subclasses."""
-        stylesheet = f"""
-            QTreeWidget {{
-                border: none;
-                background-color: #252525;
-                alternate-background-color: #252525;
-                color: white;
-                gridline-color: #252525;
-                outline: none;
-                margin-left: 0px;
-            }}
-            QTreeWidget::item {{
-                padding: 4px 2px;
-                border-left: 2px solid #34a853;
-                margin-left: 0px;
-                color: white;
-            }}
-            QTreeWidget::item:hover {{
-                background-color: rgba(52, 168, 83, 0.1);
-                border-left: 2px solid #34a853;
-            }}
-            QTreeWidget::item:selected {{
-                background-color: #2a82da;
-                border-left: 2px solid #34a853;
-                color: #ffffff;
-            }}
-            QTreeWidget::branch:has-children:closed {{
-                image: url("{expand_icon_path}");
-                background-color: transparent;
-                width: 20px;
-                height: 20px;
-            }}
-            QTreeWidget::branch:has-children:open {{
-                image: url("{collapse_icon_path}");
-                background-color: transparent;
-                width: 20px;
-                height: 20px;
-            }}
-            QTreeWidget::branch:has-siblings {{
-                border-image: none;
-            }}
-            QTreeWidget::branch {{
-                background-color: transparent;
-                margin-right: 4px;
-                margin-left: 4px;
-                margin-top: 4px;
-                margin-bottom: 4px;
-            }}
-            QHeaderView::section {{
-                background-color: #353535;
-                color: white;
-                padding: 3px;
-                border: 1px solid #555555;
-            }}
-        """
+        stylesheet = stylesheets.get_project_tree_stylesheet(expand_icon_path, collapse_icon_path)
         self.setStyleSheet(stylesheet)
     
     def _on_context_menu(self, position):

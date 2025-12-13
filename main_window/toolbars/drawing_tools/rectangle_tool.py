@@ -2,6 +2,7 @@
 from PySide6.QtWidgets import QGraphicsRectItem
 from PySide6.QtGui import QPen, QColor, QBrush
 from PySide6.QtCore import Qt, QRectF
+from styles import colors
 
 class RectangleTool:
     """
@@ -20,8 +21,8 @@ class RectangleTool:
         self.current_item.setData(0, "rectangle")  # Set object type for factory
 
         # Set default styles
-        self.current_item.setPen(QPen(Qt.GlobalColor.black, 2))
-        self.current_item.setBrush(QBrush(QColor(200, 200, 200, 100)))
+        self.current_item.setPen(QPen(QColor(colors.COLOR_DEFAULT_SHAPE_BORDER), 2))
+        self.current_item.setBrush(QBrush(QColor(colors.COLOR_DEFAULT_SHAPE_FILL)))
 
         # Add flags
         self.current_item.setFlags(

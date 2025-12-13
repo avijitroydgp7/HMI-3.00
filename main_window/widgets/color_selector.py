@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QColor, QPainter, QLinearGradient, QPen, QBrush, QFont, QFontMetrics
 from PySide6.QtCore import Qt, Signal, QPointF, QRectF
+from styles import colors
 import math
 import random
 

@@ -9,6 +9,7 @@ Includes comprehensive error handling, state validation, and coordinate safety.
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsRectItem
 from PySide6.QtCore import Qt, QRectF, QPointF, Signal
 from PySide6.QtGui import QPen, QBrush, QColor
+from styles import colors
 from screen.base.base_graphic_object import BaseGraphicObject
 from debug_utils import get_logger
 
@@ -23,8 +24,8 @@ class TransformHandle(QGraphicsRectItem):
         # Centered relative to its pos (-6, -6)
         super().__init__(-6, -6, 12, 12, parent)
         self.setCursor(cursor_shape)
-        self.setBrush(QBrush(QColor("white")))
-        self.setPen(QPen(QColor("#00FFFF"), 2))
+        self.setBrush(QBrush(QColor(colors.TEXT_PRIMARY)))
+        self.setPen(QPen(QColor(colors.COLOR_TRANSFORM_BORDER), 2))
         # Ensure handles stay consistent size regardless of zoom
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations, True)
 
@@ -55,7 +56,7 @@ class BaseTransformHandler(QGraphicsItem):
         
         # Pen for the border line
         if not hasattr(self, 'border_pen'):
-            self.border_pen = QPen(QColor("#00FFFF"), 2, Qt.PenStyle.SolidLine)
+            self.border_pen = QPen(QColor(colors.COLOR_TRANSFORM_BORDER), 2, Qt.PenStyle.SolidLine)
             self.border_pen.setCosmetic(True)
         
         # State management
@@ -382,7 +383,7 @@ class AverageTransformHandler(BaseTransformHandler):
         self._initial_avg_rect = QRectF()
         self._average_rect = QRectF()
         
-        self.border_pen = QPen(QColor("#00FFFF"), 2, Qt.PenStyle.SolidLine)
+        self.border_pen = QPen(QColor(colors.COLOR_TRANSFORM_BORDER), 2, Qt.PenStyle.SolidLine)
         self.border_pen.setCosmetic(True)
         
         super().__init__(scene, view_service)
@@ -479,9 +480,9 @@ class AverageTransformHandler(BaseTransformHandler):
             return
         try:
             # Draw individual highlights for selected items
-            # Use a dashed blue line for individual items to distinguish them
+            # Use a dashed magenta line for individual items to distinguish them
             painter.save()
-            individual_pen = QPen(QColor("#FF4FF0"), 2, Qt.PenStyle.DashLine)
+            individual_pen = QPen(QColor(colors.COLOR_TRANSFORM_INDIVIDUAL), 2, Qt.PenStyle.DashLine)
             individual_pen.setCosmetic(True)
             painter.setPen(individual_pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)

@@ -33,6 +33,7 @@ from .docking_windows.dock_widget_factory import DockWidgetFactory
 from .docking_windows.screen_tree_dock import ScreenTreeDock
 from .docking_windows.project_tree_dock import ProjectTreeDock
 from .services.icon_service import IconService
+from styles import stylesheets
 from services.project_service import ProjectService
 from services.edit_service import EditService
 from services.comment_service import CommentService
@@ -113,20 +114,7 @@ class MainWindow(QMainWindow):
     def _create_status_bar(self):
         """Creates the status bar and its widgets."""
         status_bar = QStatusBar(self)
-        status_bar.setStyleSheet("""
-            QStatusBar {
-                background-color: #2c3e50; /* A dark blue-grey */
-                color: white;
-            }
-            QStatusBar::item {
-                border: none; /* No borders between items */
-            }
-            QLabel { /* Ensure labels in the status bar inherit the color */
-                color: white;
-                padding-left: 2px;
-                padding-right: 2px;
-            }
-        """)
+        status_bar.setStyleSheet(stylesheets.get_status_bar_stylesheet())
         self.setStatusBar(status_bar)
 
         # Left side widget for messages
@@ -289,6 +277,15 @@ class MainWindow(QMainWindow):
         screen_widget.zoom_changed.connect(lambda zf, sw=screen_widget: self.sync_zoom_controls(sw))
         screen_widget.mouse_moved.connect(self.update_mouse_position)
         screen_widget.tool_reset.connect(self.on_tool_reset)
+        screen_widget.object_data_changed.connect(self.update_object_info)
+        
+        # Connect canvas signals to layers dock for auto-layer creation
+        layers_dock = self.dock_factory.get_dock("layers")
+        if layers_dock:
+            screen_widget.graphics_item_added.connect(self._on_graphics_item_added_to_canvas)
+            screen_widget.graphics_item_removed.connect(self._on_graphics_item_removed_from_canvas)
+            # Sync canvas selection changes to layers dock
+            screen_widget.canvas_selection_changed.connect(self._on_canvas_selection_changed)
         
         if screen_type == 'base':
             tab_title = f"[B] - {screen_number} - {screen_data.get('name')}"
@@ -841,10 +838,12 @@ class MainWindow(QMainWindow):
         property_tree = self.dock_factory.get_dock("property_tree")
         library = self.dock_factory.get_dock("library")
         screen_image_list = self.dock_factory.get_dock("screen_image_list")
+        layers = self.dock_factory.get_dock("layers")
         
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, property_tree)
         self.splitDockWidget(property_tree, library, Qt.Orientation.Vertical)
         self.tabifyDockWidget(library, screen_image_list)
+        self.tabifyDockWidget(screen_image_list, layers)
 
         # --- Bottom Area ---
         tag_search = self.dock_factory.get_dock("tag_search")
@@ -995,3 +994,47 @@ class MainWindow(QMainWindow):
     def update_mouse_position(self, pos):
         """Updates the mouse position label in the status bar."""
         self.mouse_pos_label.setText(f"{int(pos.x())}, {int(pos.y())}")
+
+    def update_object_info(self, data):
+        """Updates object position and size labels in the status bar."""
+        position = data.get('position')
+        size = data.get('size')
+        
+        if position is not None:
+            x, y = position
+            self.object_pos_label.setText(f"X: {x}, Y: {y}")
+        else:
+            self.object_pos_label.setText("X: --, Y: --")
+        
+        if size is not None:
+            w, h = size
+            self.object_size_label.setText(f"W: {w}, H: {h}")
+        else:
+            self.object_size_label.setText("W: --, H: --")
+
+    def _on_graphics_item_added_to_canvas(self, graphics_item, item_data):
+        """
+        Called automatically when a graphics item is added to the canvas.
+        Auto-registers the item as a layer in the layers dock.
+        """
+        layers_dock = self.dock_factory.get_dock("layers")
+        if layers_dock:
+            layers_dock.add_graphics_item(graphics_item, item_data)
+
+    def _on_graphics_item_removed_from_canvas(self, graphics_item):
+        """
+        Called when a graphics item is removed from the canvas.
+        Removes the corresponding layer from the layers dock.
+        """
+        layers_dock = self.dock_factory.get_dock("layers")
+        if layers_dock:
+            layers_dock.remove_graphics_item(graphics_item)
+    
+    def _on_canvas_selection_changed(self, selected_items, deselected_items):
+        """
+        Called when canvas selection changes.
+        Syncs the selection to the layers dock.
+        """
+        layers_dock = self.dock_factory.get_dock("layers")
+        if layers_dock:
+            layers_dock.sync_canvas_selection(selected_items, deselected_items)

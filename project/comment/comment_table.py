@@ -13,6 +13,7 @@ from PySide6.QtGui import (
     QColor, QBrush, QFont, QPainter, QPen, QKeySequence, QUndoStack, QUndoCommand, QAction
 )
 from PySide6.QtCore import Qt, QRectF, QPointF, Signal, QEvent
+from styles import colors, stylesheets
 from .comment_utils import FormulaParser, FUNCTION_HINTS, adjust_formula_references, col_str_to_int, col_int_to_str
 from .optimized_operations import OptimizedBatchDelete, OptimizedColumnAddition
 from .performance_config import MAX_COLUMNS, MAX_ROWS
@@ -285,7 +286,7 @@ class Spreadsheet(QTableWidget):
         self._drag_fill_rect = None
         self.highlighted_cells = set()
         self.referenced_cells = []
-        self.ref_colors = [QColor("#54B8FF"), QColor("#FF3C3C"), QColor("#39FF92"), QColor("#BE6AFF")]
+        self.ref_colors = [QColor(colors.COLOR_REF_BLUE), QColor(colors.COLOR_REF_RED), QColor(colors.COLOR_REF_GREEN), QColor(colors.COLOR_REF_PURPLE)]
         self.undo_stack = QUndoStack(self)
 
         # --- Formula Hinting Widgets ---
@@ -293,23 +294,14 @@ class Spreadsheet(QTableWidget):
         # Changed from ToolTip to Tool to prevent overlapping other apps while staying on top of parent
         self.formula_hint.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
         self.formula_hint.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
-        self.formula_hint.setStyleSheet("background-color: #353535; border: 1px solid #555555; padding: 4px; font-size: 9pt; color: #ffffff;")
+        self.formula_hint.setStyleSheet(stylesheets.get_formula_hint_stylesheet())
         self.formula_hint.hide()
 
         self.completer_popup = QListWidget(self)
         # Changed from ToolTip to Tool to prevent overlapping other apps while staying on top of parent
         self.completer_popup.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
         self.completer_popup.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
-        self.completer_popup.setStyleSheet("""
-            QListWidget {
-                background-color: #191919;
-                border: 1px solid #555555;
-                font-size: 9pt;
-                color: white;
-            }
-            QListWidget::item:hover { background-color: #353535; }
-            QListWidget::item:selected { background-color: #2a82da; color: white; }
-        """)
+        self.completer_popup.setStyleSheet(stylesheets.get_completer_popup_stylesheet())
         self.completer_popup.hide()
         self.completer_popup.itemClicked.connect(self.complete_formula)
         # --- End Hinting Widgets ---

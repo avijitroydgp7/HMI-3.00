@@ -2,6 +2,7 @@
 from PySide6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsWidget, QLabel, QGraphicsItem, QGraphicsSimpleTextItem
 from PySide6.QtGui import QPainter, QColor, QBrush, QLinearGradient, QPixmap, QPen, QFont
 from PySide6.QtCore import Qt, QRectF, Signal, QPointF, QLineF
+from styles import colors
 
 from screen.base.base_graphic_object import RectangleObject, EllipseObject, BaseGraphicObject
 from debug_utils import get_logger
@@ -149,6 +150,10 @@ class CanvasBaseScreen(QGraphicsView):
     zoom_changed = Signal(float)
     mouse_moved = Signal(QPointF)
     tool_reset = Signal() # Signal emitted when tool is reset to select mode via ESC
+    object_data_changed = Signal(dict)  # Emits dict with {'position': (x, y), 'size': (w, h)} when object is moved/resized
+    graphics_item_added = Signal(object, dict)  # Emitted when a graphics item is added (item, data_dict)
+    graphics_item_removed = Signal(object)  # Emitted when a graphics item is removed
+    canvas_selection_changed = Signal(list, list)  # Emitted when canvas items selected/deselected (selected_items, deselected_items)
 
     def __init__(self, screen_data, project_service, view_service, parent=None):
         super().__init__(parent)
@@ -198,7 +203,9 @@ class CanvasBaseScreen(QGraphicsView):
         """Restores graphical items from the screen data."""
         if 'items' in self.screen_data:
             for item_data in self.screen_data['items']:
-                self.create_graphic_item_from_data(item_data)
+                # Pass is_restoring=True to prevent signal emission during restore
+                # Layers will be created only for new objects, not restored ones
+                self.create_graphic_item_from_data(item_data, is_restoring=True)
 
     def save_items(self):
         """Saves current graphical items to screen data."""
@@ -222,8 +229,13 @@ class CanvasBaseScreen(QGraphicsView):
         except Exception as e:
             logger.error(f"CRITICAL: Error saving items: {e}", exc_info=True)
 
-    def create_graphic_item_from_data(self, data):
-        """Factory method to recreate an item from its dictionary representation."""
+    def create_graphic_item_from_data(self, data, is_restoring=False):
+        """Factory method to recreate an item from its dictionary representation.
+        
+        Args:
+            data: Dictionary with item properties (type, rect, pos, etc.)
+            is_restoring: If True, don't emit graphics_item_added signal (used when loading saved items)
+        """
         item_type = data.get('type')
         item = None
         
@@ -259,6 +271,12 @@ class CanvasBaseScreen(QGraphicsView):
             
             self.scene.addItem(item)
             self._add_overlays(item, data)
+            
+            # Only emit signal for newly created items, not restored ones
+            if not is_restoring:
+                self.graphics_item_added.emit(item, data)
+            
+        return item
 
     def _generate_next_id(self):
         """Generates the next sequential numeric ID for an object."""
@@ -294,7 +312,8 @@ class CanvasBaseScreen(QGraphicsView):
         }
         
         # Use the factory logic to create the correct item type
-        self.create_graphic_item_from_data(data)
+        # Note: Signal is already emitted by create_graphic_item_from_data when is_restoring=False
+        graphics_item = self.create_graphic_item_from_data(data)
         self.save_items()
 
     def _add_overlays(self, item, data):
@@ -366,6 +385,10 @@ class CanvasBaseScreen(QGraphicsView):
             selected_items = self.scene.selectedItems()
             logger.debug(f"{len(selected_items)} items selected.")
             self.clear_transform_handler()
+            
+            # Update status bar with selected object info
+            self._update_selected_object_info()
+
 
             # Filter and validate items
             valid_items = []
@@ -389,8 +412,33 @@ class CanvasBaseScreen(QGraphicsView):
                     except Exception as e:
                         logger.error(f"CRITICAL: Error creating transform handler: {e}", exc_info=True)
                         self.transform_handler = None
+            
+            # Emit signal for layers dock to sync selection
+            # Calculate newly selected items (optimization: only valid BaseGraphicObject items)
+            self.canvas_selection_changed.emit(valid_items, [])
         except Exception as e:
             logger.error(f"CRITICAL: Error in on_selection_changed: {e}", exc_info=True)
+
+    def _update_selected_object_info(self):
+        """Emits object data changed signal with current selected object's position and size."""
+        selected_items = self.scene.selectedItems()
+        valid_items = [item for item in selected_items if isinstance(item, BaseGraphicObject)]
+        
+        if len(valid_items) == 1:
+            item = valid_items[0]
+            pos = item.pos()
+            rect = item.boundingRect()
+            self.object_data_changed.emit({
+                'position': (int(pos.x()), int(pos.y())),
+                'size': (int(rect.width()), int(rect.height()))
+            })
+        elif len(valid_items) == 0:
+            # No selection - emit empty data
+            self.object_data_changed.emit({
+                'position': None,
+                'size': None
+            })
+        # For multiple items, we don't show position/size (ambiguous)
 
     def mousePressEvent(self, event):
         """Handle mouse press events."""
@@ -435,6 +483,8 @@ class CanvasBaseScreen(QGraphicsView):
                 logger.debug(f"Passing mouse move to transform handler. Handle: {self._resizing_handle}")
                 self.transform_handler.handle_mouse_move(scene_pos, event.modifiers())
                 self.update_snap_lines(self.transform_handler.get_items())
+                # Update status bar with current size/position during resize
+                self._update_selected_object_info()
 
             except Exception as e:
                 logger.error(f"CRITICAL: Error during handle mouse move: {e}", exc_info=True)
@@ -446,6 +496,9 @@ class CanvasBaseScreen(QGraphicsView):
             moving_items = self.scene.selectedItems()
             if moving_items:
                 self.update_snap_lines(moving_items)
+                # Update status bar with current position during drag
+                self._update_selected_object_info()
+
 
         if self.current_tool:
             self.current_tool.mouse_move(scene_pos, event.modifiers())
@@ -472,6 +525,8 @@ class CanvasBaseScreen(QGraphicsView):
             if not self.current_tool:
                 self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
             self.save_items()
+            # Update status bar with final size/position after resize
+            self._update_selected_object_info()
             event.accept()
             return
 
@@ -643,6 +698,7 @@ class CanvasBaseScreen(QGraphicsView):
             if self.scene.selectedItems():
                 for item in self.scene.selectedItems():
                     if isinstance(item, BaseGraphicObject):
+                        self.graphics_item_removed.emit(item)
                         self.scene.removeItem(item)
                 self.clear_transform_handler()
                 self.save_items()

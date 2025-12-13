@@ -21,6 +21,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import (
     QPainter, QPen, QColor, QBrush, QFont, QIcon, QCursor, QUndoStack, QUndoCommand
 )
+from styles import colors
 from .comment_utils import FormulaParser, FUNCTION_HINTS, adjust_formula_references, col_str_to_int, col_int_to_str
 
 
@@ -372,7 +373,7 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
         # Fill background
-        painter.fillRect(self.viewport().rect(), QColor(25, 25, 25))
+        painter.fillRect(self.viewport().rect(), QColor(colors.BG_SPREADSHEET))
         
         v_scroll = self.verticalScrollBar().value()
         h_scroll = self.horizontalScrollBar().value()
@@ -385,8 +386,8 @@ class VirtualSpreadsheet(QAbstractScrollArea):
     
     def _render_headers(self, painter, h_scroll, start_col, end_col):
         """Render column headers."""
-        painter.fillRect(0, 0, self.viewport().width(), self.header_height, QColor(53, 53, 53))
-        painter.setPen(QPen(QColor(85, 85, 85)))
+        painter.fillRect(0, 0, self.viewport().width(), self.header_height, QColor(colors.BG_DARK_QUATERNARY))
+        painter.setPen(QPen(QColor(colors.BORDER_MEDIUM)))
         
         # Render column headers
         for col in range(start_col, end_col + 1):
@@ -397,7 +398,7 @@ class VirtualSpreadsheet(QAbstractScrollArea):
             painter.setPen(QPen(QColor(200, 200, 200)))
             painter.drawText(x + 5, 0, self.cell_width - 10, self.header_height, 
                            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter, col_label)
-            painter.setPen(QPen(QColor(85, 85, 85)))
+            painter.setPen(QPen(QColor(colors.BORDER_MEDIUM)))
     
     def _render_cells(self, painter, v_scroll, h_scroll, start_row, end_row, start_col, end_col):
         """Render visible cells efficiently."""
@@ -406,10 +407,10 @@ class VirtualSpreadsheet(QAbstractScrollArea):
             y = row * self.cell_height - v_scroll
             
             # Render row header
-            painter.fillRect(-h_scroll, y, self.header_width, self.cell_height, QColor(53, 53, 53))
-            painter.setPen(QPen(QColor(85, 85, 85)))
+            painter.fillRect(-h_scroll, y, self.header_width, self.cell_height, QColor(colors.BG_DARK_QUATERNARY))
+            painter.setPen(QPen(QColor(colors.BORDER_MEDIUM)))
             painter.drawLine(-h_scroll, y + self.cell_height, self.viewport().width(), y + self.cell_height)
-            painter.setPen(QPen(QColor(200, 200, 200)))
+            painter.setPen(QPen(QColor(colors.TEXT_SECONDARY)))
             painter.drawText(-h_scroll + 5, y, self.header_width - 10, self.cell_height,
                            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter, str(row + 1))
             
@@ -422,17 +423,17 @@ class VirtualSpreadsheet(QAbstractScrollArea):
     def _render_cell(self, painter, x, y, cell: CellData, row: int, col: int):
         """Render a single cell."""
         # Cell background
-        bg_color = QColor(cell.bg_color) if cell.bg_color else QColor(25, 25, 25)
+        bg_color = QColor(cell.bg_color) if cell.bg_color else QColor(colors.BG_SPREADSHEET)
         painter.fillRect(x, y, self.cell_width, self.cell_height, bg_color)
         
         # Cell border
-        painter.setPen(QPen(QColor(85, 85, 85)))
+        painter.setPen(QPen(QColor(colors.BORDER_MEDIUM)))
         painter.drawLine(x + self.cell_width, y, x + self.cell_width, y + self.cell_height)
         
         # Selection highlight
         if self._is_cell_selected(row, col):
-            painter.fillRect(x, y, self.cell_width - 1, self.cell_height - 1, QColor(42, 130, 218, 128))
-            painter.setPen(QPen(QColor(42, 130, 218), 2))
+            painter.fillRect(x, y, self.cell_width - 1, self.cell_height - 1, QColor(colors.COLOR_SELECTION_HIGHLIGHT_ALT))
+            painter.setPen(QPen(QColor(colors.COLOR_SELECTION_HIGHLIGHT), 2))
             painter.drawRect(x, y, self.cell_width - 1, self.cell_height - 1)
         
         # Cell text
@@ -443,7 +444,7 @@ class VirtualSpreadsheet(QAbstractScrollArea):
             font.setUnderline(cell.font.get('underline', False))
         painter.setFont(font)
         
-        text_color = QColor(cell.text_color) if cell.text_color else QColor(200, 200, 200)
+        text_color = QColor(cell.text_color) if cell.text_color else QColor(colors.TEXT_SECONDARY)
         painter.setPen(QPen(text_color))
         painter.drawText(x + 3, y, self.cell_width - 6, self.cell_height,
                         Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, str(cell.value))

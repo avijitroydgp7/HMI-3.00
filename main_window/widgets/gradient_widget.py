@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QColor, QPainter, QLinearGradient, QBrush, QPen
 from PySide6.QtCore import Signal, QPointF, Qt
+from styles import colors
 
 from .color_selector import ColorSelector
 
@@ -32,7 +33,8 @@ class ColorPickerButton(QPushButton):
             self.color_changed.emit(self._color)
 
     def _update_style(self):
-        self.setStyleSheet(f"background-color: {self._color.name()}; border: 1px solid #555555;")
+        border_color = colors.BORDER_MEDIUM
+        self.setStyleSheet(f"background-color: {self._color.name()}; border: 1px solid {border_color};")
 
     def _open_color_picker(self):
         """Opens the color selector dialog to choose a new color."""
