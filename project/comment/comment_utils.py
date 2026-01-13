@@ -508,9 +508,9 @@ class FormulaParser:
         
         best = None
         for row in table_array:
-            if not row: continue
-            val = row[0]
+            if not row or len(row) == 0: continue
             try:
+                val = row[0]
                 if val == lookup_val: 
                     return row[col_idx] if col_idx < len(row) else "#REF!"
                 if val <= lookup_val: 

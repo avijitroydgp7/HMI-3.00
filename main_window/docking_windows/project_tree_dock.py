@@ -19,11 +19,11 @@ from ..dialogs.project_tree.device_data_transfer_dialog import DeviceDataTransfe
 from ..dialogs.project_tree.trigger_action_dialog import TriggerActionDialog
 from ..dialogs.project_tree.time_action_dialog import TimeActionDialog
 from ..dialogs.project_tree.image_dialog import ImageDialog
-
-logger = logging.getLogger(__name__)
 from ..dialogs.project_tree.animation_dialog import AnimationDialog
 from project.comment.comment_table import CommentTable
 from project.tag.tag_table import TagTable
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectTreeDock(QDockWidget):
