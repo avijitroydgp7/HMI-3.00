@@ -516,7 +516,7 @@ class FormulaParser:
                 if val <= lookup_val: 
                     best = row
                 else: break
-            except: continue
+            except (TypeError, ValueError, IndexError): continue
         
         if best and col_idx < len(best): return best[col_idx]
         return "#N/A"

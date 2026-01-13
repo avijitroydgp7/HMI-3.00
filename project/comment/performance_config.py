@@ -3,6 +3,9 @@
 Performance configuration and utilities for the comment table system.
 Centralized settings for optimization behavior.
 """
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Global configuration constants
 MAX_COLUMNS = 30
@@ -239,7 +242,7 @@ class PerformanceMonitor:
             elapsed = end_time - start_time
             self.operations[operation_name]['elapsed'] = elapsed
             
-            print(f"[PERF] {operation_name}: {elapsed:.2f}s")
+            logger.debug(f"[PERF] {operation_name}: {elapsed:.2f}s")
     
     def get_report(self) -> dict:
         """Get performance report."""

@@ -1,10 +1,13 @@
 # main_window\widgets\tree.py
+import logging
 from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
 from pathlib import Path
 from typing import Optional
 from styles import stylesheets
+
+logger = logging.getLogger(__name__)
 
 class CustomTreeWidget(QTreeWidget):
     """
@@ -163,7 +166,7 @@ class CustomTreeWidget(QTreeWidget):
         if icon_path.exists():
             return QIcon(str(icon_path))
         else:
-            print(f"Warning: Icon not found at {icon_path}")
+            logger.warning(f"Icon not found at {icon_path}")
             return QIcon()
     
     def add_item(self, parent: Optional[QTreeWidgetItem], text: str, icon: Optional[QIcon] = None, is_parent: bool = False) -> QTreeWidgetItem:

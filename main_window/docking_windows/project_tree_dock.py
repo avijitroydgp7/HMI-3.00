@@ -2,6 +2,7 @@
 import copy
 import json
 import csv
+import logging
 from PySide6.QtWidgets import QDockWidget, QTreeWidgetItem, QMenu, QDialog, QMessageBox, QFileDialog
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence
@@ -18,6 +19,8 @@ from ..dialogs.project_tree.device_data_transfer_dialog import DeviceDataTransfe
 from ..dialogs.project_tree.trigger_action_dialog import TriggerActionDialog
 from ..dialogs.project_tree.time_action_dialog import TimeActionDialog
 from ..dialogs.project_tree.image_dialog import ImageDialog
+
+logger = logging.getLogger(__name__)
 from ..dialogs.project_tree.animation_dialog import AnimationDialog
 from project.comment.comment_table import CommentTable
 from project.tag.tag_table import TagTable
@@ -487,7 +490,7 @@ class ProjectTreeDock(QDockWidget):
 
     def paste_tag(self):
         # Placeholder for future implementation
-        print("Paste Tag action triggered.")
+        logger.debug("Paste Tag action triggered.")
 
     def import_tags(self):
         """Import tags from a JSON or CSV file."""
@@ -603,7 +606,7 @@ class ProjectTreeDock(QDockWidget):
 
     def paste_comment(self):
         # Placeholder for future implementation
-        print("Paste Comment action triggered.")
+        logger.debug("Paste Comment action triggered.")
 
     def import_comments(self):
         """Import comments from a JSON file."""
