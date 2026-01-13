@@ -27,7 +27,7 @@ class SettingsService:
         if not os.path.exists(self.file_path):
             return self._get_default_settings()
         try:
-            with open(self.file_path, 'r') as f:
+            with open(self.file_path, 'r', encoding='utf-8') as f:
                 settings = json.load(f)
                 # Ensure visibility keys exist for backward compatibility
                 if "toolbars_visibility" not in settings:
@@ -99,7 +99,7 @@ class SettingsService:
                 }
             }
         
-        with open(self.file_path, 'w') as f:
+        with open(self.file_path, 'w', encoding='utf-8') as f:
             json.dump(self.settings, f, indent=4)
 
     def get_main_window_settings(self):
