@@ -65,7 +65,7 @@ class ObjectPropertiesToolbar(QToolBar):
         pos_layout.addWidget(x_icon)
         
         x_label = QLabel("X:")
-        x_label.setStyleSheet("font-weight: bold;")
+        x_label.setStyleSheet(stylesheets.get_bold_label_stylesheet())
         pos_layout.addWidget(x_label)
         
         self.x_spin = QDoubleSpinBox()
@@ -79,7 +79,7 @@ class ObjectPropertiesToolbar(QToolBar):
         
         # Y Position
         y_label = QLabel("Y:")
-        y_label.setStyleSheet("font-weight: bold;")
+        y_label.setStyleSheet(stylesheets.get_bold_label_stylesheet())
         pos_layout.addWidget(y_label)
         
         self.y_spin = QDoubleSpinBox()
@@ -106,7 +106,7 @@ class ObjectPropertiesToolbar(QToolBar):
         size_layout.addWidget(w_icon)
         
         w_label = QLabel("W:")
-        w_label.setStyleSheet("font-weight: bold;")
+        w_label.setStyleSheet(stylesheets.get_bold_label_stylesheet())
         size_layout.addWidget(w_label)
         
         self.width_spin = QDoubleSpinBox()
@@ -120,7 +120,7 @@ class ObjectPropertiesToolbar(QToolBar):
         
         # Height
         h_label = QLabel("H:")
-        h_label.setStyleSheet("font-weight: bold;")
+        h_label.setStyleSheet(stylesheets.get_bold_label_stylesheet())
         size_layout.addWidget(h_label)
         
         self.height_spin = QDoubleSpinBox()
@@ -153,7 +153,7 @@ class ObjectPropertiesToolbar(QToolBar):
         angle_layout.addWidget(angle_icon)
         
         angle_label = QLabel("∠:")
-        angle_label.setStyleSheet("font-weight: bold;")
+        angle_label.setStyleSheet(stylesheets.get_bold_label_stylesheet())
         angle_layout.addWidget(angle_label)
         
         self.angle_spin = QDoubleSpinBox()
@@ -270,7 +270,7 @@ class ObjectPropertiesToolbar(QToolBar):
             # Only push command if position actually changed
             if old_pos != new_pos:
                 # Use MoveItemsCommand for position changes
-                command = MoveItemsCommand([item], [old_pos], [new_pos], "Move Item")
+                command = MoveItemsCommand([item], [old_pos], [new_pos], "Move Item", active_screen)
                 active_screen.undo_stack.push(command)
             
             active_screen.scene.update()
@@ -304,7 +304,7 @@ class ObjectPropertiesToolbar(QToolBar):
             
             # Only push command if state actually changed
             if old_state != new_state:
-                command = TransformItemsCommand([item], [old_state], [new_state], "Resize Item")
+                command = TransformItemsCommand([item], [old_state], [new_state], "Resize Item", active_screen)
                 active_screen.undo_stack.push(command)
             
             active_screen.scene.update()
@@ -339,7 +339,7 @@ class ObjectPropertiesToolbar(QToolBar):
             
             # Only push command if state actually changed
             if old_state != new_state:
-                command = TransformItemsCommand([item], [old_state], [new_state], "Rotate Item")
+                command = TransformItemsCommand([item], [old_state], [new_state], "Rotate Item", active_screen)
                 active_screen.undo_stack.push(command)
             
             active_screen.scene.update()

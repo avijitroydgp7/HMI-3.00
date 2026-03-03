@@ -236,16 +236,20 @@ class PaletteWidget(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
 
-    def update_palette(self, colors):
+    def update_palette(self, palette_colors):
+        from styles import stylesheets
         while self.layout.count():
             child = self.layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
         
-        for color in colors:
+        for color in palette_colors:
             btn = QPushButton(color.name(QColor.NameFormat.HexArgb).upper())
             btn.setMinimumHeight(50)
-            btn.setStyleSheet(f"background-color: {color.name()}; color: {self._get_text_color(color).name()}; border: none;")
+            text_color = self._get_text_color(color).name()
+            btn.setStyleSheet(
+                stylesheets.get_color_preview_button_stylesheet(color.name(), text_color).replace("border-radius: 4px;", "")
+            )
             btn.clicked.connect(lambda _, c=color: self.color_clicked.emit(c))
             self.layout.addWidget(btn)
         self.layout.addStretch()
@@ -289,12 +293,8 @@ class ColorButton(QPushButton):
 
     def _update_style(self):
         """Updates the stylesheet based on the color and selection state."""
-        from styles import colors
-        if self._is_selected:
-            # A prominent blue border for selection
-            style = f"background-color: {self._color.name()}; border: 2px solid {colors.COLOR_FOCUS_HIGHLIGHT}; border-radius: 2px;"
-        else:
-            style = f"background-color: {self._color.name()}; border: 1px solid lightgrey;"
+        from styles import stylesheets
+        style = stylesheets.get_color_picker_button_stylesheet(self._color.name(), self._is_selected)
         self.setStyleSheet(style)
 
     def _emit_color(self):

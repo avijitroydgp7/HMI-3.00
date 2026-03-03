@@ -21,7 +21,7 @@ from ..widgets.pattern_widget import PatternWidget
 from ..services.icon_service import IconService
 from screen.base.base_graphic_object import BaseGraphicObject
 from services.undo_commands import PropertyChangeCommand
-from styles import colors
+from styles import colors, stylesheets
 
 
 class QuickColorButton(QPushButton):
@@ -43,11 +43,7 @@ class QuickColorButton(QPushButton):
         self._update_style()
     
     def _update_style(self):
-        self.setStyleSheet(
-            f"background-color: {self._color.name()}; "
-            f"border: 1px solid {colors.BORDER_MEDIUM}; "
-            f"border-radius: 2px;"
-        )
+        self.setStyleSheet(stylesheets.get_widget_color_button_stylesheet(self._color.name()) + " border-radius: 2px;")
 
 
 class ColorPickerButton(QPushButton):
@@ -71,10 +67,7 @@ class ColorPickerButton(QPushButton):
             self._update_style()
     
     def _update_style(self):
-        self.setStyleSheet(
-            f"background-color: {self._color.name()}; "
-            f"border: 1px solid {colors.BORDER_MEDIUM};"
-        )
+        self.setStyleSheet(stylesheets.get_widget_color_button_stylesheet(self._color.name()))
     
     def _open_picker(self):
         new_color = ColorSelector.getColor(self._color, self)
@@ -134,10 +127,7 @@ class FillPreviewButton(QPushButton):
     
     def _update_style(self):
         if self._fill_type == "Color":
-            self.setStyleSheet(
-                f"background-color: {self._color.name()}; "
-                f"border: 1px solid {colors.BORDER_MEDIUM};"
-            )
+            self.setStyleSheet(stylesheets.get_widget_color_button_stylesheet(self._color.name()))
         elif self._fill_type == "Gradient" and self._gradient_data:
             c1 = self._gradient_data.get("color1", QColor("white")).name()
             c2 = self._gradient_data.get("color2", QColor("black")).name()
@@ -171,8 +161,8 @@ class FillTypeSelector(QWidget):
         super().__init__(parent)
         self._fill_type = "Color"
         self._color = QColor("white")
-        self._gradient_data = {"color1": QColor("#D0CECE"), "color2": QColor("#596978"), "stops": "Horizontal"}
-        self._pattern_data = {"fg_color": QColor("black"), "bg_color": QColor("white"), "pattern": Qt.BrushStyle.SolidPattern}
+        self._gradient_data = {"color1": QColor(colors.GRADIENT_COLOR_1_DEFAULT), "color2": QColor(colors.GRADIENT_COLOR_2_DEFAULT), "stops": "Horizontal"}
+        self._pattern_data = {"fg_color": QColor(colors.PATTERN_FG_DEFAULT), "bg_color": QColor(colors.PATTERN_BG_DEFAULT), "pattern": Qt.BrushStyle.SolidPattern}
         self._image_path = None
         
         layout = QHBoxLayout(self)
@@ -686,7 +676,7 @@ class TextTab(QWidget):
         self.bold_btn.setText("B")
         self.bold_btn.setCheckable(True)
         self.bold_btn.setFixedSize(24, 24)
-        self.bold_btn.setStyleSheet("font-weight: bold;")
+        self.bold_btn.setStyleSheet(stylesheets.get_font_style_button_stylesheet("bold"))
         self.bold_btn.toggled.connect(self._on_font_changed)
         style_layout.addWidget(self.bold_btn)
         
@@ -694,7 +684,7 @@ class TextTab(QWidget):
         self.italic_btn.setText("I")
         self.italic_btn.setCheckable(True)
         self.italic_btn.setFixedSize(24, 24)
-        self.italic_btn.setStyleSheet("font-style: italic;")
+        self.italic_btn.setStyleSheet(stylesheets.get_font_style_button_stylesheet("italic"))
         self.italic_btn.toggled.connect(self._on_font_changed)
         style_layout.addWidget(self.italic_btn)
         
@@ -702,7 +692,7 @@ class TextTab(QWidget):
         self.underline_btn.setText("U")
         self.underline_btn.setCheckable(True)
         self.underline_btn.setFixedSize(24, 24)
-        self.underline_btn.setStyleSheet("text-decoration: underline;")
+        self.underline_btn.setStyleSheet(stylesheets.get_font_style_button_stylesheet("underline"))
         self.underline_btn.toggled.connect(self._on_font_changed)
         style_layout.addWidget(self.underline_btn)
         
@@ -710,7 +700,7 @@ class TextTab(QWidget):
         self.strikethrough_btn.setText("S")
         self.strikethrough_btn.setCheckable(True)
         self.strikethrough_btn.setFixedSize(24, 24)
-        self.strikethrough_btn.setStyleSheet("text-decoration: line-through;")
+        self.strikethrough_btn.setStyleSheet(stylesheets.get_font_style_button_stylesheet("strikethrough"))
         self.strikethrough_btn.toggled.connect(self._on_font_changed)
         style_layout.addWidget(self.strikethrough_btn)
         

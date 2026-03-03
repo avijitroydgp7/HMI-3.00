@@ -134,6 +134,24 @@ GRADIENT_COLOR_1_DEFAULT = "#D0CECE"  # Gradient color 1 default (light grey)
 GRADIENT_COLOR_2_DEFAULT = "#596978"  # Gradient color 2 default (slate grey)
 
 # ============================================================================
+# INTERACTIVE STATE COLORS (Pressed, Checked, Active states)
+# ============================================================================
+
+COLOR_PRESSED = "#707070"         # Button pressed state
+COLOR_PRESSED_HOVER = "#808080"   # Button pressed hover state
+COLOR_LIGHT_BORDER = "lightgrey"  # Light border color for color buttons
+
+# ============================================================================
+# PALETTE COLORS (For QPalette dark theme)
+# ============================================================================
+
+PALETTE_WINDOW = "#353535"        # QPalette Window (53, 53, 53)
+PALETTE_BASE = "#191919"          # QPalette Base (25, 25, 25)
+PALETTE_ALT_BASE = "#353535"      # QPalette AlternateBase (53, 53, 53)
+PALETTE_BUTTON = "#353535"        # QPalette Button (53, 53, 53)
+PALETTE_LINK = "#2a82da"          # QPalette Link (42, 130, 218)
+
+# ============================================================================
 # UTILITY COLOR FUNCTIONS
 # ============================================================================
 

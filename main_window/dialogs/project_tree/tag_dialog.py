@@ -39,8 +39,13 @@ class TagDialog(QDialog):
         
         self.resize(400, 250)
 
+        # Initialize spinbox value
         if initial_data:
             self.load_data(initial_data)
+        else:
+            # For new tag, set to next available number
+            next_number = self._get_next_available_number()
+            self.number_spinbox.setValue(next_number)
 
     def load_data(self, data):
         """Loads existing data into the dialog for editing."""
@@ -48,6 +53,13 @@ class TagDialog(QDialog):
         self.name_input.setText(data.get("name", ""))
         self.description_input.setPlainText(data.get("description", ""))
         self.number_spinbox.setEnabled(False)  # Number is not editable
+
+    def _get_next_available_number(self):
+        """Calculates and returns the next available tag number."""
+        if not self.existing_tag_numbers:
+            return 1
+        # Return max number + 1
+        return max(self.existing_tag_numbers) + 1
 
     def accept(self):
         """

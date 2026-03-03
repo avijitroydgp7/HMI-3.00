@@ -73,7 +73,8 @@ def adjust_formula_references(formula, row_offset, col_offset, min_row=0, min_co
     if not formula.startswith('='):
         return formula
 
-    ref_regex = re.compile(r"(\$?[A-Z]+)(\$?\d+)")
+    # Use re.IGNORECASE flag to match both uppercase and lowercase cell references
+    ref_regex = re.compile(r"(\$?[A-Za-z]+)(\$?\d+)")
 
     def replacement(match):
         col_part = match.group(1)
@@ -218,8 +219,8 @@ class FormulaParser:
     def _tokenize(self, expression):
         token_specification = [
             ('FUNCTION',  r'[A-Z][A-Z0-9_]*\('),
-            ('CELLRANGE', r'[A-Z]+[0-9]+:[A-Z]+[0-9]+'),
-            ('CELL',      r'[A-Z]+[0-9]+'),
+            ('CELLRANGE', r'\$?[A-Z]+\$?[0-9]+:\$?[A-Z]+\$?[0-9]+'),
+            ('CELL',      r'\$?[A-Z]+\$?[0-9]+'),
             ('NUMBER',    r'[0-9]+(\.[0-9]*)?'),
             ('BOOLEAN',   r'TRUE|FALSE'),
             ('STRING',    r'"[^"]*"'),
@@ -467,7 +468,9 @@ class FormulaParser:
             self.pos += 1
 
     def _resolve_cell(self, ref):
-        match = re.match(r"([A-Z]+)(\d+)", ref.upper())
+        # Strip $ signs for absolute references - they don't affect evaluation, only copy/fill behavior
+        clean_ref = ref.replace('$', '').upper()
+        match = re.match(r"([A-Z]+)(\d+)", clean_ref)
         if not match: raise ValueError("Invalid cell ref")
         col_str, row_str = match.groups()
         row = int(row_str) - 1
@@ -477,7 +480,9 @@ class FormulaParser:
         return self.table.get_cell_value(row, col)
 
     def _resolve_range(self, ref_range):
-        start_ref, end_ref = ref_range.split(':')
+        # Strip $ signs for absolute references - they don't affect evaluation
+        clean_range = ref_range.replace('$', '')
+        start_ref, end_ref = clean_range.split(':')
         r1, c1 = self._cell_coords(start_ref)
         r2, c2 = self._cell_coords(end_ref)
         vals = []

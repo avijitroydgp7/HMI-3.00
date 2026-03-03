@@ -221,7 +221,8 @@ class BaseTransformHandler(QGraphicsItem):
                 items, 
                 self._undo_initial_states, 
                 new_states, 
-                description
+                description,
+                self.canvas
             )
             self.canvas.undo_stack.push(command)
             logger.debug(f"Pushed undo command: {description}")

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QColor, QPainter, QLinearGradient, QBrush, QPen
 from PySide6.QtCore import Signal, QPointF, Qt
-from styles import colors
+from styles import colors, stylesheets
 
 from .color_selector import ColorSelector
 
@@ -33,8 +33,7 @@ class ColorPickerButton(QPushButton):
             self.color_changed.emit(self._color)
 
     def _update_style(self):
-        border_color = colors.BORDER_MEDIUM
-        self.setStyleSheet(f"background-color: {self._color.name()}; border: 1px solid {border_color};")
+        self.setStyleSheet(stylesheets.get_widget_color_button_stylesheet(self._color.name()))
 
     def _open_color_picker(self):
         """Opens the color selector dialog to choose a new color."""
@@ -111,8 +110,8 @@ class GradientWidget(QWidget):
         color_group = QGroupBox("Color")
         color_layout = QGridLayout()
         color_group.setLayout(color_layout)
-        self.color1_button = ColorPickerButton(QColor("#D0CECE"))
-        self.color2_button = ColorPickerButton(QColor("#596978"))
+        self.color1_button = ColorPickerButton(QColor(colors.GRADIENT_COLOR_1_DEFAULT))
+        self.color2_button = ColorPickerButton(QColor(colors.GRADIENT_COLOR_2_DEFAULT))
         color_layout.addWidget(QLabel("Color1"), 0, 0)
         color_layout.addWidget(self.color1_button, 0, 1)
         color_layout.addWidget(QLabel("Color2"), 1, 0)

@@ -15,60 +15,97 @@ class TransformItemsCommand(QUndoCommand):
     Captures complete state before and after transformation.
     Supports single and multiple items.
     """
-    def __init__(self, items, old_states, new_states, description="Transform Items"):
+    def __init__(self, items, old_states, new_states, description="Transform Items", canvas=None):
         super().__init__(description)
-        self.items = items if isinstance(items, list) else [items]
+        items_list = items if isinstance(items, list) else [items]
         # Each state is a dict: {'pos': QPointF, 'rect': QRectF, 'rotation': float, 'transform_origin': QPointF, 'corner_radii': list}
         self.old_states = old_states if isinstance(old_states, list) else [old_states]
         self.new_states = new_states if isinstance(new_states, list) else [new_states]
-        self._first_redo = True
+        self.canvas = canvas  # Reference to canvas for updating transform handler
+        
+        # Store item IDs instead of direct references
+        self.item_ids = []
+        for item in items_list:
+            item_data = item.data(Qt.ItemDataRole.UserRole)
+            if item_data:
+                item_id = item_data.get('id')
+                if item_id:
+                    self.item_ids.append(item_id)
+    
+    def _get_items_by_id(self):
+        """Retrieve current items from the scene by their stored IDs."""
+        items = []
+        if not self.canvas:
+            return items
+            
+        for item_id in self.item_ids:
+            for item in self.canvas.scene.items():
+                data = item.data(Qt.ItemDataRole.UserRole)
+                if data and data.get('id') == item_id:
+                    items.append(item)
+                    break
+        return items
         
     def redo(self):
         """Apply new transform states."""
-        # Skip first redo since transformation was already applied during mouse interaction
-        if self._first_redo:
-            self._first_redo = False
-            return
-        self._apply_states(self.new_states)
+        items = self._get_items_by_id()
+        self._apply_states(items, self.new_states)
+        self._refresh_transform_handler()
         
     def undo(self):
         """Restore old transform states."""
-        self._apply_states(self.old_states)
+        items = self._get_items_by_id()
+        self._apply_states(items, self.old_states)
+        self._refresh_transform_handler()
     
-    def _apply_states(self, states):
+    def _refresh_transform_handler(self):
+        """Refresh the transform handler if canvas is available."""
+        if self.canvas and hasattr(self.canvas, 'refresh_transform_handler'):
+            try:
+                self.canvas.refresh_transform_handler()
+            except Exception as e:
+                pass  # Silently ignore errors when refreshing
+    
+    def _apply_states(self, items, states):
         """Apply a list of states to items."""
-        for item, state in zip(self.items, states):
-            if not state or not item.scene():
-                continue
-            
-            # Apply geometry (rect) first - this may affect size-dependent properties
-            if 'rect' in state and hasattr(item, 'set_geometry'):
-                item.set_geometry(state['rect'])
-            
-            # Apply transform origin before rotation (rotation uses this point)
-            if 'transform_origin' in state:
-                item.setTransformOriginPoint(state['transform_origin'])
-            
-            # Apply rotation after transform origin is set
-            if 'rotation' in state:
-                item.setRotation(state['rotation'])
-            
-            # Apply position after geometry and rotation are set
-            if 'pos' in state:
-                item.setPos(state['pos'])
-            
-            # Apply full transform (for flip operations)
-            if 'transform' in state:
-                item.setTransform(state['transform'])
-            
-            # Apply corner radii for rectangles
-            if 'corner_radii' in state and hasattr(item, 'corner_radii'):
-                item.corner_radii = state['corner_radii'].copy()
-                if hasattr(item, 'update_path'):
-                    item.update_path()
-            
-            # Ensure item redraws
-            item.update()
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        for item, state in zip(items, states):
+            try:
+                if not state or not item or item.scene() != self.canvas.scene:
+                    continue
+                
+                # Apply geometry (rect) first - this may affect size-dependent properties
+                if 'rect' in state and hasattr(item, 'set_geometry'):
+                    item.set_geometry(state['rect'])
+                
+                # Apply transform origin before rotation (rotation uses this point)
+                if 'transform_origin' in state:
+                    item.setTransformOriginPoint(state['transform_origin'])
+                
+                # Apply rotation after transform origin is set
+                if 'rotation' in state:
+                    item.setRotation(state['rotation'])
+                
+                # Apply position after geometry and rotation are set
+                if 'pos' in state:
+                    item.setPos(state['pos'])
+                
+                # Apply full transform (for flip operations)
+                if 'transform' in state:
+                    item.setTransform(state['transform'])
+                
+                # Apply corner radii for rectangles
+                if 'corner_radii' in state and hasattr(item, 'corner_radii'):
+                    item.corner_radii = state['corner_radii'].copy()
+                    if hasattr(item, 'update_path'):
+                        item.update_path()
+                
+                # Ensure item redraws
+                item.update()
+            except Exception as e:
+                logger.error(f"Error applying state to item: {e}", exc_info=True)
     
     def id(self):
         """Return -1 to prevent merging of transform commands."""
@@ -89,13 +126,9 @@ class CornerRadiusCommand(QUndoCommand):
         self.item = item
         self.old_radii = old_radii.copy() if old_radii else [0.0, 0.0, 0.0, 0.0]
         self.new_radii = new_radii.copy() if new_radii else [0.0, 0.0, 0.0, 0.0]
-        self._first_redo = True
         
     def redo(self):
         """Apply new corner radii."""
-        if self._first_redo:
-            self._first_redo = False
-            return
         self._apply_radii(self.new_radii)
         
     def undo(self):
@@ -161,6 +194,7 @@ class RemoveItemCommand(QUndoCommand):
         self.canvas = canvas
         # Store item data for all items being removed
         self.items_data = []
+        self.removed_items = []  # Track items that were actually removed
         for item in items:
             item_data = item.data(Qt.ItemDataRole.UserRole)
             if item_data:
@@ -177,12 +211,15 @@ class RemoveItemCommand(QUndoCommand):
         # Find and remove items by their ID
         for item_data in self.items_data:
             item_id = item_data.get('id')
-            for item in self.canvas.scene.items():
+            # Get a fresh list of scene items for each iteration
+            for item in list(self.canvas.scene.items()):
                 data = item.data(Qt.ItemDataRole.UserRole)
                 if data and data.get('id') == item_id:
-                    self.canvas._previous_selection.discard(item)
-                    self.canvas.graphics_item_removed.emit(item)
-                    self.canvas.scene.removeItem(item)
+                    # Only remove if the item is actually in the scene
+                    if item.scene() == self.canvas.scene:
+                        self.canvas._previous_selection.discard(item)
+                        self.canvas.graphics_item_removed.emit(item)
+                        self.canvas.scene.removeItem(item)
                     break
         self.canvas.clear_transform_handler()
         self.canvas.save_items()
@@ -202,28 +239,73 @@ class MoveItemsCommand(QUndoCommand):
     Command for moving graphic items on the canvas.
     Supports moving single or multiple items.
     """
-    def __init__(self, items, old_positions, new_positions, description="Move Items"):
+    def __init__(self, items, old_positions, new_positions, description="Move Items", canvas=None):
         super().__init__(description)
-        self.items = items
-        self.old_positions = old_positions  # List of QPointF
-        self.new_positions = new_positions  # List of QPointF
-        self._first_redo = True
+        self.canvas = canvas  # Reference to canvas for updating transform handler
+        
+        # Store item IDs and data instead of direct references to avoid stale references
+        self.item_ids = []
+        self.old_positions = []  # List of QPointF
+        self.new_positions = []  # List of QPointF
+        
+        for item, old_pos, new_pos in zip(items, old_positions, new_positions):
+            item_data = item.data(Qt.ItemDataRole.UserRole)
+            if item_data:
+                item_id = item_data.get('id')
+                if item_id:
+                    self.item_ids.append(item_id)
+                    self.old_positions.append(old_pos)
+                    self.new_positions.append(new_pos)
+        
+    def _get_items_by_id(self):
+        """Retrieve current items from the scene by their stored IDs."""
+        items = []
+        if not self.canvas:
+            return items
+            
+        for item_id in self.item_ids:
+            for item in self.canvas.scene.items():
+                data = item.data(Qt.ItemDataRole.UserRole)
+                if data and data.get('id') == item_id:
+                    items.append(item)
+                    break
+        return items
         
     def redo(self):
         """Move items to new positions."""
-        # Skip first redo since the move already happened during drag
-        if self._first_redo:
-            self._first_redo = False
-            return
-        for item, new_pos in zip(self.items, self.new_positions):
-            if item.scene():
-                item.setPos(new_pos)
+        try:
+            items = self._get_items_by_id()
+            for item, new_pos in zip(items, self.new_positions):
+                if item and item.scene() == self.canvas.scene:
+                    item.setPos(new_pos)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error during redo: {e}", exc_info=True)
+        finally:
+            self._refresh_transform_handler()
         
     def undo(self):
         """Move items back to old positions."""
-        for item, old_pos in zip(self.items, self.old_positions):
-            if item.scene():
-                item.setPos(old_pos)
+        try:
+            items = self._get_items_by_id()
+            for item, old_pos in zip(items, self.old_positions):
+                if item and item.scene() == self.canvas.scene:
+                    item.setPos(old_pos)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error during undo: {e}", exc_info=True)
+        finally:
+            self._refresh_transform_handler()
+    
+    def _refresh_transform_handler(self):
+        """Refresh the transform handler if canvas is available."""
+        if self.canvas and hasattr(self.canvas, 'refresh_transform_handler'):
+            try:
+                self.canvas.refresh_transform_handler()
+            except Exception as e:
+                pass  # Silently ignore errors when refreshing
     
     def id(self):
         """Return -1 to prevent merging of move commands."""
@@ -373,7 +455,7 @@ class PasteItemsCommand(QUndoCommand):
     def undo(self):
         """Remove pasted items."""
         for item in self.created_items:
-            if item and item.scene():
+            if item and item.scene() == self.canvas.scene:
                 self.canvas._previous_selection.discard(item)
                 self.canvas.graphics_item_removed.emit(item)
                 self.canvas.scene.removeItem(item)
@@ -441,7 +523,7 @@ class DuplicateItemsCommand(QUndoCommand):
     def undo(self):
         """Remove duplicates."""
         for item in self.created_items:
-            if item and item.scene():
+            if item and item.scene() == self.canvas.scene:
                 self.canvas._previous_selection.discard(item)
                 self.canvas.graphics_item_removed.emit(item)
                 self.canvas.scene.removeItem(item)

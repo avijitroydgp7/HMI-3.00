@@ -1,7 +1,7 @@
 # main_window\widgets\dock_title_bar.py
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QToolButton, QStyle
 from PySide6.QtCore import Qt
-from styles import colors as c
+from styles import stylesheets
 
 class DockTitleBar(QWidget):
     """
@@ -43,25 +43,8 @@ class DockTitleBar(QWidget):
         self.close_button.clicked.connect(self.dock_widget.close)
         layout.addWidget(self.close_button)
         
-        # Styling
-        self.setStyleSheet(f"""
-            DockTitleBar {{
-                background-color: {c.BG_DARK_QUATERNARY};
-                border-bottom: 1px solid {c.BORDER_DARK};
-            }}
-            QLabel {{
-                color: {c.TEXT_PRIMARY};
-                font-weight: normal;
-            }}
-            QToolButton {{
-                background: transparent;
-                border: none;
-                padding: 2px;
-            }}
-            QToolButton:hover {{
-                background-color: {c.COLOR_HOVER};
-            }}
-        """)
+        # Apply centralized styling
+        self.setStyleSheet(stylesheets.get_dock_title_bar_stylesheet())
 
     def mousePressEvent(self, event):
         # Allow dragging the dock widget by its custom title bar

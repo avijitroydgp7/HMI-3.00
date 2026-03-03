@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QBrush, QPainter, QPixmap
+from styles import stylesheets
 
 from .screen_design import ScreenDesignDialog
 
@@ -104,7 +105,7 @@ class BaseScreenDialog(QDialog):
         length = len(self.description_input.toPlainText())
         self.description_char_count.setText(f"{length}/500")
         if length > 500:
-            self.description_char_count.setStyleSheet("color: red;")
+            self.description_char_count.setStyleSheet(stylesheets.get_error_text_stylesheet())
         else:
             self.description_char_count.setStyleSheet("")
 
@@ -135,7 +136,9 @@ class BaseScreenDialog(QDialog):
             color = QColor(color_str)
             text_color = "black" if color.lightnessF() > 0.5 else "white"
             self.design_preview_button.setText(f"Solid Color: {color.name()}")
-            self.design_preview_button.setStyleSheet(f"background-color: {color.name()}; color: {text_color};")
+            self.design_preview_button.setStyleSheet(
+                stylesheets.get_color_preview_button_stylesheet(color.name(), text_color)
+            )
         elif style_type == "gradient":
             grad = self.screen_design_data.get("gradient")
             if grad:
@@ -144,10 +147,14 @@ class BaseScreenDialog(QDialog):
                 c1_hex = c1.name()
                 c2_hex = c2.name()
                 self.design_preview_button.setText(f"Gradient: {grad['stops']}")
-                self.design_preview_button.setStyleSheet(f"background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {c1_hex}, stop:1 {c2_hex});")
+                self.design_preview_button.setStyleSheet(
+                    stylesheets.get_gradient_preview_button_stylesheet(
+                        "x1:0, y1:0, x2:1, y2:0", c1_hex, c2_hex
+                    )
+                )
         elif style_type == "pattern":
              self.design_preview_button.setText("Pattern Selected")
-             self.design_preview_button.setStyleSheet("")
+             self.design_preview_button.setStyleSheet(stylesheets.get_pattern_preview_button_stylesheet())
         elif style_type == "image":
             path = self.screen_design_data.get("image_path", "")
             filename = path.split('/')[-1]

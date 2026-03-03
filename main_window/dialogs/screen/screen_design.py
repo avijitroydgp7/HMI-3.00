@@ -9,7 +9,7 @@ from PySide6.QtGui import (
     QColor, QPixmap, QIcon, QPainter, QLinearGradient, QBrush
 )
 from PySide6.QtCore import Qt, QEvent, QPointF, QSize
-from styles import colors
+from styles import colors, stylesheets
 
 # Import the refactored widgets
 from ...widgets.color_selector import ColorSelector
@@ -106,22 +106,9 @@ class ScreenDesignDialog(QDialog):
         text_color = "black" if color.lightnessF() > 0.5 else "white"
         hex_code = color.name(QColor.NameFormat.HexRgb).upper()
         self.color_preview_button.setText(f"{hex_code}\nClick to change")
-        self.color_preview_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {color.name()};
-                color: {text_color};
-                border: 1px solid {colors.BORDER_MEDIUM};
-                border-radius: 4px;
-                text-align: center;
-                padding: 5px;
-            }}
-            QPushButton:hover {{
-                background-color: {colors.COLOR_HOVER};
-                border: 2px solid transparent;
-                border: 2px solid transparent;
-                border: 2px solid transparent;
-            }}
-        """ )
+        self.color_preview_button.setStyleSheet(
+            stylesheets.get_color_preview_button_stylesheet(color.name(), text_color)
+        )
 
     def _open_color_selector_dialog(self):
         color = ColorSelector.getColor(self.selected_color, self)
@@ -162,16 +149,9 @@ class ScreenDesignDialog(QDialog):
             gradient_stops = "x1: 0, y1: 0, x2: 1, y2: 1"
 
         self.gradient_preview_button.setText("")
-        self.gradient_preview_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: qlineargradient({gradient_stops}, stop: 0 {color1_hex}, stop: 1 {color2_hex});
-                border: 1px solid {colors.BORDER_MEDIUM};
-                border-radius: 4px;
-            }}
-            QPushButton:hover {{
-                border: 2px solid {colors.COLOR_HOVER_FOCUS};
-            }}
-        """)
+        self.gradient_preview_button.setStyleSheet(
+            stylesheets.get_gradient_preview_button_stylesheet(gradient_stops, color1_hex, color2_hex)
+        )
 
     def _open_gradient_selector_dialog(self):
         dialog = QDialog(self)
@@ -230,15 +210,7 @@ class ScreenDesignDialog(QDialog):
         self.pattern_preview_button.setIcon(QIcon(icon_pixmap))
         self.pattern_preview_button.setIconSize(icon_pixmap.size())
         
-        self.pattern_preview_button.setStyleSheet(f"""
-            QPushButton {{
-                border: 1px solid {colors.BORDER_MEDIUM};
-                border-radius: 4px;
-            }}
-            QPushButton:hover {{
-                border: 2px solid {colors.COLOR_HOVER_FOCUS};
-            }}
-        """ )
+        self.pattern_preview_button.setStyleSheet(stylesheets.get_pattern_preview_button_stylesheet())
 
     def _open_pattern_selector_dialog(self):
         dialog = QDialog(self)

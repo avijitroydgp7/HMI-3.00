@@ -175,11 +175,11 @@ def get_tool_button_stylesheet() -> str:
             background-color: {c.COLOR_HOVER};
         }}
         QToolButton:checked, QToolButton:pressed {{
-            background-color: #707070;
+            background-color: {c.COLOR_PRESSED};
             border: 1px solid {c.BORDER_LIGHT};
         }}
         QToolButton:checked:hover {{
-            background-color: #808080;
+            background-color: {c.COLOR_PRESSED_HOVER};
         }}
     """
 
@@ -425,6 +425,244 @@ def get_menu_stylesheet() -> str:
 
 
 # ============================================================================
+# FONT STYLE BUTTON STYLESHEETS (Bold, Italic, Underline, Strikethrough)
+# ============================================================================
+
+def get_font_style_button_stylesheet(style_type: str) -> str:
+    """
+    Generate stylesheet for font style buttons (B/I/U/S).
+    
+    Args:
+        style_type: One of 'bold', 'italic', 'underline', 'strikethrough'
+        
+    Returns:
+        QSS stylesheet string for font style button
+    """
+    styles = {
+        "bold": "font-weight: bold;",
+        "italic": "font-style: italic;",
+        "underline": "text-decoration: underline;",
+        "strikethrough": "text-decoration: line-through;"
+    }
+    return styles.get(style_type, "")
+
+
+def get_bold_label_stylesheet() -> str:
+    """
+    Generate stylesheet for bold labels.
+    
+    Returns:
+        QSS stylesheet string for bold labels
+    """
+    return "font-weight: bold;"
+
+
+# ============================================================================
+# COLOR PICKER BUTTON STYLESHEET
+# ============================================================================
+
+def get_color_picker_button_stylesheet(color_hex: str, is_selected: bool = False) -> str:
+    """
+    Generate stylesheet for color picker buttons (used in palettes, gradients, patterns).
+    
+    Args:
+        color_hex: Button background color (hex)
+        is_selected: Whether the button is selected/focused
+        
+    Returns:
+        QSS stylesheet string for color picker button
+    """
+    if is_selected:
+        border = f"2px solid {c.COLOR_FOCUS_HIGHLIGHT}"
+    else:
+        border = f"1px solid {c.COLOR_LIGHT_BORDER}"
+    
+    return f"background-color: {color_hex}; border: {border}; border-radius: 2px;"
+
+
+def get_widget_color_button_stylesheet(color_hex: str) -> str:
+    """
+    Generate stylesheet for widget color picker buttons (gradient_widget, pattern_widget).
+    
+    Args:
+        color_hex: Button background color (hex)
+        
+    Returns:
+        QSS stylesheet string for color button
+    """
+    return f"background-color: {color_hex}; border: 1px solid {c.BORDER_MEDIUM};"
+
+
+# ============================================================================
+# PREVIEW BUTTON STYLESHEETS (For dialogs)
+# ============================================================================
+
+def get_color_preview_button_stylesheet(color_hex: str, text_color: str = "white") -> str:
+    """
+    Generate stylesheet for color preview buttons in dialogs.
+    
+    Args:
+        color_hex: Background color (hex)
+        text_color: Text color ('black' or 'white')
+        
+    Returns:
+        QSS stylesheet string for color preview button
+    """
+    return f"""
+        QPushButton {{
+            background-color: {color_hex};
+            color: {text_color};
+            border: 1px solid {c.BORDER_MEDIUM};
+            border-radius: 4px;
+            text-align: center;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: {c.COLOR_HOVER};
+            border: 2px solid {c.COLOR_HOVER_FOCUS};
+        }}
+    """
+
+
+def get_gradient_preview_button_stylesheet(gradient_stops: str, color1_hex: str, color2_hex: str) -> str:
+    """
+    Generate stylesheet for gradient preview buttons in dialogs.
+    
+    Args:
+        gradient_stops: QSS gradient stop string (e.g., "x1: 0, y1: 0, x2: 1, y2: 0")
+        color1_hex: First gradient color (hex)
+        color2_hex: Second gradient color (hex)
+        
+    Returns:
+        QSS stylesheet string for gradient preview button
+    """
+    return f"""
+        QPushButton {{
+            background-color: qlineargradient({gradient_stops}, stop: 0 {color1_hex}, stop: 1 {color2_hex});
+            border: 1px solid {c.BORDER_MEDIUM};
+            border-radius: 4px;
+        }}
+        QPushButton:hover {{
+            border: 2px solid {c.COLOR_HOVER_FOCUS};
+        }}
+    """
+
+
+def get_pattern_preview_button_stylesheet() -> str:
+    """
+    Generate stylesheet for pattern preview buttons in dialogs.
+    
+    Returns:
+        QSS stylesheet string for pattern preview button
+    """
+    return f"""
+        QPushButton {{
+            border: 1px solid {c.BORDER_MEDIUM};
+            border-radius: 4px;
+        }}
+        QPushButton:hover {{
+            border: 2px solid {c.COLOR_HOVER_FOCUS};
+        }}
+    """
+
+
+# ============================================================================
+# DOCK TITLE BAR STYLESHEET
+# ============================================================================
+
+def get_dock_title_bar_stylesheet() -> str:
+    """
+    Generate stylesheet for dock widget title bars.
+    
+    Returns:
+        QSS stylesheet string for dock title bar
+    """
+    return f"""
+        DockTitleBar {{
+            background-color: {c.BG_DARK_QUATERNARY};
+            border-bottom: 1px solid {c.BORDER_DARK};
+        }}
+        QLabel {{
+            color: {c.TEXT_PRIMARY};
+            font-weight: normal;
+        }}
+        QToolButton {{
+            background: transparent;
+            border: none;
+            padding: 2px;
+        }}
+        QToolButton:hover {{
+            background-color: {c.COLOR_HOVER};
+        }}
+    """
+
+
+# ============================================================================
+# SPREADSHEET/TABLE STYLESHEET
+# ============================================================================
+
+def get_spreadsheet_stylesheet() -> str:
+    """
+    Generate stylesheet for spreadsheet/table widgets.
+    
+    Returns:
+        QSS stylesheet string for spreadsheet
+    """
+    return f"""
+        QTableWidget {{
+            background-color: {c.BG_SPREADSHEET};
+            color: {c.TEXT_PRIMARY};
+            gridline-color: {c.GRID_LINE};
+            selection-background-color: transparent;
+            border: none;
+        }}
+        QTableWidget::item {{
+            padding: 2px;
+        }}
+        QLineEdit {{
+            background-color: {c.BG_DARK_TERTIARY};
+            color: {c.TEXT_PRIMARY};
+            border: 1px solid {c.ACCENT_GREEN};
+        }}
+    """
+
+
+# ============================================================================
+# QPALETTE DARK THEME CREATOR
+# ============================================================================
+
+def create_dark_palette():
+    """
+    Create and return a QPalette configured for the dark theme.
+    
+    This function centralizes the QPalette creation that was previously
+    hardcoded in main.py, ensuring consistent theming across the application.
+    
+    Returns:
+        QPalette: Configured dark theme palette
+    """
+    from PySide6.QtGui import QPalette, QColor
+    from PySide6.QtCore import Qt
+    
+    dark_palette = QPalette()
+    dark_palette.setColor(QPalette.ColorRole.Window, QColor(c.PALETTE_WINDOW))
+    dark_palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
+    dark_palette.setColor(QPalette.ColorRole.Base, QColor(c.PALETTE_BASE))
+    dark_palette.setColor(QPalette.ColorRole.AlternateBase, QColor(c.PALETTE_ALT_BASE))
+    dark_palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.black)
+    dark_palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.white)
+    dark_palette.setColor(QPalette.ColorRole.Text, Qt.GlobalColor.white)
+    dark_palette.setColor(QPalette.ColorRole.Button, QColor(c.PALETTE_BUTTON))
+    dark_palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.white)
+    dark_palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
+    dark_palette.setColor(QPalette.ColorRole.Link, QColor(c.PALETTE_LINK))
+    dark_palette.setColor(QPalette.ColorRole.Highlight, Qt.GlobalColor.transparent)
+    dark_palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.white)
+    
+    return dark_palette
+
+
+# ============================================================================
 # EXPORT ALL STYLESHEETS AS DICTIONARY
 # ============================================================================
 
@@ -443,4 +681,13 @@ STYLESHEETS = {
     "menu": get_menu_stylesheet,
     "toolbar": get_toolbar_stylesheet,
     "object_properties_toolbar": get_object_properties_toolbar_stylesheet,
+    "font_style_button": get_font_style_button_stylesheet,
+    "bold_label": get_bold_label_stylesheet,
+    "color_picker_button": get_color_picker_button_stylesheet,
+    "widget_color_button": get_widget_color_button_stylesheet,
+    "color_preview_button": get_color_preview_button_stylesheet,
+    "gradient_preview_button": get_gradient_preview_button_stylesheet,
+    "pattern_preview_button": get_pattern_preview_button_stylesheet,
+    "dock_title_bar": get_dock_title_bar_stylesheet,
+    "spreadsheet": get_spreadsheet_stylesheet,
 }

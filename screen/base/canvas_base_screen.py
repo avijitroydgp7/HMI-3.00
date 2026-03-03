@@ -313,7 +313,7 @@ class CanvasBaseScreen(QGraphicsView):
 
     def delete_graphic_object(self, item):
         """Deletes a graphic object from the scene."""
-        if isinstance(item, BaseGraphicObject) and item.scene():
+        if isinstance(item, BaseGraphicObject) and item.scene() == self.scene:
             # Remove from previous selection tracking
             self._previous_selection.discard(item)
             # Emit removal signal and remove from scene
@@ -442,6 +442,26 @@ class CanvasBaseScreen(QGraphicsView):
             self.transform_handler.cleanup()
             self.transform_handler = None
 
+    def refresh_transform_handler(self):
+        """Refresh the transform handler geometry to match current item positions/states."""
+        if self.transform_handler:
+            try:
+                # Verify the handler is still valid before updating
+                if not self.transform_handler.is_valid():
+                    logger.debug("Transform handler is no longer valid, clearing it")
+                    self.clear_transform_handler()
+                    return
+                    
+                self.transform_handler.update_geometry()
+                logger.debug("Transform handler refreshed")
+            except Exception as e:
+                logger.error(f"Error refreshing transform handler: {e}", exc_info=True)
+                # Clear invalid handler
+                try:
+                    self.clear_transform_handler()
+                except:
+                    pass
+
     def on_selection_changed(self):
         """Handle selection changes to update the transform handler."""
         logger.debug("Selection changed.")
@@ -540,7 +560,7 @@ class CanvasBaseScreen(QGraphicsView):
                     break
         
         if items and old_positions and new_positions:
-            command = MoveItemsCommand(items, old_positions, new_positions, "Move Items")
+            command = MoveItemsCommand(items, old_positions, new_positions, "Move Items", self)
             self.undo_stack.push(command)
             logger.debug(f"Pushed move undo command for {len(items)} items")
 
@@ -852,7 +872,7 @@ class CanvasBaseScreen(QGraphicsView):
             super().wheelEvent(event)
 
     def keyPressEvent(self, event):
-        """Handle key press events for zooming and panning."""
+        """Handle key press events for zooming, panning, and object movement."""
         if event.key() == Qt.Key.Key_Escape:
             if self.current_tool:
                 self.set_tool(None)
@@ -878,6 +898,22 @@ class CanvasBaseScreen(QGraphicsView):
         elif event.key() == Qt.Key.Key_Delete:
             # Use the centralized delete method with undo support
             self.delete()
+            event.accept()
+        # Handle arrow keys for object movement
+        elif event.key() in (Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_Left, Qt.Key.Key_Right):
+            # Determine movement distance (1 pixel default, or larger with Shift)
+            move_distance = 10 if event.modifiers() & Qt.KeyboardModifier.ShiftModifier else 1
+            
+            # Handle each arrow key direction
+            if event.key() == Qt.Key.Key_Up:
+                self.move_items_by_offset(0, -move_distance)
+            elif event.key() == Qt.Key.Key_Down:
+                self.move_items_by_offset(0, move_distance)
+            elif event.key() == Qt.Key.Key_Left:
+                self.move_items_by_offset(-move_distance, 0)
+            elif event.key() == Qt.Key.Key_Right:
+                self.move_items_by_offset(move_distance, 0)
+            
             event.accept()
         else:
             super().keyPressEvent(event)
@@ -1018,6 +1054,37 @@ class CanvasBaseScreen(QGraphicsView):
         
         logger.debug(f"Deleted {len(selected_items)} items")
 
+    def move_items_by_offset(self, dx, dy):
+        """Move selected items by the given offset with undo support."""
+        selected_items = [item for item in self.scene.selectedItems() 
+                         if isinstance(item, BaseGraphicObject)]
+        if not selected_items:
+            logger.debug("Move: No items selected")
+            return
+        
+        # Capture current positions before moving (as list, not dict)
+        old_positions = [QPointF(item.pos()) for item in selected_items]
+        
+        # Move items immediately
+        for item in selected_items:
+            new_pos = item.pos() + QPointF(dx, dy)
+            item.setPos(new_pos)
+        
+        # Capture new positions after moving (as list, not dict)
+        new_positions = [QPointF(item.pos()) for item in selected_items]
+        
+        # Create undo command with canvas reference
+        command = MoveItemsCommand(selected_items, old_positions, new_positions, "Move Items", self)
+        self.undo_stack.push(command)
+        
+        # Update transform handler to follow the moved items
+        self.refresh_transform_handler()
+        
+        # Update status bar with new position
+        self._update_selected_object_info()
+        
+        logger.debug(f"Moved {len(selected_items)} items by offset ({dx}, {dy})")
+
     def duplicate(self):
         """Duplicate selected items with offset."""
         selected_items = [item for item in self.scene.selectedItems() 
@@ -1149,7 +1216,7 @@ class CanvasBaseScreen(QGraphicsView):
         # Calculate alignment target based on first selected item (anchor)
         anchor_rect = rects[0]
         
-        old_positions = [item.pos() for item in selected_items]
+        old_positions = [QPointF(item.pos()) for item in selected_items]
         new_positions = []
         
         for item, rect in zip(selected_items, rects):
@@ -1171,7 +1238,7 @@ class CanvasBaseScreen(QGraphicsView):
             new_positions.append(new_pos)
         
         # Create move command for undo support
-        command = MoveItemsCommand(selected_items, old_positions, new_positions, f"Align {alignment}")
+        command = MoveItemsCommand(selected_items, old_positions, new_positions, f"Align {alignment}", self)
         self.undo_stack.push(command)
         self.save_items()
 
@@ -1199,7 +1266,7 @@ class CanvasBaseScreen(QGraphicsView):
             total_width = sum(r[1].width() for _, r in rects)
             spacing = (last_right - first_left - total_width) / (len(rects) - 1)
             
-            old_positions = [item.pos() for item, _ in rects]
+            old_positions = [QPointF(item.pos()) for item, _ in rects]
             new_positions = []
             
             current_x = first_left
@@ -1217,7 +1284,7 @@ class CanvasBaseScreen(QGraphicsView):
             total_height = sum(r[1].height() for _, r in rects)
             spacing = (last_bottom - first_top - total_height) / (len(rects) - 1)
             
-            old_positions = [item.pos() for item, _ in rects]
+            old_positions = [QPointF(item.pos()) for item, _ in rects]
             new_positions = []
             
             current_y = first_top
@@ -1228,7 +1295,7 @@ class CanvasBaseScreen(QGraphicsView):
                 current_y += rect.height() + spacing
         
         items = [item for item, _ in rects]
-        command = MoveItemsCommand(items, old_positions, new_positions, f"Distribute {direction}")
+        command = MoveItemsCommand(items, old_positions, new_positions, f"Distribute {direction}", self)
         self.undo_stack.push(command)
         self.save_items()
 
@@ -1300,8 +1367,11 @@ class CanvasBaseScreen(QGraphicsView):
         
         # Push undo command
         from services.undo_commands import TransformItemsCommand
-        command = TransformItemsCommand(selected_items, old_states, new_states, f"Flip {direction.title()}")
+        command = TransformItemsCommand(selected_items, old_states, new_states, f"Flip {direction.title()}", self)
         self.undo_stack.push(command)
+        
+        # Update transform handler to follow the flipped items
+        self.refresh_transform_handler()
         
         self.save_items()
         logger.debug(f"Flipped {len(selected_items)} items {direction}")
@@ -1363,8 +1433,11 @@ class CanvasBaseScreen(QGraphicsView):
         # Push undo command
         from services.undo_commands import TransformItemsCommand
         description = f"Rotate {'+' if angle > 0 else ''}{int(angle)}°"
-        command = TransformItemsCommand(selected_items, old_states, new_states, description)
+        command = TransformItemsCommand(selected_items, old_states, new_states, description, self)
         self.undo_stack.push(command)
+        
+        # Update transform handler to follow the rotated items
+        self.refresh_transform_handler()
         
         self.save_items()
         logger.debug(f"Rotated {len(selected_items)} items by {angle} degrees")

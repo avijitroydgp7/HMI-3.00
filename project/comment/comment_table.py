@@ -2,21 +2,32 @@
 import re
 import collections
 import logging
+import csv
+import json
+try:
+    from openpyxl import Workbook, load_workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    OPENPYXL_AVAILABLE = True
+except ImportError:
+    OPENPYXL_AVAILABLE = False
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem,
     QLineEdit, QMessageBox, QAbstractItemView, QHeaderView, QApplication, QLabel,
     QStyledItemDelegate, QMenu, QListWidget, QSpinBox, QDialog, QFormLayout, 
-    QPushButton, QHBoxLayout
+    QPushButton, QHBoxLayout, QStyle, QFileDialog
 )
 from main_window.widgets.color_selector import ColorSelector
+from main_window.services.icon_service import IconService
 from PySide6.QtGui import (
     QColor, QBrush, QFont, QPainter, QPen, QKeySequence, QUndoStack, QUndoCommand, QAction
 )
-from PySide6.QtCore import Qt, QRectF, QPointF, Signal, QEvent
+from PySide6.QtCore import Qt, QRectF, QPointF, Signal, QEvent, QItemSelection, QItemSelectionModel
 from styles import colors, stylesheets
 from .comment_utils import FormulaParser, FUNCTION_HINTS, adjust_formula_references, col_str_to_int, col_int_to_str
 from .optimized_operations import OptimizedBatchDelete, OptimizedColumnAddition
 from .performance_config import MAX_COLUMNS, MAX_ROWS
+from .export_handler import ExportHandler
+from .import_handler import ImportHandler
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +174,10 @@ class CommentTable(QWidget):
         self.formula_bar.setPlaceholderText("Enter formula here")
         self.table_widget = Spreadsheet(self, self.comment_service, self.comment_data['number'])
 
+        # Initialize import/export handlers
+        self.export_handler = ExportHandler(self.table_widget)
+        self.import_handler = ImportHandler(self.table_widget)
+
         layout.addWidget(toolbar)
         layout.addWidget(self.formula_bar)
         layout.addWidget(self.table_widget)
@@ -182,6 +197,18 @@ class CommentTable(QWidget):
         toolbar.addAction(self.common_menu.underline_action)
         toolbar.addAction(self.common_menu.fill_text_action)
         toolbar.addAction(self.common_menu.fill_background_action)
+        toolbar.addSeparator()
+        
+        # Export button - opens file save dialog with format selection
+        export_action = QAction(IconService.get_icon('common-export'), "Export", self)
+        export_action.triggered.connect(lambda: self.export_handler.export_with_format_selection(self))
+        toolbar.addAction(export_action)
+        
+        # Import button
+        import_action = QAction(IconService.get_icon('common-import'), "Import", self)
+        import_action.triggered.connect(lambda: self.import_handler.import_from_file(self))
+        toolbar.addAction(import_action)
+        
         return toolbar
 
     def _connect_signals(self):
@@ -202,7 +229,7 @@ class CommentTable(QWidget):
         if self.formula_bar.hasFocus() and self.formula_bar.text().startswith('='):
             cell_ref = self.table_widget.get_cell_ref_str(row, column)
             self.formula_bar.insert(cell_ref)
-
+    
     def update_formula_bar(self, currentRow, currentColumn, previousRow, previousColumn):
         item = self.table_widget.item(currentRow, currentColumn)
         if item:
@@ -233,16 +260,6 @@ class SpreadsheetItem(QTableWidgetItem):
 
     def set_data(self, data):
         self.setData(Qt.ItemDataRole.UserRole, data)
-        font = QFont()
-        font_data = data.get('font', {})
-        font.setBold(font_data.get('bold', False))
-        font.setItalic(font_data.get('italic', False))
-        font.setUnderline(font_data.get('underline', False))
-        self.setFont(font)
-        bg = data.get('bg_color')
-        self.setBackground(QColor(bg) if bg else QBrush())
-        fg = data.get('text_color')
-        self.setForeground(QColor(fg) if fg else QColor(colors.TEXT_PRIMARY))
 
 class ExcelHeaderView(QHeaderView):
     def __init__(self, orientation, parent=None):
@@ -252,10 +269,78 @@ class ExcelHeaderView(QHeaderView):
         self.sectionClicked.connect(self.on_section_clicked)
 
     def on_section_clicked(self, logicalIndex):
+        """Handle header clicks with support for multi-selection using Ctrl and Shift modifiers."""
+        table = self.parentWidget()
+        modifiers = QApplication.keyboardModifiers()
+        
         if self.orientation() == Qt.Orientation.Horizontal:
-            self.parentWidget().selectColumn(logicalIndex)
+            is_selected = table.isColumnSelected(logicalIndex)
+            
+            if modifiers & Qt.KeyboardModifier.ControlModifier:
+                # Ctrl+Click: Toggle selection
+                if is_selected:
+                    table.selectionModel().select(table.model().index(0, logicalIndex), QItemSelectionModel.SelectionFlag.Deselect | QItemSelectionModel.SelectionFlag.Columns)
+                else:
+                    table.selectionModel().select(table.model().index(0, logicalIndex), QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Columns)
+            elif modifiers & Qt.KeyboardModifier.ShiftModifier:
+                # Shift+Click: Range select from first selected to clicked column
+                selected_columns = set()
+                for idx in table.selectedIndexes():
+                    selected_columns.add(idx.column())
+                
+                if selected_columns:
+                    min_col = min(selected_columns)
+                    max_col = max(selected_columns)
+                    if logicalIndex < min_col:
+                        start, end = logicalIndex, min_col
+                    elif logicalIndex > max_col:
+                        start, end = max_col, logicalIndex
+                    else:
+                        start, end = min_col, max_col
+                    
+                    # Select range from start to end
+                    selection = QItemSelection(table.model().index(0, start), table.model().index(table.rowCount() - 1, end))
+                    table.selectionModel().select(selection, QItemSelectionModel.SelectionFlag.Select)
+                else:
+                    # No previous selection, just select this column
+                    table.selectColumn(logicalIndex)
+            else:
+                # Regular click: Select only this column
+                table.selectColumn(logicalIndex)
         else:
-            self.parentWidget().selectRow(logicalIndex)
+            is_selected = table.isRowSelected(logicalIndex)
+            
+            if modifiers & Qt.KeyboardModifier.ControlModifier:
+                # Ctrl+Click: Toggle selection
+                if is_selected:
+                    table.selectionModel().select(table.model().index(logicalIndex, 0), QItemSelectionModel.SelectionFlag.Deselect | QItemSelectionModel.SelectionFlag.Rows)
+                else:
+                    table.selectionModel().select(table.model().index(logicalIndex, 0), QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows)
+            elif modifiers & Qt.KeyboardModifier.ShiftModifier:
+                # Shift+Click: Range select from first selected to clicked row
+                selected_rows = set()
+                for idx in table.selectedIndexes():
+                    selected_rows.add(idx.row())
+                
+                if selected_rows:
+                    min_row = min(selected_rows)
+                    max_row = max(selected_rows)
+                    if logicalIndex < min_row:
+                        start, end = logicalIndex, min_row
+                    elif logicalIndex > max_row:
+                        start, end = max_row, logicalIndex
+                    else:
+                        start, end = min_row, max_row
+                    
+                    # Select range from start to end
+                    selection = QItemSelection(table.model().index(start, 0), table.model().index(end, table.columnCount() - 1))
+                    table.selectionModel().select(selection, QItemSelectionModel.SelectionFlag.Select)
+                else:
+                    # No previous selection, just select this row
+                    table.selectRow(logicalIndex)
+            else:
+                # Regular click: Select only this row
+                table.selectRow(logicalIndex)
 
 class SpreadsheetDelegate(QStyledItemDelegate):
     editingTextChanged = Signal(str)
@@ -279,6 +364,57 @@ class SpreadsheetDelegate(QStyledItemDelegate):
                 command = ChangeCellCommand(table, changes, "Edit Cell")
                 table.undo_stack.push(command)
 
+    def paint(self, painter, option, index):
+        """Custom paint method to ensure text visibility in selected cells."""
+        # Check if cell is selected
+        is_selected = option.state & QStyle.State_Selected
+        
+        # Get cell data
+        data = index.model().data(index, Qt.ItemDataRole.UserRole) or {'value': ''}
+        bg_color = data.get('bg_color')
+        text_color = data.get('text_color')
+        
+        # Draw background
+        if is_selected:
+            # For selected cells, use light green background
+            painter.fillRect(option.rect, QColor(colors.COLOR_SELECTION_FILL).lighter(150))
+        elif bg_color:
+            painter.fillRect(option.rect, QColor(bg_color))
+        else:
+            painter.fillRect(option.rect, QColor(colors.BG_SPREADSHEET_CELL))
+        
+        # For selected cells, ensure text color is dark for contrast
+        if is_selected:
+            # Use dark text (black) on light selection background for visibility
+            text_pen = QPen(colors.TEXT_DARK)
+        else:
+            # Use custom text color if set, otherwise use default
+            if text_color:
+                text_pen = QPen(QColor(text_color))
+            else:
+                text_pen = QPen(QColor(colors.TEXT_PRIMARY))
+        
+        # Get font
+        font = option.font
+        font_data = data.get('font', {})
+        font.setBold(font_data.get('bold', False))
+        font.setItalic(font_data.get('italic', False))
+        font.setUnderline(font_data.get('underline', False))
+        
+        # Draw text
+        painter.setFont(font)
+        painter.setPen(text_pen)
+        text_rect = option.rect.adjusted(3, 0, -3, 0)  # Add padding
+        # Use item.text() which contains the evaluated result, not the raw formula
+        # Get the item from the table to access the displayed text
+        table = self.parent()
+        if table:
+            item = table.item(index.row(), index.column())
+            display_text = item.text() if item else str(data.get('value', ''))
+        else:
+            display_text = str(data.get('value', ''))
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, display_text)
+
 class Spreadsheet(QTableWidget):
     def __init__(self, parent=None, comment_service=None, comment_number=None):
         super().__init__(1000, 2, parent)
@@ -289,24 +425,8 @@ class Spreadsheet(QTableWidget):
         self.hover_row = -1
         self.hover_col = -1
         
-        # Set spreadsheet styling
-        self.setStyleSheet(f"""
-            QTableWidget {{
-                background-color: {colors.BG_SPREADSHEET};
-                color: {colors.TEXT_PRIMARY};
-                gridline-color: {colors.GRID_LINE};
-                selection-background-color: transparent;
-                border: none;
-            }}
-            QTableWidget::item {{
-                padding: 2px;
-            }}
-            QLineEdit {{
-                background-color: {colors.BG_DARK_TERTIARY};
-                color: {colors.TEXT_PRIMARY};
-                border: 1px solid {colors.ACCENT_GREEN};
-            }}
-        """)
+        # Set spreadsheet styling using centralized stylesheet
+        self.setStyleSheet(stylesheets.get_spreadsheet_stylesheet())
         
         # Dependency Management
         self.dependents = collections.defaultdict(set) # Key: (row, col), Value: Set of dependent (row, col)
@@ -388,11 +508,11 @@ class Spreadsheet(QTableWidget):
     # --- New Helper Methods to Fix AttributeError ---
     def isColumnSelected(self, column):
         """Check if the entire column is selected."""
-        return self.selectionModel().isColumnSelected(self.model().index(0, column), self.model().index(self.rowCount()-1, column))
+        return self.selectionModel().isColumnSelected(column)
 
     def isRowSelected(self, row):
         """Check if the entire row is selected."""
-        return self.selectionModel().isRowSelected(self.model().index(row, 0), self.model().index(row, self.columnCount()-1))
+        return self.selectionModel().isRowSelected(row)
     # ------------------------------------------------
 
     def show_header_context_menu(self, pos):
@@ -400,23 +520,24 @@ class Spreadsheet(QTableWidget):
         logicalIndex = header.logicalIndexAt(pos)
         
         # Standard Excel behavior: Right-clicking a header should select it if not already selected
+        # If already selected, preserve the existing selection
         if header.orientation() == Qt.Orientation.Horizontal:
-            # Note: selectionModel().isColumnSelected requires checks. 
-            # We can simplify by just selecting if the count of selected cells doesn't match a full column
-            self.selectColumn(logicalIndex)
+            if not self.isColumnSelected(logicalIndex):
+                self.selectColumn(logicalIndex)
         else:
-            self.selectRow(logicalIndex)
+            if not self.isRowSelected(logicalIndex):
+                self.selectRow(logicalIndex)
 
         menu = QMenu(self)
 
-        cut_action = menu.addAction("Cut")
-        copy_action = menu.addAction("Copy")
-        paste_action = menu.addAction("Paste")
+        cut_action = menu.addAction(IconService.get_icon("edit-cut"), "Cut")
+        copy_action = menu.addAction(IconService.get_icon("edit-copy"), "Copy")
+        paste_action = menu.addAction(IconService.get_icon("edit-paste"), "Paste")
         menu.addSeparator()
-        clear_contents_action = menu.addAction("Clear Content")
+        clear_contents_action = menu.addAction(IconService.get_icon("edit-delete"), "Clear Content")
         menu.addSeparator()
-        insert_action = menu.addAction("Insert")
-        delete_action = menu.addAction("Delete")
+        insert_action = menu.addAction(IconService.get_icon("common-add"), "Insert")
+        delete_action = menu.addAction(IconService.get_icon("common-remove"), "Delete")
 
         # Connect actions to methods
         cut_action.triggered.connect(self.cut)
@@ -1015,11 +1136,27 @@ class Spreadsheet(QTableWidget):
         c = ColorSelector.getColor(QColor("black"), self)
         if not c.isValid(): return
         changes = []
-        for i in self.selectedItems():
-            o = i.get_data()
-            n = o.copy()
-            n[p] = c.name()
-            changes.append((i.row(), i.column(), o, n))
+        # If "No Fill" was selected, the color will be transparent (#00000000)
+        # In this case, we set the property to None to indicate no custom color (use default)
+        is_no_fill = c.alpha() == 0 and c.name(QColor.NameFormat.HexArgb).upper() == "#00000000"
+        color_value = None if is_no_fill else c.name()
+        
+        # Apply color to all cells in selected ranges, not just cells with content
+        selected_ranges = self.selectedRanges()
+        for range_obj in selected_ranges:
+            for row in range(range_obj.topRow(), range_obj.bottomRow() + 1):
+                for col in range(range_obj.leftColumn(), range_obj.rightColumn() + 1):
+                    # Get or create item using SpreadsheetItem (custom item class)
+                    item = self.item(row, col)
+                    if item is None:
+                        item = SpreadsheetItem()
+                        self.setItem(row, col, item)
+                    
+                    o = item.get_data()
+                    n = o.copy()
+                    n[p] = color_value
+                    changes.append((row, col, o, n))
+        
         if changes: self.undo_stack.push(ChangeCellCommand(self, changes, "Color"))
     
     def on_selection_changed(self):
@@ -1034,7 +1171,8 @@ class Spreadsheet(QTableWidget):
         self.completer_popup.hide()
         if text.startswith('='):
             text_upper = text.upper()
-            refs = re.findall(r"([A-Z]+)(\d+)", text_upper)
+            # Updated regex to handle absolute cell references with $ signs (e.g., $A$1, $A1, A$1)
+            refs = re.findall(r"\$?([A-Z]+)\$?(\d+)", text_upper)
             for i, (c_str, r_str) in enumerate(refs):
                 r, c = int(r_str)-1, col_str_to_int(c_str)
                 self.referenced_cells.append(((r, c), self.ref_colors[i % 4]))
@@ -1125,13 +1263,8 @@ class Spreadsheet(QTableWidget):
         if not self.selectionModel().hasSelection(): return
         selection = self.selectionModel().selection()
         current_index = self.currentIndex()
-        if len(selection.indexes()) > 1:
-            for sel_range in selection:
-                for index in sel_range.indexes():
-                    if index != current_index:
-                        rect = self.visualRect(index)
-                        # Use a light green for selected cells (Excel style)
-                        painter.fillRect(rect, QColor(colors.COLOR_SELECTION_FILL).lighter(150))
+        # Don't fill background here - delegate now handles selection background
+        # Only draw the selection border
         selection_rect = self.visualRegionForSelection(selection).boundingRect()
         # Draw a solid green border around the selection
         painter.setPen(QPen(QColor(colors.COLOR_SELECTION_FILL), 2))
@@ -1180,6 +1313,13 @@ class Spreadsheet(QTableWidget):
             self.setCursor(Qt.CursorShape.CrossCursor)
         else:
             super().mousePressEvent(event)
+            # Directly update formula bar after click to ensure content is displayed
+            index = self.indexAt(event.position().toPoint())
+            if index.isValid():
+                row = index.row()
+                col = index.column()
+                self.setCurrentCell(row, col)
+                comment_table.update_formula_bar(row, col, -1, -1)
 
     def mouseMoveEvent(self, event):
         # Update hover state
