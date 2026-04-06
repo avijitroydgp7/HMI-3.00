@@ -1306,7 +1306,7 @@ class CanvasBaseScreen(QGraphicsView):
             # Calculate total spacing
             first_left = rects[0][1].left()
             last_right = rects[-1][1].right()
-            total_width = sum(r[1].width() for _, r in rects)
+            total_width = sum(r.width() for _, r in rects)
             spacing = (last_right - first_left - total_width) / (len(rects) - 1)
             
             old_positions = [QPointF(item.pos()) for item, _ in rects]
@@ -1324,7 +1324,7 @@ class CanvasBaseScreen(QGraphicsView):
             
             first_top = rects[0][1].top()
             last_bottom = rects[-1][1].bottom()
-            total_height = sum(r[1].height() for _, r in rects)
+            total_height = sum(r.height() for _, r in rects)
             spacing = (last_bottom - first_top - total_height) / (len(rects) - 1)
             
             old_positions = [QPointF(item.pos()) for item, _ in rects]

@@ -1,7 +1,6 @@
 # services\settings_service.py"
 import json
 import os
-from PySide6.QtCore import QSettings
 
 class SettingsService:
     """
@@ -82,6 +81,10 @@ class SettingsService:
         self.settings['docks_visibility'] = {
             name: dock.isVisible() for name, dock in main_window.dock_factory.docks.items()
         }
+
+        def is_checked(action_owner, action_name, default=False):
+            action = getattr(action_owner, action_name, None)
+            return action.isChecked() if action else default
         
         # Save view settings
         view_toolbar = main_window.toolbars.get("View")
@@ -91,11 +94,11 @@ class SettingsService:
                 "snap_distance": view_toolbar.snap_combo.currentText(),
                 "state_number": view_toolbar.current_state,
                 "display_items": {
-                    "select_mode": main_window.view_menu.select_mode_action.isChecked(),
-                    "tag": main_window.view_menu.tag_action.isChecked(),
-                    "object_id": main_window.view_menu.object_id_action.isChecked(),
-                    "transform_line": main_window.view_menu.transform_line_action.isChecked(),
-                    "click_area": main_window.view_menu.click_area_action.isChecked()
+                    "select_mode": is_checked(main_window.object_menu, "select_mode_action", True),
+                    "tag": is_checked(main_window.view_menu, "tag_action", False),
+                    "object_id": is_checked(main_window.view_menu, "object_id_action", False),
+                    "transform_line": is_checked(main_window.view_menu, "transform_line_action", True),
+                    "click_area": is_checked(main_window.view_menu, "click_area_action", False)
                 }
             }
         

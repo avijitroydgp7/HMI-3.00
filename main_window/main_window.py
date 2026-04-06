@@ -604,7 +604,7 @@ class MainWindow(QMainWindow):
 
     def _resolve_tool_action(self, action: QAction | None) -> QAction:
         """Returns the fallback-safe QAction that should be active."""
-        return action or self.view_menu.select_mode_action
+        return action or self.object_menu.select_mode_action
 
     def _apply_canvas_tool_from_action(self, action: QAction, active_screen: CanvasBaseScreen):
         """Applies the concrete canvas tool instance for a given QAction."""
@@ -962,9 +962,6 @@ class MainWindow(QMainWindow):
         self.tools_group = QActionGroup(self)
         self.tools_group.setExclusive(False) # Allow manual toggle for "on & off" behavior
 
-        # Add "Select" tool from View menu
-        self.tools_group.addAction(self.view_menu.select_mode_action)
-
         # Add all Figure tools
         for action in self.figure_menu.actions:
             self.tools_group.addAction(action)
@@ -1117,7 +1114,7 @@ class MainWindow(QMainWindow):
 
             # Restore display item states
             display_items = view_settings.get("display_items", {})
-            self.view_menu.select_mode_action.setChecked(display_items.get("select_mode", True))
+            self.object_menu.select_mode_action.setChecked(display_items.get("select_mode", True))
             self.view_menu.tag_action.setChecked(display_items.get("tag", False))
             self.view_menu.object_id_action.setChecked(display_items.get("object_id", False))
             self.view_menu.transform_line_action.setChecked(display_items.get("transform_line", True))

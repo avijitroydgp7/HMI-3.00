@@ -44,10 +44,6 @@ class ViewToolbar(QToolBar):
         self.addWidget(self.object_snap_checkbox)
         self.addSeparator()
 
-        # Select Mode Action
-        self.addAction(view_menu.select_mode_action)
-        self.addSeparator()
-
         # Zoom Controls
         zoom_in_icon = IconService.get_icon('zoom-in')
         zoom_out_icon = IconService.get_icon('zoom-out')
@@ -151,4 +147,3 @@ class ViewToolbar(QToolBar):
         if 0 <= value < self.max_states:
             self.current_state = value
             self.update_state_ui()
-

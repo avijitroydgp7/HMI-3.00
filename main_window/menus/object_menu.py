@@ -13,6 +13,15 @@ class ObjectMenu:
         # Initialize list to hold all object actions for grouping later
         self.all_actions = []
 
+        # --- Select Mode Action (Default Tool) ---
+        self.select_mode_action = QAction(IconService.get_icon('mouse-cursor'), "Select", self.main_window)
+        self.select_mode_action.setCheckable(True)
+        self.select_mode_action.setChecked(True)
+        self.select_mode_action.setToolTip("Select")
+        object_menu.addAction(self.select_mode_action)
+        object_menu.addSeparator()
+        self.all_actions.append(self.select_mode_action)
+
         # --- Button Submenu ---
         self.button_object_icon = IconService.get_icon('object-button')
         button_menu = object_menu.addMenu(self.button_object_icon, "&Button")

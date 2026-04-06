@@ -9,6 +9,7 @@ class ObjectToolbar(QToolBar):
         self.object_menu = object_menu
         self.setMovable(True)
 
+        self.addAction(self.object_menu.select_mode_action)
         # Create and add tool buttons with popup menus
         self.add_popup_button(self.object_menu.button_actions, self.object_menu.button_object_icon, "Button")
         self.add_popup_button(self.object_menu.lamp_actions, self.object_menu.lamp_object_icon, "Lamp")
