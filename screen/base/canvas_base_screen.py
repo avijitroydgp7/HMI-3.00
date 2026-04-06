@@ -267,6 +267,8 @@ class CanvasBaseScreen(QGraphicsView):
         """
         item_type = data.get('type')
         item = None
+        if 'lock_aspect_ratio' not in data:
+            data['lock_aspect_ratio'] = False
         
         rect_data = data['rect']
         rect = QRectF(rect_data[0], rect_data[1], rect_data[2], rect_data[3])
@@ -375,7 +377,8 @@ class CanvasBaseScreen(QGraphicsView):
             'pos': [scene_top_left.x(), scene_top_left.y()],
             'tag': '',
             'corner_radii': [0.0, 0.0, 0.0, 0.0],  # [TL, TR, BR, BL]
-            'rounded_enabled': False
+            'rounded_enabled': False,
+            'lock_aspect_ratio': False
         }
         
         # Use AddItemCommand for undo support

@@ -57,6 +57,94 @@ class CellData:
         return CellData()
 
 
+@dataclass
+class VirtualSelectionRange:
+    """QTableWidgetSelectionRange-like helper for compatibility."""
+    top: int
+    bottom: int
+    left: int
+    right: int
+
+    def topRow(self) -> int:
+        return self.top
+
+    def bottomRow(self) -> int:
+        return self.bottom
+
+    def leftColumn(self) -> int:
+        return self.left
+
+    def rightColumn(self) -> int:
+        return self.right
+
+    def rowCount(self) -> int:
+        return max(0, self.bottom - self.top + 1)
+
+    def columnCount(self) -> int:
+        return max(0, self.right - self.left + 1)
+
+
+class VirtualCellItem:
+    """Compatibility wrapper exposing QTableWidgetItem-like API."""
+
+    def __init__(self, spreadsheet: 'VirtualSpreadsheet', row: int, col: int):
+        self._spreadsheet = spreadsheet
+        self._row = row
+        self._col = col
+
+    def row(self) -> int:
+        return self._row
+
+    def column(self) -> int:
+        return self._col
+
+    def get_data(self) -> Dict:
+        cell = self._spreadsheet.data_store.get_cell(self._row, self._col)
+        return cell.to_dict()
+
+    def set_data(self, data: Dict):
+        self._spreadsheet._set_cell_from_dict(self._row, self._col, data)
+
+    def text(self) -> str:
+        return self._spreadsheet._get_display_text(self._row, self._col)
+
+
+class DataOperationThread(QThread):
+    """Run data-store operations off the UI thread."""
+
+    finished = Signal()
+    failed = Signal(str)
+
+    def __init__(self, operation):
+        super().__init__()
+        self._operation = operation
+
+    def run(self):
+        try:
+            self._operation()
+            self.finished.emit()
+        except Exception as exc:
+            self.failed.emit(str(exc))
+
+
+class SaveDataThread(QThread):
+    """Build dense save payload in background."""
+
+    data_ready = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, data_store: 'LazyDataStore'):
+        super().__init__()
+        self._data_store = data_store
+
+    def run(self):
+        try:
+            data = self._data_store.get_all_data()
+            self.data_ready.emit(data)
+        except Exception as exc:
+            self.failed.emit(str(exc))
+
+
 class LazyDataStore:
     """Efficient data storage with lazy loading and memory management."""
     
@@ -69,21 +157,25 @@ class LazyDataStore:
         self._cached_rows: Dict[int, List[CellData]] = {}
     
     def get_cell(self, row: int, col: int) -> CellData:
-        """Get cell data with lazy initialization."""
+        """Get cell data without materializing empty cells."""
         if not (0 <= row < self.row_count and 0 <= col < self.col_count):
             return CellData()
-        
-        key = (row, col)
-        if key not in self._data:
-            self._data[key] = CellData()
-        return self._data[key]
+        return self._data.get((row, col), CellData())
     
     def set_cell(self, row: int, col: int, data: CellData):
         """Set cell data and mark as dirty."""
         if 0 <= row < self.row_count and 0 <= col < self.col_count:
             self._lock.lock()
             try:
-                self._data[(row, col)] = data
+                if (
+                    not data.value
+                    and not data.text_color
+                    and not data.bg_color
+                    and not any(data.font.values())
+                ):
+                    self._data.pop((row, col), None)
+                else:
+                    self._data[(row, col)] = data
                 self._dirty_cells.add((row, col))
                 # Invalidate cached row
                 if row in self._cached_rows:
@@ -182,14 +274,18 @@ class LazyDataStore:
     
     def get_all_data(self) -> List[List[Dict]]:
         """Export all data (for saving)."""
-        result = []
-        for row in range(self.row_count):
-            row_data = []
-            for col in range(self.col_count):
-                cell = self.get_cell(row, col)
-                row_data.append(cell.to_dict())
-            result.append(row_data)
-        return result
+        self._lock.lock()
+        try:
+            result = []
+            for row in range(self.row_count):
+                row_data = []
+                for col in range(self.col_count):
+                    cell = self._data.get((row, col))
+                    row_data.append(cell.to_dict() if cell else CellData().to_dict())
+                result.append(row_data)
+            return result
+        finally:
+            self._lock.unlock()
     
     def load_all_data(self, data: List[List[Dict]]):
         """Import all data (for loading)."""
@@ -239,6 +335,9 @@ class VirtualSpreadsheet(QAbstractScrollArea):
     
     currentCellChanged = Signal(int, int, int, int)  # newRow, newCol, oldRow, oldCol
     cellClicked = Signal(int, int)
+    LARGE_ASYNC_THRESHOLD = 5000
+    VISIBLE_BUFFER_ROWS = 30
+    VISIBLE_BUFFER_COLS = 4
     
     def __init__(self, parent=None, comment_service=None, comment_number=None):
         super().__init__(parent)
@@ -246,7 +345,7 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         self.comment_number = comment_number
         
         # Data storage
-        self.data_store = LazyDataStore()
+        self.data_store = LazyDataStore(initial_rows=1000, initial_cols=2)
         
         # Rendering
         self.cell_width = 100
@@ -258,6 +357,8 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         
         # Selection
         self.selected_ranges = []
+        self._selection_anchor_row = 0
+        self._selection_anchor_col = 0
         self.current_row = 0
         self.current_col = 0
         self.hover_row = -1
@@ -278,6 +379,10 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         # Background calculation
         self._calc_thread = None
         self._pending_saves = []
+        self._op_thread = None
+        self._save_thread = None
+        self._save_pending = False
+        self._display_cache: Dict[Tuple[int, int], str] = {}
         
         # Setup UI
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -325,11 +430,16 @@ class VirtualSpreadsheet(QAbstractScrollArea):
     
     def item(self, row: int, col: int):
         """Get item (compatibility with QTableWidget)."""
-        return self.data_store.get_cell(row, col)
+        if not (0 <= row < self.data_store.row_count and 0 <= col < self.data_store.col_count):
+            return None
+        return VirtualCellItem(self, row, col)
     
     def setItem(self, row: int, col: int, data: 'CellData'):
         """Set item data."""
-        self.data_store.set_cell(row, col, data)
+        if isinstance(data, CellData):
+            self.data_store.set_cell(row, col, data)
+        elif hasattr(data, 'get_data'):
+            self._set_cell_from_dict(row, col, data.get_data())
         self._schedule_save()
     
     def _get_visible_range(self) -> Tuple[int, int, int, int]:
@@ -337,13 +447,13 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         v_scroll = self.verticalScrollBar().value()
         h_scroll = self.horizontalScrollBar().value()
         
-        start_row = max(0, v_scroll // self.cell_height)
+        start_row = max(0, (v_scroll // self.cell_height) - self.VISIBLE_BUFFER_ROWS)
         end_row = min(self.data_store.row_count - 1, 
-                     (v_scroll + self.viewport().height()) // self.cell_height + 1)
+                     (v_scroll + self.viewport().height()) // self.cell_height + 1 + self.VISIBLE_BUFFER_ROWS)
         
-        start_col = max(0, h_scroll // self.cell_width)
+        start_col = max(0, (h_scroll // self.cell_width) - self.VISIBLE_BUFFER_COLS)
         end_col = min(self.data_store.col_count - 1,
-                     (h_scroll + self.viewport().width()) // self.cell_width + 1)
+                     (h_scroll + self.viewport().width()) // self.cell_width + 1 + self.VISIBLE_BUFFER_COLS)
         
         return start_row, end_row, start_col, end_col
     
@@ -369,6 +479,7 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         """Handle scroll events - only re-render visible area."""
         self._render_timer.stop()
         self._render_timer.start(16)  # Throttle to ~60 FPS
+        self._schedule_evaluation()
     
     def paintEvent(self, event):
         """Render only visible cells."""
@@ -457,8 +568,14 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         
         text_color = QColor(cell.text_color) if cell.text_color else QColor(colors.TEXT_SECONDARY)
         painter.setPen(QPen(text_color))
-        painter.drawText(x + 3, y, self.cell_width - 6, self.cell_height,
-                        Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, str(cell.value))
+        painter.drawText(
+            x + 3,
+            y,
+            self.cell_width - 6,
+            self.cell_height,
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+            self._get_display_text(row, col)
+        )
     
     def _is_cell_selected(self, row: int, col: int) -> bool:
         """Check if cell is selected."""
@@ -471,15 +588,37 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         """Handle mouse clicks."""
         v_scroll = self.verticalScrollBar().value()
         h_scroll = self.horizontalScrollBar().value()
-        
-        col = (event.position().x() + h_scroll) // self.cell_width
-        row = (event.position().y() + v_scroll) // self.cell_height
-        
-        if row < 0 or col < 0:
+
+        x = int(event.position().x())
+        y = int(event.position().y())
+
+        # Header clicks for row/column selection.
+        if y < self.header_height:
+            col = int((x + h_scroll) // self.cell_width)
+            if 0 <= col < self.columnCount():
+                self._select_column(col, QApplication.keyboardModifiers())
+                self.viewport().update()
             return
-        
+        if x < self.header_width:
+            row = int((y + v_scroll) // self.cell_height)
+            if 0 <= row < self.rowCount():
+                self._select_row(row, QApplication.keyboardModifiers())
+                self.viewport().update()
+            return
+
+        col = int((x + h_scroll) // self.cell_width)
+        row = int((y + v_scroll) // self.cell_height)
+
+        if row < 0 or col < 0 or row >= self.rowCount() or col >= self.columnCount():
+            return
+
+        prev_row, prev_col = self.current_row, self.current_col
         self.current_row = row
         self.current_col = col
+        self._selection_anchor_row = row
+        self._selection_anchor_col = col
+        self.selected_ranges = [(row, row, col, col)]
+        self.currentCellChanged.emit(row, col, prev_row, prev_col)
         self.cellClicked.emit(row, col)
         self.viewport().update()
     
@@ -516,6 +655,66 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         current_value = self.verticalScrollBar().value()
         new_value = current_value - delta
         self.verticalScrollBar().setValue(new_value)
+
+    def currentRow(self) -> int:
+        return self.current_row
+
+    def currentColumn(self) -> int:
+        return self.current_col
+
+    def currentItem(self):
+        return self.item(self.current_row, self.current_col)
+
+    def selectedRanges(self) -> List[VirtualSelectionRange]:
+        return [
+            VirtualSelectionRange(r1, r2, c1, c2)
+            for r1, r2, c1, c2 in self.selected_ranges
+        ]
+
+    def get_cell_ref_str(self, row, col):
+        return f"{col_int_to_str(col)}{row + 1}"
+
+    def _get_display_text(self, row: int, col: int) -> str:
+        if (row, col) in self._display_cache:
+            return self._display_cache[(row, col)]
+        return str(self.data_store.get_cell(row, col).value)
+
+    def _set_cell_from_dict(self, row: int, col: int, data: Dict):
+        current = self.data_store.get_cell(row, col)
+        cell = CellData.from_dict(data)
+        self.data_store.set_cell(row, col, cell)
+        if cell.value.startswith('='):
+            self._display_cache.pop((row, col), None)
+        else:
+            self._display_cache[(row, col)] = str(cell.value)
+        if current.value != cell.value:
+            self._schedule_evaluation()
+
+    def _select_column(self, col: int, modifiers: Qt.KeyboardModifiers):
+        if modifiers & Qt.KeyboardModifier.ShiftModifier:
+            start = min(self._selection_anchor_col, col)
+            end = max(self._selection_anchor_col, col)
+            self.selected_ranges = [(0, max(0, self.rowCount() - 1), start, end)]
+        else:
+            self._selection_anchor_col = col
+            self.selected_ranges = [(0, max(0, self.rowCount() - 1), col, col)]
+        prev_row, prev_col = self.current_row, self.current_col
+        self.current_col = col
+        self.current_row = 0
+        self.currentCellChanged.emit(self.current_row, self.current_col, prev_row, prev_col)
+
+    def _select_row(self, row: int, modifiers: Qt.KeyboardModifiers):
+        if modifiers & Qt.KeyboardModifier.ShiftModifier:
+            start = min(self._selection_anchor_row, row)
+            end = max(self._selection_anchor_row, row)
+            self.selected_ranges = [(start, end, 0, max(0, self.columnCount() - 1))]
+        else:
+            self._selection_anchor_row = row
+            self.selected_ranges = [(row, row, 0, max(0, self.columnCount() - 1))]
+        prev_row, prev_col = self.current_row, self.current_col
+        self.current_row = row
+        self.current_col = 0
+        self.currentCellChanged.emit(self.current_row, self.current_col, prev_row, prev_col)
     
     def load_data_from_service(self):
         """Load data from comment service."""
@@ -530,10 +729,14 @@ class VirtualSpreadsheet(QAbstractScrollArea):
             self._schedule_evaluation()
     
     def _schedule_evaluation(self):
-        """Schedule background formula evaluation."""
+        """Schedule background formula evaluation for visible range."""
+        if self._calc_thread and self._calc_thread.isRunning():
+            return
+
+        start_row, end_row, start_col, end_col = self._get_visible_range()
         cells_with_formulas = []
-        for row in range(min(1000, self.data_store.row_count)):  # Start with first 1000
-            for col in range(self.data_store.col_count):
+        for row in range(start_row, end_row + 1):
+            for col in range(start_col, end_col + 1):
                 cell = self.data_store.get_cell(row, col)
                 if cell.value.startswith('='):
                     cells_with_formulas.append((row, col))
@@ -547,6 +750,7 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         """Evaluate single cell (thread-safe)."""
         cell = self.data_store.get_cell(row, col)
         if not cell.value.startswith('='):
+            self._display_cache[(row, col)] = str(cell.value)
             return
         
         try:
@@ -561,20 +765,47 @@ class VirtualSpreadsheet(QAbstractScrollArea):
             else:
                 display_value = f"{result:.2f}" if isinstance(result, float) else str(result)
             
-            cell.value = display_value
+            self._display_cache[(row, col)] = display_value
         except Exception:
-            cell.value = "#ERROR"
+            self._display_cache[(row, col)] = "#ERROR"
     
     def _schedule_save(self):
         """Defer saving to batch multiple operations."""
+        self._save_pending = True
         self._save_timer.stop()
         self._save_timer.start()
     
     def _execute_pending_saves(self):
-        """Save all pending changes to service."""
+        """Save all pending changes to service in background."""
+        if not self.comment_service or not self._save_pending:
+            return
+        if self._save_thread:
+            try:
+                if self._save_thread.isRunning():
+                    return
+            except RuntimeError:
+                self._save_thread = None
+
+        self._save_pending = False
+        thread = SaveDataThread(self.data_store)
+        self._save_thread = thread
+        thread.data_ready.connect(self._on_save_data_ready)
+        thread.failed.connect(lambda _: None)
+
+        def _cleanup_save_thread():
+            if self._save_thread is thread:
+                self._save_thread = None
+            thread.deleteLater()
+
+        thread.finished.connect(_cleanup_save_thread)
+        thread.failed.connect(_cleanup_save_thread)
+        thread.start()
+
+    def _on_save_data_ready(self, data):
         if self.comment_service:
-            data = self.data_store.get_all_data()
             self.comment_service.update_table_data(self.comment_number, data)
+        if self._save_pending:
+            self._save_timer.start(200)
     
     def set_updates_deferred(self, state: bool):
         """Control batch updates."""
@@ -583,24 +814,54 @@ class VirtualSpreadsheet(QAbstractScrollArea):
             self.viewport().update()
             self._schedule_save()
             self._schedule_evaluation()
+
+    def _run_data_operation_async(self, operation, on_done):
+        """Run data operation in worker thread for large tables."""
+        if self.rowCount() < self.LARGE_ASYNC_THRESHOLD:
+            operation()
+            on_done()
+            return
+
+        if self._op_thread:
+            try:
+                if self._op_thread.isRunning():
+                    return
+            except RuntimeError:
+                self._op_thread = None
+
+        thread = DataOperationThread(operation)
+        self._op_thread = thread
+        thread.finished.connect(on_done)
+        thread.failed.connect(lambda _: on_done())
+
+        def _cleanup_op_thread():
+            if self._op_thread is thread:
+                self._op_thread = None
+            thread.deleteLater()
+
+        thread.finished.connect(_cleanup_op_thread)
+        thread.failed.connect(_cleanup_op_thread)
+        thread.start()
     
     def add_row(self):
         """Add row efficiently."""
-        self.data_store.insert_row(self.data_store.row_count, 1)
-        self._update_scrollbars()
-        self._schedule_save()
-        self.viewport().update()
+        index = self.current_row if self.current_row >= 0 else self.data_store.row_count
+        self._run_data_operation_async(
+            lambda: self.data_store.insert_row(index, 1),
+            lambda: (self._update_scrollbars(), self._schedule_save(), self.viewport().update())
+        )
     
     def add_column(self):
         """Add column efficiently."""
         if self.data_store.col_count >= 30:
             QMessageBox.warning(self, "Limit", "Max 30 columns allowed.")
             return
-        
-        self.data_store.insert_column(self.data_store.col_count, 1)
-        self._update_scrollbars()
-        self._schedule_save()
-        self.viewport().update()
+
+        index = self.current_col if self.current_col >= 0 else self.data_store.col_count
+        self._run_data_operation_async(
+            lambda: self.data_store.insert_column(index, 1),
+            lambda: (self._update_scrollbars(), self._schedule_save(), self.viewport().update())
+        )
     
     def remove_row(self, index: int = None):
         """Remove row(s) with efficient batch operation."""
@@ -613,37 +874,128 @@ class VirtualSpreadsheet(QAbstractScrollArea):
         
         if not rows_to_remove:
             return
-        
-        self.set_updates_deferred(True)
-        try:
+
+        def operation():
             for row in sorted(rows_to_remove, reverse=True):
                 if row < self.data_store.row_count:
                     self.data_store.remove_row(row)
-        finally:
-            self.set_updates_deferred(False)
-        
-        self._update_scrollbars()
-        self.viewport().update()
+                    self._display_cache = {
+                        (r - 1 if r > row else r, c): v
+                        for (r, c), v in self._display_cache.items()
+                        if r != row
+                    }
+
+        self._run_data_operation_async(
+            operation,
+            lambda: (self._update_scrollbars(), self._schedule_save(), self.viewport().update())
+        )
     
     def remove_column(self, index: int = None):
         """Remove column(s) with efficient batch operation."""
         cols_to_remove = set()
-        
+
         if index is not None and isinstance(index, int):
             cols_to_remove.add(index)
         else:
-            cols_to_remove.add(self.current_col)
+            for r1, r2, c1, c2 in self.selected_ranges:
+                if r1 == 0 and r2 >= max(0, self.rowCount() - 1):
+                    for c in range(c1, c2 + 1):
+                        cols_to_remove.add(c)
+            if not cols_to_remove:
+                cols_to_remove.add(self.current_col)
         
         if not cols_to_remove:
             return
-        
-        self.set_updates_deferred(True)
-        try:
+
+        def operation():
             for col in sorted(cols_to_remove, reverse=True):
                 if col < self.data_store.col_count:
                     self.data_store.remove_column(col)
-        finally:
-            self.set_updates_deferred(False)
-        
-        self._update_scrollbars()
+                    self._display_cache = {
+                        (r, c - 1 if c > col else c): v
+                        for (r, c), v in self._display_cache.items()
+                        if c != col
+                    }
+
+        self._run_data_operation_async(
+            operation,
+            lambda: (self._update_scrollbars(), self._schedule_save(), self.viewport().update())
+        )
+
+    def apply_changes(self, changes):
+        """Compatibility for ChangeCellCommand."""
+        for row, col, _, new_data in changes:
+            self._set_cell_from_dict(row, col, new_data)
+        self.viewport().update()
+        self._schedule_save()
+
+    def save_data_to_service(self):
+        self._execute_pending_saves()
+
+    def evaluate_cell(self, row: int, col: int, propagate=True):
+        self._evaluate_cell_internal(row, col)
+
+    def evaluate_all_cells(self):
+        self._schedule_evaluation()
+
+    def set_bold(self):
+        self._toggle_font('bold')
+
+    def set_italic(self):
+        self._toggle_font('italic')
+
+    def set_underline(self):
+        self._toggle_font('underline')
+
+    def _toggle_font(self, prop: str):
+        targets = self.selected_ranges or [(self.current_row, self.current_row, self.current_col, self.current_col)]
+        for r1, r2, c1, c2 in targets:
+            for row in range(r1, r2 + 1):
+                for col in range(c1, c2 + 1):
+                    cell = self.data_store.get_cell(row, col)
+                    new_font = dict(cell.font or {})
+                    new_font[prop] = not new_font.get(prop, False)
+                    self.data_store.set_cell(
+                        row,
+                        col,
+                        CellData(
+                            value=cell.value,
+                            font=new_font,
+                            text_color=cell.text_color,
+                            bg_color=cell.bg_color
+                        )
+                    )
+        self._schedule_save()
+        self.viewport().update()
+
+    def set_text_color(self):
+        self._set_color('text_color')
+
+    def set_background_color(self):
+        self._set_color('bg_color')
+
+    def _set_color(self, prop: str):
+        from main_window.widgets.color_selector import ColorSelector
+        color = ColorSelector.getColor(QColor("black"), self)
+        if not color.isValid():
+            return
+
+        is_no_fill = color.alpha() == 0 and color.name(QColor.NameFormat.HexArgb).upper() == "#00000000"
+        value = None if is_no_fill else color.name()
+        targets = self.selected_ranges or [(self.current_row, self.current_row, self.current_col, self.current_col)]
+        for r1, r2, c1, c2 in targets:
+            for row in range(r1, r2 + 1):
+                for col in range(c1, c2 + 1):
+                    cell = self.data_store.get_cell(row, col)
+                    self.data_store.set_cell(
+                        row,
+                        col,
+                        CellData(
+                            value=cell.value,
+                            font=dict(cell.font or {}),
+                            text_color=value if prop == 'text_color' else cell.text_color,
+                            bg_color=value if prop == 'bg_color' else cell.bg_color
+                        )
+                    )
+        self._schedule_save()
         self.viewport().update()

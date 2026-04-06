@@ -21,13 +21,14 @@ from main_window.services.icon_service import IconService
 from PySide6.QtGui import (
     QColor, QBrush, QFont, QPainter, QPen, QKeySequence, QUndoStack, QUndoCommand, QAction
 )
-from PySide6.QtCore import Qt, QRectF, QPointF, Signal, QEvent, QItemSelection, QItemSelectionModel
+from PySide6.QtCore import Qt, QRectF, QPointF, Signal, QEvent, QItemSelection, QItemSelectionModel, QTimer
 from styles import colors, stylesheets
 from .comment_utils import FormulaParser, FUNCTION_HINTS, adjust_formula_references, col_str_to_int, col_int_to_str
 from .optimized_operations import OptimizedBatchDelete, OptimizedColumnAddition
 from .performance_config import MAX_COLUMNS, MAX_ROWS
 from .export_handler import ExportHandler
 from .import_handler import ImportHandler
+from .virtual_spreadsheet import VirtualSpreadsheet
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +159,8 @@ class CommentTable(QWidget):
     A widget that provides a spreadsheet-like interface for comments,
     supporting formulas, cell referencing, and basic Excel features.
     """
+    VIRTUAL_SPREADSHEET_ROW_THRESHOLD = 20000
+
     def __init__(self, comment_data, main_window, common_menu, comment_service, parent=None):
         super().__init__(parent)
         self.comment_data = comment_data
@@ -181,6 +184,7 @@ class CommentTable(QWidget):
         layout.addWidget(toolbar)
         layout.addWidget(self.formula_bar)
         layout.addWidget(self.table_widget)
+        self._maybe_switch_to_virtual_spreadsheet()
 
         self._connect_signals()
 
@@ -212,17 +216,74 @@ class CommentTable(QWidget):
         return toolbar
 
     def _connect_signals(self):
-        self.common_menu.add_column_action.triggered.connect(self.table_widget.add_column)
-        self.common_menu.add_row_action.triggered.connect(self.table_widget.add_row)
-        self.common_menu.remove_column_action.triggered.connect(self.table_widget.remove_column)
-        self.common_menu.remove_row_action.triggered.connect(self.table_widget.remove_row)
-        self.common_menu.bold_action.triggered.connect(self.table_widget.set_bold)
-        self.common_menu.italic_action.triggered.connect(self.table_widget.set_italic)
-        self.common_menu.underline_action.triggered.connect(self.table_widget.set_underline)
-        self.common_menu.fill_text_action.triggered.connect(self.table_widget.set_text_color)
-        self.common_menu.fill_background_action.triggered.connect(self.table_widget.set_background_color)
+        self.common_menu.add_column_action.triggered.connect(self._on_add_column)
+        self.common_menu.add_row_action.triggered.connect(self._on_add_row)
+        self.common_menu.remove_column_action.triggered.connect(self._on_remove_column)
+        self.common_menu.remove_row_action.triggered.connect(self._on_remove_row)
+        self.common_menu.bold_action.triggered.connect(self._on_set_bold)
+        self.common_menu.italic_action.triggered.connect(self._on_set_italic)
+        self.common_menu.underline_action.triggered.connect(self._on_set_underline)
+        self.common_menu.fill_text_action.triggered.connect(self._on_set_text_color)
+        self.common_menu.fill_background_action.triggered.connect(self._on_set_background_color)
         self.table_widget.currentCellChanged.connect(self.update_formula_bar)
         self.formula_bar.returnPressed.connect(self.update_cell_from_formula_bar)
+        self.table_widget.cellClicked.connect(self.handle_cell_click_for_formula)
+
+    def _on_add_column(self):
+        self._maybe_switch_to_virtual_spreadsheet()
+        self.table_widget.add_column()
+
+    def _on_add_row(self):
+        self._maybe_switch_to_virtual_spreadsheet(force_if_near_threshold=True)
+        self.table_widget.add_row()
+
+    def _on_remove_column(self):
+        self._maybe_switch_to_virtual_spreadsheet()
+        self.table_widget.remove_column()
+
+    def _on_remove_row(self):
+        self._maybe_switch_to_virtual_spreadsheet()
+        self.table_widget.remove_row()
+
+    def _on_set_bold(self):
+        if hasattr(self.table_widget, 'set_bold'):
+            self.table_widget.set_bold()
+
+    def _on_set_italic(self):
+        if hasattr(self.table_widget, 'set_italic'):
+            self.table_widget.set_italic()
+
+    def _on_set_underline(self):
+        if hasattr(self.table_widget, 'set_underline'):
+            self.table_widget.set_underline()
+
+    def _on_set_text_color(self):
+        if hasattr(self.table_widget, 'set_text_color'):
+            self.table_widget.set_text_color()
+
+    def _on_set_background_color(self):
+        if hasattr(self.table_widget, 'set_background_color'):
+            self.table_widget.set_background_color()
+
+    def _maybe_switch_to_virtual_spreadsheet(self, force_if_near_threshold=False):
+        if isinstance(self.table_widget, VirtualSpreadsheet):
+            return
+
+        row_count = self.table_widget.rowCount()
+        should_switch = row_count >= self.VIRTUAL_SPREADSHEET_ROW_THRESHOLD
+        if force_if_near_threshold:
+            should_switch = should_switch or row_count >= (self.VIRTUAL_SPREADSHEET_ROW_THRESHOLD - 1000)
+        if not should_switch:
+            return
+
+        self.table_widget.save_data_to_service()
+        old_table = self.table_widget
+        new_table = VirtualSpreadsheet(self, self.comment_service, self.comment_data['number'])
+        self.layout().replaceWidget(old_table, new_table)
+        old_table.hide()
+        old_table.deleteLater()
+        self.table_widget = new_table
+        self.table_widget.currentCellChanged.connect(self.update_formula_bar)
         self.table_widget.cellClicked.connect(self.handle_cell_click_for_formula)
 
     def handle_cell_click_for_formula(self, row, column):
@@ -416,6 +477,10 @@ class SpreadsheetDelegate(QStyledItemDelegate):
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, display_text)
 
 class Spreadsheet(QTableWidget):
+    DEFERRED_RECALC_ROW_THRESHOLD = 10000
+    DEFERRED_RECALC_SCAN_ROW_CHUNK = 2000
+    DEFERRED_RECALC_FORMULA_CHUNK = 1000
+
     def __init__(self, parent=None, comment_service=None, comment_number=None):
         super().__init__(1000, 2, parent)
         self.comment_service = comment_service
@@ -433,6 +498,13 @@ class Spreadsheet(QTableWidget):
         self.precedents = collections.defaultdict(set) # Key: (row, col), Value: Set of precedent (row, col)
         self._evaluating = False # Flag to prevent recursion loops
         self._updates_deferred = False # Flag for batch operations
+        self._deferred_start_shape = None
+        self._pending_structural_ops = []  # Ordered ops: (action, index, count)
+        self._deferred_formula_recalc_scheduled = False
+        self._deferred_recalc_row_cursor = 0
+        self._deferred_formula_cells = []
+        self._deferred_formula_cursor = 0
+        self._deferred_recalc_phase = None
 
         self._is_dragging_fill_handle = False
         self._drag_start_pos = None
@@ -491,11 +563,164 @@ class Spreadsheet(QTableWidget):
         Controls whether expensive operations like saving and evaluating
         are performed immediately or deferred.
         """
+        was_deferred = self._updates_deferred
         self._updates_deferred = state
-        if not state:
+        if state:
+            if not was_deferred:
+                self._deferred_start_shape = (self.rowCount(), self.columnCount())
+            return
+
+        if not was_deferred:
+            return
+
+        shape_changed = self._deferred_start_shape != (self.rowCount(), self.columnCount())
+        has_pending_structural_ops = bool(self._pending_structural_ops)
+        self._deferred_start_shape = None
+
+        if has_pending_structural_ops or shape_changed:
             self.update_headers()
+            if has_pending_structural_ops:
+                self._apply_pending_structural_formula_shifts()
             self.save_data_to_service()
+            if has_pending_structural_ops:
+                self._schedule_deferred_formula_recalc()
+            else:
+                self.evaluate_all_cells()
+
+    def _buffer_structural_op(self, action, index, count=1):
+        """Buffer row/column structure changes until deferred mode flush."""
+        self._pending_structural_ops.append((action, index, count))
+
+    def _apply_pending_structural_formula_shifts(self):
+        """Apply all buffered row/column shifts across formulas in a single scan."""
+        if not self._pending_structural_ops:
+            return
+
+        self.blockSignals(True)
+        try:
+            for r in range(self.rowCount()):
+                for c in range(self.columnCount()):
+                    item = self.item(r, c)
+                    if not item:
+                        continue
+
+                    data = item.get_data()
+                    original_formula = str(data.get('value', ''))
+                    if not original_formula.startswith('='):
+                        continue
+
+                    updated_formula = original_formula
+                    for action, index, count in self._pending_structural_ops:
+                        if action == 'add_row':
+                            updated_formula = adjust_formula_references(
+                                updated_formula,
+                                row_offset=count,
+                                col_offset=0,
+                                min_row=index,
+                                min_col=0
+                            )
+                        elif action == 'remove_row':
+                            updated_formula = adjust_formula_references(
+                                updated_formula,
+                                row_offset=-count,
+                                col_offset=0,
+                                min_row=index,
+                                min_col=0,
+                                delete_row=index
+                            )
+                        elif action == 'add_col':
+                            updated_formula = adjust_formula_references(
+                                updated_formula,
+                                row_offset=0,
+                                col_offset=count,
+                                min_row=0,
+                                min_col=index
+                            )
+                        elif action == 'remove_col':
+                            updated_formula = adjust_formula_references(
+                                updated_formula,
+                                row_offset=0,
+                                col_offset=-count,
+                                min_row=0,
+                                min_col=index,
+                                delete_col=index
+                            )
+
+                    if updated_formula != original_formula:
+                        data['value'] = updated_formula
+                        item.set_data(data)
+        finally:
+            self.blockSignals(False)
+            self._pending_structural_ops.clear()
+
+    def _schedule_deferred_formula_recalc(self):
+        """Run full formula refresh in chunks for very large tables to keep UI responsive."""
+        if self._deferred_formula_recalc_scheduled:
+            return
+
+        if self.rowCount() < self.DEFERRED_RECALC_ROW_THRESHOLD:
             self.evaluate_all_cells()
+            self.viewport().update()
+            return
+
+        self._deferred_formula_recalc_scheduled = True
+        self._deferred_recalc_phase = 'scan'
+        self._deferred_recalc_row_cursor = 0
+        self._deferred_formula_cursor = 0
+        self._deferred_formula_cells = []
+        self.dependents.clear()
+        self.precedents.clear()
+        QTimer.singleShot(0, self._run_formula_recalc_chunk)
+
+    def _run_formula_recalc_chunk(self):
+        """Chunked full-table formula reevaluation for large structural operations."""
+        try:
+            if self._deferred_recalc_phase == 'scan':
+                row_end = min(
+                    self._deferred_recalc_row_cursor + self.DEFERRED_RECALC_SCAN_ROW_CHUNK,
+                    self.rowCount()
+                )
+                for r in range(self._deferred_recalc_row_cursor, row_end):
+                    for c in range(self.columnCount()):
+                        item = self.item(r, c)
+                        if not item:
+                            continue
+                        value = str(item.get_data().get('value', ''))
+                        if value.startswith('='):
+                            self._deferred_formula_cells.append((r, c))
+                        else:
+                            item.setText(value)
+
+                self._deferred_recalc_row_cursor = row_end
+                if self._deferred_recalc_row_cursor < self.rowCount():
+                    QTimer.singleShot(0, self._run_formula_recalc_chunk)
+                    return
+
+                self._deferred_recalc_phase = 'eval'
+
+            eval_end = min(
+                self._deferred_formula_cursor + self.DEFERRED_RECALC_FORMULA_CHUNK,
+                len(self._deferred_formula_cells)
+            )
+            for idx in range(self._deferred_formula_cursor, eval_end):
+                r, c = self._deferred_formula_cells[idx]
+                self.evaluate_cell(r, c, propagate=False)
+
+            self._deferred_formula_cursor = eval_end
+            if self._deferred_formula_cursor < len(self._deferred_formula_cells):
+                QTimer.singleShot(0, self._run_formula_recalc_chunk)
+                return
+
+            self._deferred_formula_recalc_scheduled = False
+            self._deferred_recalc_phase = None
+            self._deferred_formula_cells = []
+            self.viewport().update()
+        except Exception:
+            self._deferred_formula_recalc_scheduled = False
+            self._deferred_recalc_phase = None
+            self._deferred_formula_cells = []
+            self.evaluate_all_cells()
+            self.viewport().update()
 
     def eventFilter(self, obj, event):
         """Global event filter to hide popups when application loses focus."""
@@ -684,11 +909,19 @@ class Spreadsheet(QTableWidget):
     def perform_insert(self, action, index, count=1):
         self.blockSignals(True)
         if action == 'add_row':
-            for _ in range(count): self.insertRow(index)
-            self.shift_formulas_for_insert_delete(row_threshold=index, row_shift=count)
+            for _ in range(count):
+                self.insertRow(index)
+            if self._updates_deferred:
+                self._buffer_structural_op('add_row', index, count)
+            else:
+                self.shift_formulas_for_insert_delete(row_threshold=index, row_shift=count)
         elif action == 'add_col':
-            for _ in range(count): self.insertColumn(index)
-            self.shift_formulas_for_insert_delete(col_threshold=index, col_shift=count)
+            for _ in range(count):
+                self.insertColumn(index)
+            if self._updates_deferred:
+                self._buffer_structural_op('add_col', index, count)
+            else:
+                self.shift_formulas_for_insert_delete(col_threshold=index, col_shift=count)
         
         self.blockSignals(False)
         
@@ -707,14 +940,20 @@ class Spreadsheet(QTableWidget):
                 item = self.item(index, c)
                 saved_data.append(item.get_data() if item else {'value': ''})
             self.removeRow(index)
-            self.shift_formulas_for_insert_delete(row_threshold=index, row_shift=-1, deleted_row=index)
+            if self._updates_deferred:
+                self._buffer_structural_op('remove_row', index, 1)
+            else:
+                self.shift_formulas_for_insert_delete(row_threshold=index, row_shift=-1, deleted_row=index)
             
         elif action == 'remove_col':
             for r in range(self.rowCount()):
                 item = self.item(r, index)
                 saved_data.append(item.get_data() if item else {'value': ''})
             self.removeColumn(index)
-            self.shift_formulas_for_insert_delete(col_threshold=index, col_shift=-1, deleted_col=index)
+            if self._updates_deferred:
+                self._buffer_structural_op('remove_col', index, 1)
+            else:
+                self.shift_formulas_for_insert_delete(col_threshold=index, col_shift=-1, deleted_col=index)
 
         self.blockSignals(False)
         
@@ -993,29 +1232,15 @@ class Spreadsheet(QTableWidget):
         sorted_cols = sorted(list(cols_to_remove), reverse=True)
         if not sorted_cols: return
 
-        # Use optimized deletion for large operations
-        if len(sorted_cols) > 5 and self.rowCount() > 100:
-            OptimizedColumnAddition.add_columns_optimized(self, 0, 0)  # Dummy to show UI pattern
-            # Actually use delete method
-            self.set_updates_deferred(True)
-            self.undo_stack.beginMacro("Delete Columns")
-            try:
-                for c in sorted_cols:
-                    if self.columnCount() > 0:
-                        self.undo_stack.push(ResizeCommand(self, 'remove_col', c))
-            finally:
-                self.undo_stack.endMacro()
-                self.set_updates_deferred(False)
-        else:
-            self.set_updates_deferred(True)
-            self.undo_stack.beginMacro("Delete Columns")
-            try:
-                for c in sorted_cols:
-                    if self.columnCount() > 0:
-                        self.undo_stack.push(ResizeCommand(self, 'remove_col', c))
-            finally:
-                self.undo_stack.endMacro()
-                self.set_updates_deferred(False)
+        self.set_updates_deferred(True)
+        self.undo_stack.beginMacro("Delete Columns")
+        try:
+            for c in sorted_cols:
+                if self.columnCount() > 0:
+                    self.undo_stack.push(ResizeCommand(self, 'remove_col', c))
+        finally:
+            self.undo_stack.endMacro()
+            self.set_updates_deferred(False)
 
     def remove_row(self, index=None):
         # FIX: Ensure index is strictly an int and not bool (from signal)
