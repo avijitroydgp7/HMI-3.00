@@ -641,10 +641,12 @@ class CanvasBaseScreen(QGraphicsView):
             selected_items = [item for item in self.scene.selectedItems() 
                             if isinstance(item, BaseGraphicObject)]
             
-            # If we were clicking on a selected item, use those items for drag tracking
-            # Otherwise use the newly selected items
-            if clicking_on_selected and target_item_before and target_item_before.isSelected():
-                items_to_drag = [target_item_before] if target_item_before in selected_items else selected_items
+            # If we were clicking on a selected item, always track the full selected group.
+            # Fallback to target item only if selection unexpectedly becomes empty.
+            if clicking_on_selected:
+                items_to_drag = selected_items
+                if not items_to_drag and target_item_before:
+                    items_to_drag = [target_item_before]
             else:
                 items_to_drag = selected_items
             
@@ -653,6 +655,15 @@ class CanvasBaseScreen(QGraphicsView):
                 self._drag_initial_positions = {}
                 for item in items_to_drag:
                     self._drag_initial_positions[id(item)] = QPointF(item.pos())
+                tracked_ids = set(self._drag_initial_positions.keys())
+                if clicking_on_selected and selected_items:
+                    selected_ids = {id(item) for item in selected_items}
+                    if tracked_ids != selected_ids:
+                        logger.warning(
+                            "Drag tracking mismatch: tracked=%s selected=%s",
+                            len(tracked_ids),
+                            len(selected_ids)
+                        )
                 logger.debug(f"Drag started, captured {len(self._drag_initial_positions)} initial positions")
             else:
                 logger.debug(f"No items to drag")
