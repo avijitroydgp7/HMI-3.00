@@ -44,21 +44,27 @@ class ScreenTreeDock(QDockWidget):
     def keyPressEvent(self, event):
         """Handle key press events for cut, copy, and paste."""
         selected_items = self.tree_widget.selectedItems()
-        if not selected_items:
-            super().keyPressEvent(event)
-            return
-
-        item = selected_items[0]
+        item = selected_items[0] if selected_items else None
         
         if event.matches(QKeySequence.StandardKey.Copy):
-            self.copy_screen(item)
-            event.accept()
+            if self._is_editable_screen_item(item):
+                self.copy_screen(item)
+                event.accept()
+            else:
+                super().keyPressEvent(event)
         elif event.matches(QKeySequence.StandardKey.Cut):
-            self.cut_screen(item)
-            event.accept()
+            if self._is_editable_screen_item(item):
+                self.cut_screen(item)
+                event.accept()
+            else:
+                super().keyPressEvent(event)
         elif event.matches(QKeySequence.StandardKey.Paste):
-            self.paste_screen(item)
-            event.accept()
+            target = item or self._default_paste_target()
+            if target:
+                self.paste_screen(target)
+                event.accept()
+            else:
+                super().keyPressEvent(event)
         else:
             super().keyPressEvent(event)
 
@@ -106,6 +112,7 @@ class ScreenTreeDock(QDockWidget):
         
         parent = item.parent()
         is_screen_item = parent in [self.base_screens_root, self.window_screens_root]
+        clipboard_type = self._clipboard.get('type') if isinstance(self._clipboard, dict) else None
 
         if item == self.base_screens_root:
             add_main_screen_action = menu.addAction("Add New Base Screen")
@@ -138,7 +145,12 @@ class ScreenTreeDock(QDockWidget):
             copy_action = menu.addAction(IconService.get_icon('edit-copy'), "Copy")
             copy_action.triggered.connect(lambda: self.copy_screen(item))
             paste_action = menu.addAction(IconService.get_icon('edit-paste'), "Paste")
-            paste_action.setEnabled(self._clipboard is not None)
+            if parent == self.base_screens_root:
+                paste_action.setEnabled(clipboard_type == 'base')
+            elif parent == self.window_screens_root:
+                paste_action.setEnabled(clipboard_type == 'window')
+            else:
+                paste_action.setEnabled(False)
             paste_action.triggered.connect(lambda: self.paste_screen(item))
             menu.addSeparator()
             properties_action = menu.addAction(IconService.get_icon('screen-property'), "Properties")
@@ -266,6 +278,21 @@ class ScreenTreeDock(QDockWidget):
             self._add_screen(BaseScreenDialog, self.base_screens_root, 'screen-base-white', "[B]", screen_type, pasted_data)
         elif screen_type == 'window':
              self._add_screen(WindowScreenDialog, self.window_screens_root, 'screen-window-white', "[W]", screen_type, pasted_data)
+
+    def _is_editable_screen_item(self, item):
+        """Return True when item is an actual editable base/window screen node."""
+        if not item or not item.parent():
+            return False
+        return item.parent() in (self.base_screens_root, self.window_screens_root)
+
+    def _default_paste_target(self):
+        """Pick a sensible paste target when nothing is selected."""
+        clipboard_type = self._clipboard.get('type') if isinstance(self._clipboard, dict) else None
+        if clipboard_type == 'window':
+            return self.window_screens_root
+        if clipboard_type == 'base':
+            return self.base_screens_root
+        return None
              
     def show_screen_properties(self, item):
         screen_data = item.data(0, Qt.ItemDataRole.UserRole)
@@ -334,4 +361,3 @@ class ScreenTreeDock(QDockWidget):
             self.widgets_screen_count += 1
             new_item = QTreeWidgetItem(self.widgets_screens_root, [f"Widget {self.widgets_screen_count}"])
             new_item.setIcon(0, IconService.get_icon('screen-widgets-white'))
-

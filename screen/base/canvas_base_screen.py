@@ -432,6 +432,17 @@ class CanvasBaseScreen(QGraphicsView):
         """Sets the active tool. None for selection mode."""
         self.current_tool = tool
         if self.current_tool:
+            # Entering drawing mode must immediately clear selection state so that
+            # status widgets and listeners don't keep stale "selected object" data.
+            if self._previous_selection:
+                deselected_items = list(self._previous_selection)
+                self._previous_selection = set()
+                self.canvas_selection_changed.emit([], deselected_items)
+            self.object_data_changed.emit({
+                'position': None,
+                'size': None,
+                'rotation': None
+            })
             self.setDragMode(QGraphicsView.DragMode.NoDrag)
             self.setCursor(Qt.CursorShape.CrossCursor)
             self.clear_transform_handler()
