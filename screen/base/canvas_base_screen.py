@@ -893,7 +893,7 @@ class CanvasBaseScreen(QGraphicsView):
 
     def wheelEvent(self, event):
         """Handle mouse wheel events for zooming."""
-        if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             delta = event.angleDelta().y()
             if delta > 0:
                 self.zoom_in()
@@ -912,7 +912,7 @@ class CanvasBaseScreen(QGraphicsView):
             event.accept()
             return
 
-        if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             if event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal:
                 self.zoom_in()
                 event.accept()
