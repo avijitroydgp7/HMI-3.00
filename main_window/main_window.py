@@ -316,8 +316,7 @@ class MainWindow(QMainWindow):
 
     def on_tool_reset(self):
         """Handles resetting the tool to selection mode."""
-        self.view_menu.select_mode_action.setChecked(True)
-        # This will trigger on_tool_changed via signal but it's fine
+        self._activate_tool_action(None)
 
     def open_comment_table(self, comment_data):
         """
@@ -601,31 +600,43 @@ class MainWindow(QMainWindow):
 
     def on_tool_changed(self, action):
         """Handles switching between tools."""
-        active_screen = self.get_active_screen_widget()
-        if not isinstance(active_screen, CanvasBaseScreen):
+        self._activate_tool_action(action if action.isChecked() else None)
+
+    def _resolve_tool_action(self, action: QAction | None) -> QAction:
+        """Returns the fallback-safe QAction that should be active."""
+        return action or self.view_menu.select_mode_action
+
+    def _apply_canvas_tool_from_action(self, action: QAction, active_screen: CanvasBaseScreen):
+        """Applies the concrete canvas tool instance for a given QAction."""
+        if action == self.figure_menu.rectangle_action:
+            active_screen.set_tool(RectangleTool(active_screen))
+        elif action == self.figure_menu.ellipse_action:
+            active_screen.set_tool(EllipseTool(active_screen))
+        else:
+            # Default/fallback is selection mode.
+            active_screen.set_tool(None)
+
+    def _activate_tool_action(self, action: QAction | None, *, apply_to_canvas=True):
+        """Sets checked state for tool actions in a signal-safe way and applies tool to canvas."""
+        target_action = self._resolve_tool_action(action)
+        tool_actions = self.tools_group.actions()
+
+        for tool_action in tool_actions:
+            tool_action.blockSignals(True)
+
+        for tool_action in tool_actions:
+            tool_action.setChecked(False)
+        target_action.setChecked(True)
+
+        for tool_action in tool_actions:
+            tool_action.blockSignals(False)
+
+        if not apply_to_canvas:
             return
 
-        if action.isChecked():
-            # Uncheck all other actions in the group to maintain exclusivity
-            for other_action in self.tools_group.actions():
-                if other_action != action:
-                    other_action.setChecked(False)
-
-            if action == self.view_menu.select_mode_action:
-                active_screen.set_tool(None)
-            elif action == self.figure_menu.rectangle_action:
-                active_screen.set_tool(RectangleTool(active_screen))
-            elif action == self.figure_menu.ellipse_action:
-                active_screen.set_tool(EllipseTool(active_screen))
-            # Add logic for other tools here as they are implemented
-        else:
-            # If a tool is unchecked, default back to selection mode
-            # If Select Mode itself is unchecked, it still results in selection mode (None)
-            active_screen.set_tool(None)
-            if action != self.view_menu.select_mode_action:
-                # If it wasn't Select Mode that was unchecked, we might want to re-enable Select Mode
-                # but the user asked for "on & off", so we'll allow it to be off.
-                pass
+        active_screen = self.get_active_screen_widget()
+        if isinstance(active_screen, CanvasBaseScreen):
+            self._apply_canvas_tool_from_action(target_action, active_screen)
 
     def get_active_screen_widget(self):
         """Returns the widget from the currently active tab."""
@@ -663,10 +674,7 @@ class MainWindow(QMainWindow):
         if isinstance(widget, CanvasBaseScreen):
             # Check currently selected tool in the action group
             checked_action = self.tools_group.checkedAction()
-            if checked_action:
-                self.on_tool_changed(checked_action)
-            else:
-                widget.set_tool(None)
+            self._activate_tool_action(checked_action)
             
             # Sync display item states
             widget.toggle_overlays('tag', self.view_menu.tag_action.isChecked())
@@ -1194,4 +1202,3 @@ class MainWindow(QMainWindow):
             self.object_size_label.setText(f"W: {w}, H: {h}")
         else:
             self.object_size_label.setText("W: --, H: --")
-
