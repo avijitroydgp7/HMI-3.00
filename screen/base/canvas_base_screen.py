@@ -1,7 +1,7 @@
 # screen\base\canvas_base_screen.py
 from PySide6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsWidget, QLabel, QGraphicsItem, QGraphicsSimpleTextItem
 from PySide6.QtGui import QPainter, QColor, QBrush, QLinearGradient, QPixmap, QPen, QFont, QUndoStack
-from PySide6.QtCore import Qt, QRectF, Signal, QPointF, QLineF
+from PySide6.QtCore import Qt, QRectF, Signal, QPoint, QPointF, QLineF
 from styles import colors
 
 from screen.base.base_graphic_object import RectangleObject, EllipseObject, BaseGraphicObject
@@ -205,7 +205,10 @@ class CanvasBaseScreen(QGraphicsView):
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag) # Default drag mode
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
+        self.setResizeAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
         self.setMouseTracking(True)
+        self._last_viewport_mouse_pos = None
         
         # Transform interaction state
         self._resizing_handle = None
@@ -583,6 +586,7 @@ class CanvasBaseScreen(QGraphicsView):
 
     def mousePressEvent(self, event):
         """Handle mouse press events."""
+        self._store_viewport_mouse_pos(event.pos())
         scene_pos = self.mapToScene(event.pos())
         logger.debug(f"Mouse press at scene pos: {scene_pos}")
         
@@ -684,6 +688,7 @@ class CanvasBaseScreen(QGraphicsView):
 
     def mouseMoveEvent(self, event):
         """Handle mouse move events."""
+        self._store_viewport_mouse_pos(event.pos())
         scene_pos = self.mapToScene(event.pos())
         self.mouse_moved.emit(scene_pos)
 
@@ -735,6 +740,7 @@ class CanvasBaseScreen(QGraphicsView):
 
     def mouseReleaseEvent(self, event):
         """Handle mouse release events."""
+        self._store_viewport_mouse_pos(event.pos())
         scene_pos = self.mapToScene(event.pos())
         logger.debug(f"Mouse release at scene pos: {scene_pos}")
         self.clear_snap_lines()
@@ -905,11 +911,13 @@ class CanvasBaseScreen(QGraphicsView):
     def wheelEvent(self, event):
         """Handle mouse wheel events for zooming."""
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            event_pos = self._event_viewport_pos(event)
+            self._store_viewport_mouse_pos(event_pos)
             delta = event.angleDelta().y()
             if delta > 0:
-                self.zoom_in()
+                self.zoom_in(event_pos)
             else:
-                self.zoom_out()
+                self.zoom_out(event_pos)
             event.accept()
         else:
             super().wheelEvent(event)
@@ -970,35 +978,67 @@ class CanvasBaseScreen(QGraphicsView):
         else:
             super().keyReleaseEvent(event)
 
-    def zoom(self, factor):
+    def _store_viewport_mouse_pos(self, pos):
+        """Remember the last valid mouse position inside the viewport."""
+        if pos is None:
+            return
+
+        viewport_rect = self.viewport().rect()
+        if viewport_rect.contains(pos):
+            self._last_viewport_mouse_pos = QPoint(pos)
+
+    def _get_zoom_anchor_pos(self, anchor_pos=None):
+        """Return a viewport position to use as the zoom anchor."""
+        if anchor_pos is not None and self.viewport().rect().contains(anchor_pos):
+            return QPoint(anchor_pos)
+        if self._last_viewport_mouse_pos is not None:
+            return QPoint(self._last_viewport_mouse_pos)
+        return self.viewport().rect().center()
+
+    def _event_viewport_pos(self, event):
+        """Extract a viewport QPoint from Qt mouse and wheel events."""
+        if hasattr(event, "position"):
+            return event.position().toPoint()
+        if hasattr(event, "pos"):
+            return event.pos()
+        return None
+
+    def _apply_zoom(self, target_zoom_factor, anchor_pos=None):
+        """Zoom while keeping the scene point under the anchor fixed."""
+        clamped_zoom = max(0.1, min(target_zoom_factor, 10.0))
+        if abs(clamped_zoom - self.zoom_factor) < 1e-9:
+            return
+
+        anchor = self._get_zoom_anchor_pos(anchor_pos)
+        old_scene_anchor = self.mapToScene(anchor)
+        viewport_center = self.viewport().rect().center()
+        anchor_offset = QPointF(anchor) - QPointF(viewport_center)
+        scale_factor = clamped_zoom / self.zoom_factor
+
+        self.scale(scale_factor, scale_factor)
+        desired_viewport_center = QPointF(self.mapFromScene(old_scene_anchor)) - anchor_offset
+        self.centerOn(self.mapToScene(desired_viewport_center.toPoint()))
+
+        self.zoom_factor = clamped_zoom
+        self.zoom_changed.emit(self.zoom_factor)
+
+    def zoom(self, factor, anchor_pos=None):
         """Apply a zoom factor to the view, respecting min/max limits."""
-        new_zoom_factor = self.zoom_factor * factor
-        
-        if 0.1 <= new_zoom_factor <= 10.0:
-            self.zoom_factor = new_zoom_factor
-            self.resetTransform()
-            self.scale(self.zoom_factor, self.zoom_factor)
-            self.zoom_changed.emit(self.zoom_factor)
+        self._apply_zoom(self.zoom_factor * factor, anchor_pos)
 
-    def zoom_in(self):
+    def zoom_in(self, anchor_pos=None):
         """Zoom in by a predefined factor."""
-        self.zoom(1.1)
+        self.zoom(1.1, anchor_pos)
 
-    def zoom_out(self):
+    def zoom_out(self, anchor_pos=None):
         """Zoom out by a predefined factor."""
-        self.zoom(0.9)
+        self.zoom(0.9, anchor_pos)
         
-    def set_zoom_level(self, level_str):
+    def set_zoom_level(self, level_str, anchor_pos=None):
         """Set zoom to a specific percentage (e.g., "100%"), respecting limits."""
         try:
             level = float(level_str.strip('%')) / 100.0
-            clamped_level = max(0.1, min(level, 10.0))
-            
-            if self.zoom_factor != clamped_level:
-                self.zoom_factor = clamped_level
-                self.resetTransform()
-                self.scale(self.zoom_factor, self.zoom_factor)
-                self.zoom_changed.emit(self.zoom_factor)
+            self._apply_zoom(level, anchor_pos)
 
         except ValueError as e:
             logger.error(f"Value error in zoom calculation: {e}")
