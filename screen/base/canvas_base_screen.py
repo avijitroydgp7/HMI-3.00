@@ -213,6 +213,9 @@ class CanvasBaseScreen(QGraphicsView):
         # Drag/move undo tracking state
         self._drag_started = False
         self._drag_initial_positions = {}  # {item_id: QPointF}
+        # Controls whether drag-resize object snapping applies position delta here.
+        # Keep this True when BaseGraphicObject.itemChange handles only grid snapping.
+        self._apply_object_snap_delta_during_drag = True
         
         # Connect to view service for live updates
         self.view_service.snap_changed.connect(lambda: self.canvas_widget.update())
@@ -773,7 +776,7 @@ class CanvasBaseScreen(QGraphicsView):
             self.transform_handler.update_geometry()
             
     def update_snap_lines(self, moving_items):
-        """Calculates and displays snap lines by comparing moving items to static items."""
+        """Compute snap guides and optionally apply the snap delta for object snapping."""
         if not self.view_service.snap_enabled or self.view_service.snapping_mode != 'object':
             return
     
@@ -786,23 +789,30 @@ class CanvasBaseScreen(QGraphicsView):
     
         static_items = [item for item in self.scene.items() if isinstance(item, BaseGraphicObject) and item not in moving_items]
     
-        # --- Snapping logic ---
-        snap_offset_x, snap_offset_y = self.calculate_snap_offsets(moving_rect, static_items)
+        # Compute guides + snap delta in one pass, then decide whether to mutate item positions.
+        snap_offset_x, snap_offset_y, snap_lines = self.calculate_snap_result(moving_rect, static_items)
+        self.canvas_widget.snap_lines = snap_lines
     
-        # Apply the snap offset to all moving items
-        if snap_offset_x != 0 or snap_offset_y != 0:
+        # Apply the snap offset to moving items only when this screen owns object snap mutation.
+        if self._apply_object_snap_delta_during_drag and (snap_offset_x != 0 or snap_offset_y != 0):
             for item in moving_items:
                 item.moveBy(snap_offset_x, snap_offset_y)
 
         self.canvas_widget.update()
 
 
-    def calculate_snap_offsets(self, moving_rect, static_items):
+    def calculate_snap_result(self, moving_rect, static_items):
         """
-        Calculates the required x and y offsets to snap the moving_rect to the nearest static item.
+        Calculates object snap result for moving_rect.
+
+        Returns:
+            tuple: (snap_offset_x, snap_offset_y, snap_lines)
         """
         snap_offset_x, snap_offset_y = 0, 0
         min_dist_x, min_dist_y = self.snapping_threshold, self.snapping_threshold
+        candidate_line_x = None
+        candidate_line_y = None
+        canvas_bounds = self.canvas_widget.boundingRect()
     
         m_left, m_right = moving_rect.left(), moving_rect.right()
         m_top, m_bottom = moving_rect.top(), moving_rect.bottom()
@@ -826,7 +836,7 @@ class CanvasBaseScreen(QGraphicsView):
                 if abs(dist) < min_dist_x:
                     min_dist_x = abs(dist)
                     snap_offset_x = dist
-                    self.canvas_widget.snap_lines.append(QLineF(s_edge, self.canvas_widget.boundingRect().top(), s_edge, self.canvas_widget.boundingRect().bottom()))
+                    candidate_line_x = QLineF(s_edge, canvas_bounds.top(), s_edge, canvas_bounds.bottom())
 
             # --- Horizontal Snapping (Y-axis) ---
             snap_pairs_y = [
@@ -839,15 +849,23 @@ class CanvasBaseScreen(QGraphicsView):
                 if abs(dist) < min_dist_y:
                     min_dist_y = abs(dist)
                     snap_offset_y = dist
-                    self.canvas_widget.snap_lines.append(QLineF(self.canvas_widget.boundingRect().left(), s_edge, self.canvas_widget.boundingRect().right(), s_edge))
+                    candidate_line_y = QLineF(canvas_bounds.left(), s_edge, canvas_bounds.right(), s_edge)
 
         # If a snap occurred, we only want the closest one, not both X and Y.
         if abs(snap_offset_x) < abs(snap_offset_y) and abs(snap_offset_x) > 0:
             snap_offset_y = 0
+            candidate_line_y = None
         elif abs(snap_offset_y) < abs(snap_offset_x) and abs(snap_offset_y) > 0:
             snap_offset_x = 0
+            candidate_line_x = None
+
+        snap_lines = []
+        if candidate_line_x is not None:
+            snap_lines.append(candidate_line_x)
+        if candidate_line_y is not None:
+            snap_lines.append(candidate_line_y)
             
-        return snap_offset_x, snap_offset_y
+        return snap_offset_x, snap_offset_y, snap_lines
 
 
     def get_items_bounding_rect(self, items):
