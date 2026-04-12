@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QGraphicsItem
 from ..widgets.tree import CustomTreeWidget
 from ..services.icon_service import IconService
 from screen.base.base_graphic_object import BaseGraphicObject
+from services.undo_commands import PropertyChangeCommand
 
 
 class LayersTreeWidget(CustomTreeWidget):
@@ -420,9 +421,26 @@ class LayersDock(QDockWidget):
     
     def _apply_opacity_to_selected(self, value):
         """Apply opacity to selected layers."""
+        new_opacity = value / 100.0
         selected = self.tree_widget.selectedItems()
         for item in selected:
+            canvas_obj = self.item_to_object_map.get(id(item))
+            if not canvas_obj:
+                continue
+
+            old_opacity = canvas_obj.opacity()
+            if old_opacity == new_opacity:
+                item.setData(0, Qt.ItemDataRole.UserRole + 13, value)
+                continue
+
+            if self.current_canvas and hasattr(self.current_canvas, 'undo_stack') and self.current_canvas.undo_stack:
+                cmd = PropertyChangeCommand(canvas_obj, 'opacity', old_opacity, new_opacity, "Change Opacity")
+                self.current_canvas.undo_stack.push(cmd)
+            else:
+                canvas_obj.setOpacity(new_opacity)
+
             item.setData(0, Qt.ItemDataRole.UserRole + 13, value)
+
         self.opacityChanged.emit(value)
     
     def _update_previews(self):
