@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QGraphicsItem
 from ..widgets.tree import CustomTreeWidget
 from ..services.icon_service import IconService
 from screen.base.base_graphic_object import BaseGraphicObject
-from services.undo_commands import PropertyChangeCommand
+from services.undo_commands import PropertyChangeCommand, ZOrderCommand
 
 
 class LayersTreeWidget(CustomTreeWidget):
@@ -20,6 +20,7 @@ class LayersTreeWidget(CustomTreeWidget):
     itemVisibilityChanged = Signal(QTreeWidgetItem, bool)
     itemLockChanged = Signal(QTreeWidgetItem, bool)
     itemNameChanged = Signal(QTreeWidgetItem, str)
+    itemsReordered = Signal()
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -51,6 +52,28 @@ class LayersTreeWidget(CustomTreeWidget):
         
         # Set row height for preview thumbnails
         self.setUniformRowHeights(False)
+
+    def dropEvent(self, event):
+        """Handle drag/drop reorder and emit a hook when visual order changes."""
+        before_order = self._get_visual_order_signature()
+        super().dropEvent(event)
+        after_order = self._get_visual_order_signature()
+        if before_order != after_order:
+            self.itemsReordered.emit()
+
+    def _get_visual_order_signature(self):
+        """Return a stable signature of item order for reorder-change detection."""
+        signature = []
+
+        def walk(item):
+            signature.append(id(item))
+            for i in range(item.childCount()):
+                walk(item.child(i))
+
+        for i in range(self.topLevelItemCount()):
+            walk(self.topLevelItem(i))
+
+        return tuple(signature)
     
     def _on_item_clicked(self, item, column):
         """Handle clicks on visibility and lock columns."""
@@ -386,6 +409,7 @@ class LayersDock(QDockWidget):
         self.tree_widget.itemVisibilityChanged.connect(self._on_visibility_changed)
         self.tree_widget.itemLockChanged.connect(self._on_lock_changed)
         self.tree_widget.itemNameChanged.connect(self._on_name_changed)
+        self.tree_widget.itemsReordered.connect(self._sync_reordered_layers_to_z_order)
     
     def _on_opacity_slider_changed(self, value):
         """Handle opacity slider change."""
@@ -577,6 +601,57 @@ class LayersDock(QDockWidget):
             obj_data = canvas_obj.data(Qt.ItemDataRole.UserRole)
             if obj_data and isinstance(obj_data, dict):
                 obj_data['name'] = new_name
+
+    def _iter_layer_items_in_visual_order(self):
+        """Yield all tree items in current visual order (depth-first)."""
+        def walk(item):
+            yield item
+            for i in range(item.childCount()):
+                yield from walk(item.child(i))
+
+        for i in range(self.tree_widget.topLevelItemCount()):
+            yield from walk(self.tree_widget.topLevelItem(i))
+
+    def _sync_reordered_layers_to_z_order(self):
+        """
+        Sync tree visual order to canvas z-order using a single undoable command.
+        Topmost tree item receives the highest z-value.
+        """
+        if not self.current_canvas or not hasattr(self.current_canvas, 'undo_stack'):
+            return
+
+        ordered_canvas_items = []
+        for tree_item in self._iter_layer_items_in_visual_order():
+            canvas_obj = self.item_to_object_map.get(id(tree_item))
+            if isinstance(canvas_obj, BaseGraphicObject) and canvas_obj.scene():
+                ordered_canvas_items.append(canvas_obj)
+
+        if len(ordered_canvas_items) < 2:
+            return
+
+        old_z_values = [item.zValue() for item in ordered_canvas_items]
+        max_z = len(ordered_canvas_items) - 1
+        new_z_values = [max_z - index for index in range(len(ordered_canvas_items))]
+
+        if old_z_values == new_z_values:
+            return
+
+        command = ZOrderCommand(
+            ordered_canvas_items,
+            old_z_values,
+            new_z_values,
+            "Reorder Layers",
+        )
+        self.current_canvas.undo_stack.push(command)
+
+        # Keep scene state persisted after reorder command execution.
+        if hasattr(self.current_canvas, 'save_items'):
+            self.current_canvas.save_items()
+
+        # Refresh selection and visual state after z-order update.
+        self._on_layers_selection_changed()
+        if self.current_canvas.scene:
+            self.current_canvas.scene.update()
     
     def _set_object_locked(self, canvas_obj, is_locked):
         """Set locked state on a canvas object."""
