@@ -1138,14 +1138,19 @@ class CanvasBaseScreen(QGraphicsView):
         """Delete selected items."""
         selected_items = [item for item in self.scene.selectedItems() 
                          if isinstance(item, BaseGraphicObject)]
+        self.delete_items(selected_items, "Delete Items")
+
+    def delete_items(self, items, command_text="Delete Items"):
+        """Delete provided canvas items using undo/redo command flow."""
+        selected_items = [item for item in items if isinstance(item, BaseGraphicObject)]
         if not selected_items:
             logger.debug("Delete: No items selected")
             return
-        
+
         # Use remove command for undo support
-        command = RemoveItemCommand(self, selected_items, "Delete Items")
+        command = RemoveItemCommand(self, selected_items, command_text)
         self.undo_stack.push(command)
-        
+
         logger.debug(f"Deleted {len(selected_items)} items")
 
     def move_items_by_offset(self, dx, dy):

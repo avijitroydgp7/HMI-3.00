@@ -643,19 +643,25 @@ class LayersDock(QDockWidget):
     def _delete_selected(self):
         """Delete selected layers and their corresponding canvas objects."""
         selected = self.tree_widget.selectedItems()
+        if not selected:
+            return
+
+        canvas_objects_to_delete = []
+        orphan_tree_items = []
+
         for item in selected:
-            # Get and delete the canvas object first
             canvas_obj = self.item_to_object_map.get(id(item))
-            if canvas_obj and self.current_canvas:
-                # Remove from mappings
-                obj_id = id(canvas_obj)
-                if obj_id in self.object_to_item_map:
-                    del self.object_to_item_map[obj_id]
-                if id(item) in self.item_to_object_map:
-                    del self.item_to_object_map[id(item)]
-                # Delete from canvas
-                self.current_canvas.delete_graphic_object(canvas_obj)
-            
+            if isinstance(canvas_obj, BaseGraphicObject):
+                canvas_objects_to_delete.append(canvas_obj)
+            else:
+                orphan_tree_items.append(item)
+
+        if self.current_canvas and canvas_objects_to_delete:
+            # Route deletion through canvas command flow for proper undo/redo support.
+            self.current_canvas.delete_items(canvas_objects_to_delete, "Delete Items")
+
+        # Fallback for tree-only/orphan nodes that are not backed by canvas objects.
+        for item in orphan_tree_items:
             self.layerDeleted.emit(item)
             parent = item.parent()
             if parent:
