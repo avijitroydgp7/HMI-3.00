@@ -232,8 +232,7 @@ class LayersTreeWidget(CustomTreeWidget):
                 preview_pixmap = self._generate_preview(canvas_obj, size=80)
                 if not preview_pixmap.isNull():
                     item.setIcon(3, QIcon(preview_pixmap))
-                    # Store reference to object for updates
-                    item.setData(0, Qt.ItemDataRole.UserRole + 14, canvas_obj)
+                    # Object reference is already stored in item_to_object_map, no need to store QGraphicsItem in QVariant
                     return
         except Exception as e:
             pass

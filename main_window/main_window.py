@@ -1157,6 +1157,12 @@ class MainWindow(QMainWindow):
             event (QCloseEvent): The close event.
         """
         if self.prompt_to_save():
+            # Clear all graphics selections before saving state to avoid QVariant serialization errors
+            # Qt tries to serialize selected graphics items as QVariant, which fails for QGraphicsItem* pointers
+            for screen_widget in self.open_screens.values():
+                if isinstance(screen_widget, CanvasBaseScreen):
+                    screen_widget.scene.clearSelection()
+            
             self.settings_service.save_settings(self)
             event.accept()
         else:
