@@ -1053,6 +1053,25 @@ class CanvasBaseScreen(QGraphicsView):
 
     # ========== Edit Operations (Cut/Copy/Paste/Delete/Undo/Redo) ==========
 
+    def _serialize_item_for_clipboard(self, item):
+        """Serialize a scene item for clipboard operations using live geometry/state."""
+        item_data = item.data(Qt.ItemDataRole.UserRole)
+        if not item_data:
+            return None
+
+        data_copy = copy.deepcopy(item_data)
+        data_copy['pos'] = [item.pos().x(), item.pos().y()]
+        rect = item.boundingRect()
+        data_copy['rect'] = [rect.x(), rect.y(), rect.width(), rect.height()]
+
+        # Ensure rounded rectangle runtime state is copied from the live item.
+        if hasattr(item, 'corner_radii'):
+            data_copy['corner_radii'] = item.corner_radii.copy()
+        if hasattr(item, 'rounded_enabled'):
+            data_copy['rounded_enabled'] = item.rounded_enabled
+
+        return data_copy
+
     def cut(self):
         """Cut selected items to clipboard."""
         selected_items = [item for item in self.scene.selectedItems() 
@@ -1064,12 +1083,8 @@ class CanvasBaseScreen(QGraphicsView):
         # Copy items data to clipboard
         items_data = []
         for item in selected_items:
-            item_data = item.data(Qt.ItemDataRole.UserRole)
-            if item_data:
-                data_copy = copy.deepcopy(item_data)
-                data_copy['pos'] = [item.pos().x(), item.pos().y()]
-                rect = item.boundingRect()
-                data_copy['rect'] = [rect.x(), rect.y(), rect.width(), rect.height()]
+            data_copy = self._serialize_item_for_clipboard(item)
+            if data_copy:
                 items_data.append(data_copy)
         
         # Store in clipboard with cut flag
@@ -1092,12 +1107,8 @@ class CanvasBaseScreen(QGraphicsView):
         # Copy items data to clipboard
         items_data = []
         for item in selected_items:
-            item_data = item.data(Qt.ItemDataRole.UserRole)
-            if item_data:
-                data_copy = copy.deepcopy(item_data)
-                data_copy['pos'] = [item.pos().x(), item.pos().y()]
-                rect = item.boundingRect()
-                data_copy['rect'] = [rect.x(), rect.y(), rect.width(), rect.height()]
+            data_copy = self._serialize_item_for_clipboard(item)
+            if data_copy:
                 items_data.append(data_copy)
         
         # Store in clipboard (not a cut operation)
