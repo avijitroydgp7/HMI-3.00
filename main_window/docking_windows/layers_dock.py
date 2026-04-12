@@ -324,6 +324,7 @@ class LayersDock(QDockWidget):
         self._syncing = False  # Prevent circular updates during sync
         self._updating_canvas = False  # Prevent circular updates when updating canvas
         self.previously_selected_objects = set()  # Track previous selection for deselection detection
+        self._connected_undo_stack = None
         
         # Preview update timer
         self.preview_update_timer = QTimer()
@@ -612,6 +613,66 @@ class LayersDock(QDockWidget):
         for i in range(self.tree_widget.topLevelItemCount()):
             yield from walk(self.tree_widget.topLevelItem(i))
 
+    def _sorted_canvas_objects_by_z(self, objects):
+        """Return canvas objects sorted by z-value (highest z first)."""
+        return sorted(
+            [obj for obj in objects if isinstance(obj, BaseGraphicObject)],
+            key=lambda obj: obj.zValue(),
+            reverse=True,
+        )
+
+    def _rebuild_layers_from_canvas_objects(self, canvas_objects):
+        """
+        Rebuild all layer tree rows from canvas objects.
+        Canonical direction: top row == highest z-value.
+        """
+        selected_obj_ids = {
+            id(self.item_to_object_map.get(id(item)))
+            for item in self.tree_widget.selectedItems()
+            if self.item_to_object_map.get(id(item))
+        }
+
+        self.clear_layers()
+        self.object_to_item_map.clear()
+        self.item_to_object_map.clear()
+
+        for obj in self._sorted_canvas_objects_by_z(canvas_objects):
+            obj_data = obj.data(Qt.ItemDataRole.UserRole) if hasattr(obj, 'data') else None
+            obj_type = obj_data.get('type', 'Object') if isinstance(obj_data, dict) else 'Object'
+            obj_name = obj_data.get('name', f"{obj_type.capitalize()}") if isinstance(obj_data, dict) else getattr(obj, 'name', 'Object')
+            obj_id = obj_data.get('id', id(obj)) if isinstance(obj_data, dict) else getattr(obj, 'id', id(obj))
+
+            item = self.tree_widget.add_layer_item(
+                None,
+                obj_name,
+                is_group=False,
+                canvas_obj=obj,
+                object_id=obj_id,
+            )
+
+            opacity_value = int(obj.opacity() * 100) if hasattr(obj, 'opacity') else 100
+            item.setData(0, Qt.ItemDataRole.UserRole + 13, opacity_value)
+
+            self.object_to_item_map[id(obj)] = item
+            self.item_to_object_map[id(item)] = obj
+
+            if id(obj) in selected_obj_ids:
+                item.setSelected(True)
+
+    def refresh_layer_ordering(self):
+        """Refresh layer order from current canvas z-values (top row = highest z)."""
+        if not self.current_canvas or not hasattr(self.current_canvas, 'scene'):
+            return
+        canvas_objects = [
+            item for item in self.current_canvas.scene.items()
+            if isinstance(item, BaseGraphicObject)
+        ]
+        self._rebuild_layers_from_canvas_objects(canvas_objects)
+
+    def _on_undo_stack_index_changed(self, _index):
+        """Keep layers tree synchronized after undo/redo and z-order commands."""
+        self.refresh_layer_ordering()
+
     def _sync_reordered_layers_to_z_order(self):
         """
         Sync tree visual order to canvas z-order using a single undoable command.
@@ -649,6 +710,7 @@ class LayersDock(QDockWidget):
             self.current_canvas.save_items()
 
         # Refresh selection and visual state after z-order update.
+        self.refresh_layer_ordering()
         self._on_layers_selection_changed()
         if self.current_canvas.scene:
             self.current_canvas.scene.update()
@@ -947,18 +1009,7 @@ class LayersDock(QDockWidget):
         Args:
             screen_objects: List of graphic objects from the screen
         """
-        self.clear_layers()
-        
-        # Build layer tree from screen objects
-        for obj in screen_objects:
-            name = getattr(obj, 'name', 'Object')
-            is_group = hasattr(obj, 'childItems') and len(obj.childItems()) > 0
-            obj_id = getattr(obj, 'id', id(obj))
-            item = self.tree_widget.add_layer_item(None, name, is_group=is_group, canvas_obj=obj, object_id=obj_id)
-            
-            # Store bidirectional mapping
-            self.object_to_item_map[id(obj)] = item
-            self.item_to_object_map[id(item)] = obj
+        self._rebuild_layers_from_canvas_objects(screen_objects)
     
     def add_canvas_object(self, canvas_obj, obj_data):
         """
@@ -983,6 +1034,7 @@ class LayersDock(QDockWidget):
         # Store bidirectional mapping
         self.object_to_item_map[id(canvas_obj)] = item
         self.item_to_object_map[id(item)] = canvas_obj
+        self.refresh_layer_ordering()
     
     def remove_canvas_object(self, canvas_obj):
         """Remove a canvas object from layers."""
@@ -998,6 +1050,7 @@ class LayersDock(QDockWidget):
                 index = self.tree_widget.indexOfTopLevelItem(item)
                 if index >= 0:
                     self.tree_widget.takeTopLevelItem(index)
+        self.refresh_layer_ordering()
     
     def set_current_canvas(self, canvas):
         """
@@ -1006,6 +1059,13 @@ class LayersDock(QDockWidget):
         Args:
             canvas: The CanvasBaseScreen object
         """
+        if self._connected_undo_stack is not None:
+            try:
+                self._connected_undo_stack.indexChanged.disconnect(self._on_undo_stack_index_changed)
+            except Exception:
+                pass
+            self._connected_undo_stack = None
+
         self.current_canvas = canvas
         self.clear_layers()
         self.object_to_item_map.clear()
@@ -1013,9 +1073,9 @@ class LayersDock(QDockWidget):
         self.previously_selected_objects.clear()  # Reset selection tracking
         
         if canvas:
-            # Add all current objects from the canvas
-            for item in canvas.scene.items():
-                if isinstance(item, BaseGraphicObject):
-                    obj_data = item.data(Qt.ItemDataRole.UserRole)
-                    if obj_data:
-                        self.add_canvas_object(item, obj_data)
+            # Add all current objects from the canvas sorted by z-value.
+            self.refresh_layer_ordering()
+
+            if hasattr(canvas, 'undo_stack') and canvas.undo_stack:
+                canvas.undo_stack.indexChanged.connect(self._on_undo_stack_index_changed)
+                self._connected_undo_stack = canvas.undo_stack
