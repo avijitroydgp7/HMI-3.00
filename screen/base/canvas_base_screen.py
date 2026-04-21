@@ -1404,17 +1404,76 @@ class CanvasBaseScreen(QGraphicsView):
 
     # ========== Stacking Order Operations ==========
 
+    def _get_deterministic_z_order(self):
+        """Return all graphic items sorted by z-value with stable tie-breakers."""
+        all_items = [item for item in self.scene.items() if isinstance(item, BaseGraphicObject)]
+        if not all_items:
+            return []
+
+        # Use persisted screen item order as the primary tie-breaker for equal z-values.
+        screen_order_map = {}
+        for index, item_data in enumerate(self.screen_data.get('items', [])):
+            item_id = str(item_data.get('id'))
+            screen_order_map[item_id] = index
+
+        scene_enumeration = {id(item): idx for idx, item in enumerate(all_items)}
+
+        def sort_key(item):
+            data = item.data(Qt.ItemDataRole.UserRole) or {}
+            item_id = str(data.get('id', ''))
+            # Fallbacks keep ordering deterministic even if ID is missing from persisted data.
+            screen_order = screen_order_map.get(item_id, 10**9)
+            return (item.zValue(), screen_order, item_id, scene_enumeration[id(item)])
+
+        return sorted(all_items, key=sort_key)
+
+    def _find_next_non_selected_index(self, ordered_items, start_index, selected_set):
+        """Find the next non-selected item index after start_index."""
+        for idx in range(start_index + 1, len(ordered_items)):
+            if ordered_items[idx] not in selected_set:
+                return idx
+        return None
+
+    def _find_prev_non_selected_index(self, ordered_items, start_index, selected_set):
+        """Find the previous non-selected item index before start_index."""
+        for idx in range(start_index - 1, -1, -1):
+            if ordered_items[idx] not in selected_set:
+                return idx
+        return None
+
     def move_front_layer(self):
         """Move selected items one layer up (increase z-value)."""
         selected_items = [item for item in self.scene.selectedItems() 
                          if isinstance(item, BaseGraphicObject)]
         if not selected_items:
             return
-        
-        old_z_values = [item.zValue() for item in selected_items]
-        new_z_values = [z + 1 for z in old_z_values]
-        
-        command = ZOrderCommand(selected_items, old_z_values, new_z_values, "Move Front Layer")
+
+        ordered_items = self._get_deterministic_z_order()
+        if not ordered_items:
+            return
+
+        selected_set = set(selected_items)
+        # Move higher-index selected items first so multi-selection behaves like one block.
+        selected_indices = sorted(
+            (idx for idx, item in enumerate(ordered_items) if item in selected_set),
+            reverse=True
+        )
+        selected_in_move_order = [ordered_items[idx] for idx in selected_indices]
+
+        for item in selected_in_move_order:
+            current_index = ordered_items.index(item)
+            neighbor_index = self._find_next_non_selected_index(ordered_items, current_index, selected_set)
+            if neighbor_index is None:
+                continue
+            ordered_items[current_index], ordered_items[neighbor_index] = (
+                ordered_items[neighbor_index],
+                ordered_items[current_index]
+            )
+
+        old_z_values = [item.zValue() for item in ordered_items]
+        new_z_values = [float(index) for index, _ in enumerate(ordered_items)]
+
+        command = ZOrderCommand(ordered_items, old_z_values, new_z_values, "Move Front Layer")
         self.undo_stack.push(command)
         self.save_items()
 
@@ -1424,11 +1483,32 @@ class CanvasBaseScreen(QGraphicsView):
                          if isinstance(item, BaseGraphicObject)]
         if not selected_items:
             return
-        
-        old_z_values = [item.zValue() for item in selected_items]
-        new_z_values = [z - 1 for z in old_z_values]
-        
-        command = ZOrderCommand(selected_items, old_z_values, new_z_values, "Move Back Layer")
+
+        ordered_items = self._get_deterministic_z_order()
+        if not ordered_items:
+            return
+
+        selected_set = set(selected_items)
+        # Move lower-index selected items first so multi-selection behaves like one block.
+        selected_indices = sorted(
+            idx for idx, item in enumerate(ordered_items) if item in selected_set
+        )
+        selected_in_move_order = [ordered_items[idx] for idx in selected_indices]
+
+        for item in selected_in_move_order:
+            current_index = ordered_items.index(item)
+            neighbor_index = self._find_prev_non_selected_index(ordered_items, current_index, selected_set)
+            if neighbor_index is None:
+                continue
+            ordered_items[current_index], ordered_items[neighbor_index] = (
+                ordered_items[neighbor_index],
+                ordered_items[current_index]
+            )
+
+        old_z_values = [item.zValue() for item in ordered_items]
+        new_z_values = [float(index) for index, _ in enumerate(ordered_items)]
+
+        command = ZOrderCommand(ordered_items, old_z_values, new_z_values, "Move Back Layer")
         self.undo_stack.push(command)
         self.save_items()
 
