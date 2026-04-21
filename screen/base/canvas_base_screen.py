@@ -300,15 +300,30 @@ class CanvasBaseScreen(QGraphicsView):
             )
             item.setData(Qt.ItemDataRole.UserRole, data)
             
-            # You might want to store/load style from `data` here
-            # For now, using default style
-            pen = QPen(QColor("black"), 2)
-            brush = QBrush(QColor(200, 200, 200, 100))
+            # Restore pen, brush, and other visual properties from data
+            # Use stored properties if available, otherwise use defaults
+            if 'pen' in data and data['pen']:
+                pen = self._deserialize_pen(data['pen'])
+            else:
+                pen = QPen(QColor("black"), 2)
+            
+            if 'brush' in data and data['brush']:
+                brush = self._deserialize_brush(data['brush'])
+            else:
+                brush = QBrush(QColor(200, 200, 200, 100))
             
             # Access the composed item to set style
             if hasattr(item, 'item'):
                 item.item.setPen(pen)
                 item.item.setBrush(brush)
+            
+            # Restore opacity, rotation, and z-value
+            if 'opacity' in data:
+                item.setOpacity(data['opacity'])
+            if 'rotation' in data:
+                item.setRotation(data['rotation'])
+            if 'z_value' in data:
+                item.setZValue(data['z_value'])
             
             self.scene.addItem(item)
             self._add_overlays(item, data)
@@ -376,6 +391,10 @@ class CanvasBaseScreen(QGraphicsView):
         
         scene_top_left = rect.topLeft()
         
+        # Prepare default pen and brush
+        default_pen = QPen(QColor("black"), 2)
+        default_brush = QBrush(QColor(200, 200, 200, 100))
+        
         data = {
             'id': new_id,
             'type': item_type,
@@ -384,7 +403,12 @@ class CanvasBaseScreen(QGraphicsView):
             'tag': '',
             'corner_radii': [0.0, 0.0, 0.0, 0.0],  # [TL, TR, BR, BL]
             'rounded_enabled': False,
-            'lock_aspect_ratio': False
+            'lock_aspect_ratio': False,
+            'pen': self._serialize_pen(default_pen),
+            'brush': self._serialize_brush(default_brush),
+            'opacity': 1.0,
+            'rotation': 0.0,
+            'z_value': 0.0
         }
         
         # Use AddItemCommand for undo support
@@ -1053,6 +1077,41 @@ class CanvasBaseScreen(QGraphicsView):
 
     # ========== Edit Operations (Cut/Copy/Paste/Delete/Undo/Redo) ==========
 
+    def _serialize_pen(self, pen):
+        """Serialize a QPen to a dictionary."""
+        return {
+            'color': pen.color().name(),
+            'width': pen.width(),
+            'style': pen.style().value,
+            'cap_style': pen.capStyle().value,
+            'join_style': pen.joinStyle().value
+        }
+    
+    def _deserialize_pen(self, pen_data):
+        """Deserialize a QPen from a dictionary."""
+        pen = QPen(QColor(pen_data.get('color', 'black')))
+        pen.setWidth(pen_data.get('width', 2))
+        pen.setStyle(Qt.PenStyle(pen_data.get('style', Qt.PenStyle.SolidLine.value)))
+        pen.setCapStyle(Qt.PenCapStyle(pen_data.get('cap_style', Qt.PenCapStyle.SquareCap.value)))
+        pen.setJoinStyle(Qt.PenJoinStyle(pen_data.get('join_style', Qt.PenJoinStyle.BevelJoin.value)))
+        return pen
+    
+    def _serialize_brush(self, brush):
+        """Serialize a QBrush to a dictionary."""
+        return {
+            'color': brush.color().name(),
+            'alpha': brush.color().alpha(),
+            'style': brush.style().value
+        }
+    
+    def _deserialize_brush(self, brush_data):
+        """Deserialize a QBrush from a dictionary."""
+        color = QColor(brush_data.get('color', '#c8c8c8'))
+        color.setAlpha(brush_data.get('alpha', 100))
+        brush = QBrush(color)
+        brush.setStyle(Qt.BrushStyle(brush_data.get('style', Qt.BrushStyle.SolidPattern.value)))
+        return brush
+
     def _serialize_item_for_clipboard(self, item):
         """Serialize a scene item for clipboard operations using live geometry/state."""
         item_data = item.data(Qt.ItemDataRole.UserRole)
@@ -1069,6 +1128,21 @@ class CanvasBaseScreen(QGraphicsView):
             data_copy['corner_radii'] = item.corner_radii.copy()
         if hasattr(item, 'rounded_enabled'):
             data_copy['rounded_enabled'] = item.rounded_enabled
+        
+        # Serialize visual properties from the composed item
+        if hasattr(item, 'item'):
+            # Store pen (stroke color and width)
+            pen = item.item.pen()
+            data_copy['pen'] = self._serialize_pen(pen)
+            
+            # Store brush (fill color and transparency)
+            brush = item.item.brush()
+            data_copy['brush'] = self._serialize_brush(brush)
+            
+            # Store opacity and rotation
+            data_copy['opacity'] = item.opacity()
+            data_copy['rotation'] = item.rotation()
+            data_copy['z_value'] = item.zValue()
 
         return data_copy
 

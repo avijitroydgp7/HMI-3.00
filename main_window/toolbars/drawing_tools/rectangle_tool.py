@@ -22,7 +22,7 @@ class RectangleTool:
 
         # Set default styles
         self.current_item.setPen(QPen(QColor(colors.COLOR_DEFAULT_SHAPE_BORDER), 2))
-        self.current_item.setBrush(QBrush(QColor(colors.COLOR_DEFAULT_SHAPE_FILL)))
+        self.current_item.setBrush(QBrush(QColor(200, 200, 200, 100)))
 
         # Add flags
         self.current_item.setFlags(
