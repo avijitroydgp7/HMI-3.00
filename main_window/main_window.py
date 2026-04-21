@@ -499,6 +499,8 @@ class MainWindow(QMainWindow):
         self.edit_menu.duplicate_action.triggered.connect(self.duplicate_active_widget)
         self.edit_menu.select_all_action.triggered.connect(self.select_all_in_active_widget)
         self.edit_menu.delete_action.triggered.connect(self.delete_in_active_widget)
+        self.edit_menu.group_action.triggered.connect(self.group_active)
+        self.edit_menu.ungroup_action.triggered.connect(self.ungroup_active)
 
         # --- Edit Menu - Stacking Order ---
         self.edit_menu.move_front_layer_action.triggered.connect(self.move_front_layer_active)
@@ -880,6 +882,18 @@ class MainWindow(QMainWindow):
                 widget.paste_screen(selected_items[0])
         elif hasattr(widget, 'duplicate'):
             widget.duplicate()
+
+    def group_active(self):
+        """Group selected items in the active canvas."""
+        active_screen = self.get_active_screen_widget()
+        if isinstance(active_screen, CanvasBaseScreen) and hasattr(active_screen, 'group_selected_items'):
+            active_screen.group_selected_items()
+
+    def ungroup_active(self):
+        """Ungroup selected items in the active canvas."""
+        active_screen = self.get_active_screen_widget()
+        if isinstance(active_screen, CanvasBaseScreen) and hasattr(active_screen, 'ungroup_selected_items'):
+            active_screen.ungroup_selected_items()
 
     # ========== Stacking Order Operations ==========
 

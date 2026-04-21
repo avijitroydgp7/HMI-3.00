@@ -9,7 +9,8 @@ from screen.context_menu import ScreenContextMenu
 from services.edit_service import EditService, ClipboardDataType
 from services.undo_commands import (
     AddItemCommand, RemoveItemCommand, MoveItemsCommand, 
-    PasteItemsCommand, DuplicateItemsCommand, ZOrderCommand
+    PasteItemsCommand, DuplicateItemsCommand, ZOrderCommand,
+    GroupItemsCommand, UngroupItemsCommand
 )
 from debug_utils import get_logger
 import uuid
@@ -1310,6 +1311,69 @@ class CanvasBaseScreen(QGraphicsView):
         self.undo_stack.push(command)
         
         logger.debug(f"Duplicated {len(selected_items)} items")
+
+    def _selected_graphic_items(self):
+        """Return currently selected canvas graphic objects."""
+        return [
+            item for item in self.scene.selectedItems()
+            if isinstance(item, BaseGraphicObject)
+        ]
+
+    def group_selected_items(self):
+        """
+        Assign selected items to a logical group (metadata-based grouping).
+        """
+        selected_items = self._selected_graphic_items()
+        if len(selected_items) < 2:
+            logger.debug("Group: Need at least 2 selected items")
+            return
+
+        group_id = str(uuid.uuid4())
+        item_ids = []
+        old_group_ids = {}
+        for item in selected_items:
+            data = item.data(Qt.ItemDataRole.UserRole) or {}
+            item_id = data.get('id')
+            if item_id is None:
+                continue
+            item_ids.append(item_id)
+            old_group_ids[item_id] = data.get('group_id')
+
+        if len(item_ids) < 2:
+            logger.debug("Group: Not enough valid items with IDs")
+            return
+
+        command = GroupItemsCommand(self, item_ids, old_group_ids, group_id, "Group Items")
+        self.undo_stack.push(command)
+        logger.debug(f"Grouped {len(item_ids)} items with group_id={group_id}")
+
+    def ungroup_selected_items(self):
+        """
+        Clear logical group assignment from selected grouped items.
+        """
+        selected_items = self._selected_graphic_items()
+        if not selected_items:
+            logger.debug("Ungroup: No selected items")
+            return
+
+        item_ids = []
+        old_group_ids = {}
+        for item in selected_items:
+            data = item.data(Qt.ItemDataRole.UserRole) or {}
+            item_id = data.get('id')
+            group_id = data.get('group_id')
+            if item_id is None or not group_id:
+                continue
+            item_ids.append(item_id)
+            old_group_ids[item_id] = group_id
+
+        if not item_ids:
+            logger.debug("Ungroup: No grouped selected items")
+            return
+
+        command = UngroupItemsCommand(self, item_ids, old_group_ids, "Ungroup Items")
+        self.undo_stack.push(command)
+        logger.debug(f"Ungrouped {len(item_ids)} items")
 
     def selectAll(self):
         """Select all graphic items on the canvas."""

@@ -1,5 +1,6 @@
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu
+from PySide6.QtCore import Qt
 
 from main_window.services.icon_service import IconService
 from screen.base.base_graphic_object import BaseGraphicObject
@@ -27,6 +28,11 @@ class ScreenContextMenu:
         selected_graphic_objects = self._selected_graphic_objects()
         selected_count = len(selected_graphic_objects)
         has_selection = selected_count > 0
+        can_group = selected_count >= 2
+        can_ungroup = any(
+            (item.data(Qt.ItemDataRole.UserRole) or {}).get('group_id')
+            for item in selected_graphic_objects
+        )
         can_align = selected_count >= 2
         can_distribute = selected_count >= 3
 
@@ -155,13 +161,13 @@ class ScreenContextMenu:
         group_action = QAction(IconService.get_icon('group'), "Group", self.menu)
         if hasattr(self.canvas, 'group_selected_items'):
             group_action.triggered.connect(self.canvas.group_selected_items)
-        group_action.setEnabled(has_selection and hasattr(self.canvas, 'group_selected_items'))
+        group_action.setEnabled(can_group and hasattr(self.canvas, 'group_selected_items'))
         self.menu.addAction(group_action)
 
         ungroup_action = QAction(IconService.get_icon('ungroup'), "Ungroup", self.menu)
         if hasattr(self.canvas, 'ungroup_selected_items'):
             ungroup_action.triggered.connect(self.canvas.ungroup_selected_items)
-        ungroup_action.setEnabled(has_selection and hasattr(self.canvas, 'ungroup_selected_items'))
+        ungroup_action.setEnabled(can_ungroup and hasattr(self.canvas, 'ungroup_selected_items'))
         self.menu.addAction(ungroup_action)
 
         self.menu.addSeparator()

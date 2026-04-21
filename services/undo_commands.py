@@ -404,6 +404,91 @@ class ZOrderCommand(QUndoCommand):
                 item.setZValue(z_value)
 
 
+class GroupItemsCommand(QUndoCommand):
+    """
+    Command for assigning selected items to a logical group.
+    """
+    def __init__(self, canvas, item_ids, old_group_ids, new_group_id, description="Group Items"):
+        super().__init__(description)
+        self.canvas = canvas
+        self.item_ids = list(item_ids)
+        self.old_group_ids = dict(old_group_ids)
+        self.new_group_id = new_group_id
+
+    def _resolve_items(self):
+        resolved = []
+        item_id_set = set(self.item_ids)
+        for item in self.canvas.scene.items():
+            data = item.data(Qt.ItemDataRole.UserRole)
+            if data and data.get('id') in item_id_set:
+                resolved.append(item)
+        return resolved
+
+    def _apply_group_mapping(self, mapping):
+        for item in self._resolve_items():
+            data = item.data(Qt.ItemDataRole.UserRole) or {}
+            item_id = data.get('id')
+            if item_id not in mapping:
+                continue
+            group_id = mapping[item_id]
+            if group_id:
+                data['group_id'] = group_id
+            else:
+                data.pop('group_id', None)
+            item.setData(Qt.ItemDataRole.UserRole, data)
+        self.canvas.save_items()
+        self.canvas.refresh_transform_handler()
+
+    def redo(self):
+        new_mapping = {item_id: self.new_group_id for item_id in self.item_ids}
+        self._apply_group_mapping(new_mapping)
+
+    def undo(self):
+        self._apply_group_mapping(self.old_group_ids)
+
+
+class UngroupItemsCommand(QUndoCommand):
+    """
+    Command for clearing logical group assignments from selected items.
+    """
+    def __init__(self, canvas, item_ids, old_group_ids, description="Ungroup Items"):
+        super().__init__(description)
+        self.canvas = canvas
+        self.item_ids = list(item_ids)
+        self.old_group_ids = dict(old_group_ids)
+
+    def _resolve_items(self):
+        resolved = []
+        item_id_set = set(self.item_ids)
+        for item in self.canvas.scene.items():
+            data = item.data(Qt.ItemDataRole.UserRole)
+            if data and data.get('id') in item_id_set:
+                resolved.append(item)
+        return resolved
+
+    def _apply_group_mapping(self, mapping):
+        for item in self._resolve_items():
+            data = item.data(Qt.ItemDataRole.UserRole) or {}
+            item_id = data.get('id')
+            if item_id not in mapping:
+                continue
+            group_id = mapping[item_id]
+            if group_id:
+                data['group_id'] = group_id
+            else:
+                data.pop('group_id', None)
+            item.setData(Qt.ItemDataRole.UserRole, data)
+        self.canvas.save_items()
+        self.canvas.refresh_transform_handler()
+
+    def redo(self):
+        ungrouped_mapping = {item_id: None for item_id in self.item_ids}
+        self._apply_group_mapping(ungrouped_mapping)
+
+    def undo(self):
+        self._apply_group_mapping(self.old_group_ids)
+
+
 class PasteItemsCommand(QUndoCommand):
     """
     Command for pasting items from clipboard.

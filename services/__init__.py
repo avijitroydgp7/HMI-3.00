@@ -7,6 +7,8 @@ from .undo_commands import (
     ResizeItemCommand,
     PropertyChangeCommand,
     ZOrderCommand,
+    GroupItemsCommand,
+    UngroupItemsCommand,
     PasteItemsCommand,
     DuplicateItemsCommand,
 )

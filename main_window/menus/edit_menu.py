@@ -20,6 +20,8 @@ class EditMenu:
         delete_icon = IconService.get_icon('edit-delete')
         consecutive_copy_icon = IconService.get_icon('edit-consecutive-copy')
         select_all_icon = IconService.get_icon('edit-select-all')
+        group_icon = IconService.get_icon('object-group-box')
+        ungroup_icon = IconService.get_icon('layer-group')
         
         # Actions
         self.undo_action = QAction(undo_icon,"Undo", self.main_window)
@@ -31,6 +33,8 @@ class EditMenu:
         self.consecutive_copy_action = QAction(consecutive_copy_icon, "Consecutive Copy", self.main_window)
         self.select_all_action = QAction(select_all_icon, "Select All", self.main_window)
         self.delete_action = QAction(delete_icon,"Delete", self.main_window)
+        self.group_action = QAction(group_icon, "Group", self.main_window)
+        self.ungroup_action = QAction(ungroup_icon, "Ungroup", self.main_window)
         
         self.undo_action.setShortcut("Ctrl+Z")
         self.redo_action.setShortcut("Ctrl+Y")
@@ -41,6 +45,8 @@ class EditMenu:
         self.consecutive_copy_action.setShortcut("Ctrl+Shift+C")
         self.select_all_action.setShortcut("Ctrl+A")
         self.delete_action.setShortcut("Del")
+        self.group_action.setShortcut("Ctrl+G")
+        self.ungroup_action.setShortcut("Ctrl+U")
 
         # Add actions to the Edit menu
         edit_menu.addAction(self.cut_action)
@@ -55,6 +61,8 @@ class EditMenu:
         edit_menu.addSeparator()
         edit_menu.addAction(self.select_all_action)
         edit_menu.addAction(self.delete_action)
+        edit_menu.addAction(self.group_action)
+        edit_menu.addAction(self.ungroup_action)
         edit_menu.addSeparator()
 
         # Stacking Order Submenu

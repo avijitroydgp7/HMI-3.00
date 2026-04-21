@@ -58,6 +58,8 @@ class IconService:
         "flip-horizontal": "flip-horizontal.svg",
         "rotate-left": "rotate-left.svg",
         "rotate-right": "rotate-right.svg",
+        "group": "object-group-box.svg",
+        "ungroup": "layer-group.svg",
         
         # Search/Replace Menu Icons
         "search-tag": "search-tag.svg",
