@@ -1427,6 +1427,14 @@ class CanvasBaseScreen(QGraphicsView):
 
         return sorted(all_items, key=sort_key)
 
+    def _get_selected_items_in_canonical_order(self, ordered_items):
+        """Return selected graphic items in the same canonical order as ordered_items."""
+        selected_set = {
+            item for item in self.scene.selectedItems()
+            if isinstance(item, BaseGraphicObject)
+        }
+        return [item for item in ordered_items if item in selected_set]
+
     def _find_next_non_selected_index(self, ordered_items, start_index, selected_set):
         """Find the next non-selected item index after start_index."""
         for idx in range(start_index + 1, len(ordered_items)):
@@ -1442,13 +1450,17 @@ class CanvasBaseScreen(QGraphicsView):
         return None
 
     def move_front_layer(self):
-        """Move selected items one layer up (increase z-value)."""
-        selected_items = [item for item in self.scene.selectedItems() 
-                         if isinstance(item, BaseGraphicObject)]
+        """
+        Move selected items one layer up (increase z-value).
+
+        For multi-selection, process selected items from highest layer to lowest
+        (descending canonical z-order) so behavior is stable and predictable.
+        """
+        ordered_items = self._get_deterministic_z_order()
+        selected_items = self._get_selected_items_in_canonical_order(ordered_items)
         if not selected_items:
             return
 
-        ordered_items = self._get_deterministic_z_order()
         if not ordered_items:
             return
 
@@ -1478,13 +1490,17 @@ class CanvasBaseScreen(QGraphicsView):
         self.save_items()
 
     def move_back_layer(self):
-        """Move selected items one layer down (decrease z-value)."""
-        selected_items = [item for item in self.scene.selectedItems() 
-                         if isinstance(item, BaseGraphicObject)]
+        """
+        Move selected items one layer down (decrease z-value).
+
+        For multi-selection, process selected items from lowest layer to highest
+        (ascending canonical z-order) so behavior is stable and predictable.
+        """
+        ordered_items = self._get_deterministic_z_order()
+        selected_items = self._get_selected_items_in_canonical_order(ordered_items)
         if not selected_items:
             return
 
-        ordered_items = self._get_deterministic_z_order()
         if not ordered_items:
             return
 
@@ -1513,42 +1529,42 @@ class CanvasBaseScreen(QGraphicsView):
         self.save_items()
 
     def move_to_front(self):
-        """Move selected items to the front (highest z-value)."""
-        selected_items = [item for item in self.scene.selectedItems() 
-                         if isinstance(item, BaseGraphicObject)]
+        """Move selected items to the front using canonical z-order selection."""
+        ordered_items = self._get_deterministic_z_order()
+        selected_items = self._get_selected_items_in_canonical_order(ordered_items)
         if not selected_items:
             return
-        
-        # Find the highest z-value among all items
-        max_z = 0
-        for item in self.scene.items():
-            if isinstance(item, BaseGraphicObject):
-                max_z = max(max_z, item.zValue())
-        
-        old_z_values = [item.zValue() for item in selected_items]
-        new_z_values = [max_z + 1 + i for i in range(len(selected_items))]
-        
-        command = ZOrderCommand(selected_items, old_z_values, new_z_values, "Move to Front")
+
+        if not ordered_items:
+            return
+
+        old_z_values = [item.zValue() for item in ordered_items]
+        non_selected = [item for item in ordered_items if item not in set(selected_items)]
+        new_order = non_selected + selected_items
+        new_z_map = {item: float(index) for index, item in enumerate(new_order)}
+        new_z_values = [new_z_map[item] for item in ordered_items]
+
+        command = ZOrderCommand(ordered_items, old_z_values, new_z_values, "Move to Front")
         self.undo_stack.push(command)
         self.save_items()
 
     def move_to_back(self):
-        """Move selected items to the back (lowest z-value)."""
-        selected_items = [item for item in self.scene.selectedItems() 
-                         if isinstance(item, BaseGraphicObject)]
+        """Move selected items to the back using canonical z-order selection."""
+        ordered_items = self._get_deterministic_z_order()
+        selected_items = self._get_selected_items_in_canonical_order(ordered_items)
         if not selected_items:
             return
-        
-        # Find the lowest z-value among all items
-        min_z = 0
-        for item in self.scene.items():
-            if isinstance(item, BaseGraphicObject):
-                min_z = min(min_z, item.zValue())
-        
-        old_z_values = [item.zValue() for item in selected_items]
-        new_z_values = [min_z - len(selected_items) + i for i in range(len(selected_items))]
-        
-        command = ZOrderCommand(selected_items, old_z_values, new_z_values, "Move to Back")
+
+        if not ordered_items:
+            return
+
+        old_z_values = [item.zValue() for item in ordered_items]
+        non_selected = [item for item in ordered_items if item not in set(selected_items)]
+        new_order = selected_items + non_selected
+        new_z_map = {item: float(index) for index, item in enumerate(new_order)}
+        new_z_values = [new_z_map[item] for item in ordered_items]
+
+        command = ZOrderCommand(ordered_items, old_z_values, new_z_values, "Move to Back")
         self.undo_stack.push(command)
         self.save_items()
 
