@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt, QRectF, Signal, QPoint, QPointF, QLineF
 from styles import colors
 
 from screen.base.base_graphic_object import RectangleObject, EllipseObject, BaseGraphicObject
+from screen.context_menu import ScreenContextMenu
 from services.edit_service import EditService, ClipboardDataType
 from services.undo_commands import (
     AddItemCommand, RemoveItemCommand, MoveItemsCommand, 
@@ -815,6 +816,44 @@ class CanvasBaseScreen(QGraphicsView):
         self.save_items()
         if self.transform_handler and self.transform_handler.is_valid():
             self.transform_handler.update_geometry()
+
+    def _resolve_base_graphic_object(self, items):
+        """Resolve the nearest BaseGraphicObject from a list of hit-tested items."""
+        for item in items:
+            current_item = item
+            while current_item:
+                if isinstance(current_item, BaseGraphicObject):
+                    return current_item
+                current_item = current_item.parentItem()
+        return None
+
+    def contextMenuEvent(self, event):
+        """Build and show the canvas context menu."""
+        if self.current_tool:
+            super().contextMenuEvent(event)
+            return
+
+        clicked_item = self._resolve_base_graphic_object(self.items(event.pos()))
+
+        if clicked_item and not clicked_item.isSelected():
+            modifiers = event.modifiers()
+            additive_selection = bool(
+                modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
+            )
+            if not additive_selection:
+                self.scene.clearSelection()
+            clicked_item.setSelected(True)
+
+        context_menu = ScreenContextMenu(
+            canvas=self,
+            target_item=clicked_item,
+            global_pos=event.globalPos(),
+        )
+        if context_menu.show():
+            event.accept()
+            return
+
+        super().contextMenuEvent(event)
             
     def update_snap_lines(self, moving_items):
         """Compute snap guides and optionally apply the snap delta for object snapping."""
