@@ -20,8 +20,8 @@ class EditMenu:
         delete_icon = IconService.get_icon('edit-delete')
         consecutive_copy_icon = IconService.get_icon('edit-consecutive-copy')
         select_all_icon = IconService.get_icon('edit-select-all')
-        group_icon = IconService.get_icon('object-group-box')
-        ungroup_icon = IconService.get_icon('layer-group')
+        group_icon = IconService.get_icon('edit-group')
+        ungroup_icon = IconService.get_icon('edit-ungroup')
         
         # Actions
         self.undo_action = QAction(undo_icon,"Undo", self.main_window)

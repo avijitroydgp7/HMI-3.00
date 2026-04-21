@@ -158,13 +158,13 @@ class ScreenContextMenu:
 
         self.menu.addSeparator()
 
-        group_action = QAction(IconService.get_icon('group'), "Group", self.menu)
+        group_action = QAction(IconService.get_icon('edit-group'), "Group", self.menu)
         if hasattr(self.canvas, 'group_selected_items'):
             group_action.triggered.connect(self.canvas.group_selected_items)
         group_action.setEnabled(can_group and hasattr(self.canvas, 'group_selected_items'))
         self.menu.addAction(group_action)
 
-        ungroup_action = QAction(IconService.get_icon('ungroup'), "Ungroup", self.menu)
+        ungroup_action = QAction(IconService.get_icon('edit-ungroup'), "Ungroup", self.menu)
         if hasattr(self.canvas, 'ungroup_selected_items'):
             ungroup_action.triggered.connect(self.canvas.ungroup_selected_items)
         ungroup_action.setEnabled(can_ungroup and hasattr(self.canvas, 'ungroup_selected_items'))
