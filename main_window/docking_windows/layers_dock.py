@@ -216,7 +216,7 @@ class LayersTreeWidget(CustomTreeWidget):
                 pixmap = QPixmap(int(size), int(size))
                 pixmap.fill(Qt.GlobalColor.white)
                 return pixmap
-            except:
+            except (ValueError, TypeError, RuntimeError):
                 return QPixmap()
     
     def set_object_preview(self, item, canvas_obj):

@@ -171,5 +171,5 @@ def get_text_color(bg_color_hex: str) -> str:
         color = QColor(bg_color_hex)
         # If background is light, use dark text; if dark, use light text
         return TEXT_PRIMARY if color.lightnessF() < 0.5 else TEXT_DARK
-    except:
+    except (ValueError, TypeError, AttributeError):
         return TEXT_PRIMARY

@@ -885,7 +885,7 @@ class Spreadsheet(QTableWidget):
         if not item: return 0
         text = item.text()
         try: return float(text)
-        except: return text
+        except (ValueError, TypeError): return text
 
     def apply_changes(self, changes):
         """Applies a batch of cell changes and triggers updates."""

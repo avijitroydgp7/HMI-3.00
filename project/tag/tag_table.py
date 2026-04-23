@@ -640,7 +640,11 @@ class TagTable(QWidget):
         except ValueError:
             return []
 
-    def _add_array_nodes(self, parent_item, dims, current_indices=[], child_values={}, base_name=""):
+    def _add_array_nodes(self, parent_item, dims, current_indices=None, child_values=None, base_name=""):
+        if current_indices is None:
+            current_indices = []
+        if child_values is None:
+            child_values = {}
         depth = len(current_indices)
         if depth >= len(dims): return
 

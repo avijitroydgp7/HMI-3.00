@@ -14,7 +14,7 @@ def setup_logging(debug_mode=False):
     """
     if os.path.exists(LOG_FILE_NAME):
         # Clear the log file on each run
-        with open(LOG_FILE_NAME, 'w'):
+        with open(LOG_FILE_NAME, 'w', encoding='utf-8'):
             pass
 
     log_level = logging.DEBUG if debug_mode else logging.INFO
