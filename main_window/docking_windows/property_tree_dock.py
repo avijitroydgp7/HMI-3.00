@@ -376,6 +376,8 @@ class StyleTab(QWidget):
     fill_changed = Signal(QBrush)
     line_changed = Signal(QPen)
     opacity_changed = Signal(float)
+    opacity_drag_started = Signal()
+    opacity_drag_finished = Signal(float)
     rounded_changed = Signal(bool)
     shadow_changed = Signal(bool)
     
@@ -484,6 +486,8 @@ class StyleTab(QWidget):
         self.opacity_slider.setValue(100)
         self.opacity_slider.setFixedWidth(120)
         self.opacity_slider.valueChanged.connect(self._on_opacity_slider_changed)
+        self.opacity_slider.sliderPressed.connect(self._on_opacity_slider_pressed)
+        self.opacity_slider.sliderReleased.connect(self._on_opacity_slider_released)
         self.opacity_spin.valueChanged.connect(self.opacity_slider.setValue)
         opacity_layout.addWidget(self.opacity_slider)
         
@@ -584,6 +588,17 @@ class StyleTab(QWidget):
         if self.opacity_spin.value() != value:
             self.opacity_spin.setValue(value)
     
+
+    def _on_opacity_slider_pressed(self):
+        """Handle opacity slider press."""
+        if not self._syncing:
+            self.opacity_drag_started.emit()
+
+    def _on_opacity_slider_released(self):
+        """Handle opacity slider release."""
+        if not self._syncing:
+            self.opacity_drag_finished.emit(self.opacity_spin.value() / 100.0)
+
     def set_opacity_ui(self, value):
         """Set opacity UI without triggering signals (for external sync).
         
@@ -996,6 +1011,8 @@ class PropertyTreeDock(QDockWidget):
         # Track current state
         self.current_canvas = None
         self.selected_items = []
+        self._opacity_dragging = False
+        self._opacity_drag_old_values = {}
         self._syncing = False
         
         # Create main widget with tabs
@@ -1029,6 +1046,8 @@ class PropertyTreeDock(QDockWidget):
         self.style_tab.fill_changed.connect(self._on_fill_changed)
         self.style_tab.line_changed.connect(self._on_line_changed)
         self.style_tab.opacity_changed.connect(self._on_opacity_changed)
+        self.style_tab.opacity_drag_started.connect(self._on_opacity_drag_started)
+        self.style_tab.opacity_drag_finished.connect(self._on_opacity_drag_finished)
         self.style_tab.rounded_changed.connect(self._on_rounded_changed)
     
     def _set_enabled(self, enabled):
@@ -1121,12 +1140,46 @@ class PropertyTreeDock(QDockWidget):
         if self._syncing or not self.selected_items:
             return
         for item in self.selected_items:
+            if self._opacity_dragging:
+                item.setOpacity(opacity)
+                continue
             old_opacity = item.opacity()
             if self.current_canvas and hasattr(self.current_canvas, 'undo_stack'):
                 cmd = PropertyChangeCommand(item, 'opacity', old_opacity, opacity, "Change Opacity")
                 self.current_canvas.undo_stack.push(cmd)
             else:
                 item.setOpacity(opacity)
+
+    def _on_opacity_drag_started(self):
+        """Capture initial opacity values for undo grouping during slider drag."""
+        if self._syncing or not self.selected_items:
+            return
+        self._opacity_dragging = True
+        self._opacity_drag_old_values = {id(item): item.opacity() for item in self.selected_items}
+
+    def _on_opacity_drag_finished(self, opacity):
+        """Commit a single undo command per item when slider drag ends."""
+        if self._syncing:
+            return
+        if not self._opacity_dragging:
+            return
+
+        self._opacity_dragging = False
+        if not self.selected_items:
+            self._opacity_drag_old_values = {}
+            return
+
+        for item in self.selected_items:
+            old_opacity = self._opacity_drag_old_values.get(id(item), item.opacity())
+            if old_opacity == opacity:
+                continue
+            if self.current_canvas and hasattr(self.current_canvas, 'undo_stack'):
+                cmd = PropertyChangeCommand(item, 'opacity', old_opacity, opacity, "Change Opacity")
+                self.current_canvas.undo_stack.push(cmd)
+            else:
+                item.setOpacity(opacity)
+
+        self._opacity_drag_old_values = {}
     
     def _on_rounded_changed(self, enabled):
         """Handle rounded corners checkbox change."""
