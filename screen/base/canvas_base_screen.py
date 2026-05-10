@@ -1410,20 +1410,15 @@ class CanvasBaseScreen(QGraphicsView):
         if not all_items:
             return []
 
-        # Use persisted screen item order as the primary tie-breaker for equal z-values.
-        screen_order_map = {}
-        for index, item_data in enumerate(self.screen_data.get('items', [])):
-            item_id = str(item_data.get('id'))
-            screen_order_map[item_id] = index
-
+        # scene.items() returns top-most items first. For equal z-values we need
+        # canonical order from back -> front, so invert the scene index.
         scene_enumeration = {id(item): idx for idx, item in enumerate(all_items)}
 
         def sort_key(item):
             data = item.data(Qt.ItemDataRole.UserRole) or {}
             item_id = str(data.get('id', ''))
-            # Fallbacks keep ordering deterministic even if ID is missing from persisted data.
-            screen_order = screen_order_map.get(item_id, 10**9)
-            return (item.zValue(), screen_order, item_id, scene_enumeration[id(item)])
+            scene_index = scene_enumeration[id(item)]
+            return (item.zValue(), -scene_index, item_id)
 
         return sorted(all_items, key=sort_key)
 
