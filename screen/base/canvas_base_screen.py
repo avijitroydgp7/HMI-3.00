@@ -1528,6 +1528,15 @@ class CanvasBaseScreen(QGraphicsView):
         self.undo_stack.push(command)
         self.save_items()
 
+
+    def move_to_front_single_layer(self):
+        """UI wrapper: move selected items one layer toward the front."""
+        self.move_front_layer()
+
+    def move_to_back_single_layer(self):
+        """UI wrapper: move selected items one layer toward the back."""
+        self.move_back_layer()
+
     def move_to_front(self):
         """Move selected items to the front using canonical z-order selection."""
         ordered_items = self._get_deterministic_z_order()

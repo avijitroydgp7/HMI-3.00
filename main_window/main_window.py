@@ -39,6 +39,7 @@ from services.edit_service import EditService
 from services.comment_service import CommentService
 from main_window.services.view_service import ViewService
 from screen.base.canvas_base_screen import CanvasBaseScreen
+from screen.base.base_graphic_object import BaseGraphicObject
 from project.comment.comment_table import CommentTable, Spreadsheet
 from project.tag.tag_table import TagTable
 
@@ -297,6 +298,8 @@ class MainWindow(QMainWindow):
         if obj_props_toolbar:
             screen_widget.canvas_selection_changed.connect(obj_props_toolbar.sync_from_selection)
             screen_widget.object_data_changed.connect(obj_props_toolbar.on_object_data_changed)
+
+        screen_widget.canvas_selection_changed.connect(self._on_canvas_selection_changed)
         
         if screen_type == 'base':
             tab_title = f"[B] - {screen_number} - {screen_data.get('name')}"
@@ -503,8 +506,8 @@ class MainWindow(QMainWindow):
         self.edit_menu.ungroup_action.triggered.connect(self.ungroup_active)
 
         # --- Edit Menu - Stacking Order ---
-        self.edit_menu.move_front_layer_action.triggered.connect(self.move_front_layer_active)
-        self.edit_menu.move_back_layer_action.triggered.connect(self.move_back_layer_active)
+        self.edit_menu.move_front_layer_action.triggered.connect(self.move_to_front_single_layer_active)
+        self.edit_menu.move_back_layer_action.triggered.connect(self.move_to_back_single_layer_active)
         self.edit_menu.move_to_front_action.triggered.connect(self.move_to_front_active)
         self.edit_menu.move_to_back_action.triggered.connect(self.move_to_back_active)
 
@@ -553,6 +556,8 @@ class MainWindow(QMainWindow):
                     checkbox.toggled.connect(
                         lambda checked, name=toolbar_name: self.toggle_toolbar(checked, name)
                     )
+
+        self._update_stacking_order_action_states()
 
         # --- Dock Widget Visibility ---
         for action in self.view_menu.docking_window_menu.actions():
@@ -683,6 +688,8 @@ class MainWindow(QMainWindow):
             widget.toggle_overlays('id', self.view_menu.object_id_action.isChecked())
             widget.toggle_overlays('transform', self.view_menu.transform_line_action.isChecked())
             widget.toggle_overlays('click_area', self.view_menu.click_area_action.isChecked())
+
+        self._update_stacking_order_action_states()
             
     # --- Zoom Handlers ---
     def on_zoom_action_triggered(self, action):
@@ -897,17 +904,17 @@ class MainWindow(QMainWindow):
 
     # ========== Stacking Order Operations ==========
 
-    def move_front_layer_active(self):
-        """Move selected items one layer up in the active canvas."""
+    def move_to_front_single_layer_active(self):
+        """Move selected items one layer toward the front in the active canvas."""
         active_screen = self.get_active_screen_widget()
         if isinstance(active_screen, CanvasBaseScreen):
-            active_screen.move_front_layer()
+            active_screen.move_to_front_single_layer()
 
-    def move_back_layer_active(self):
-        """Move selected items one layer down in the active canvas."""
+    def move_to_back_single_layer_active(self):
+        """Move selected items one layer toward the back in the active canvas."""
         active_screen = self.get_active_screen_widget()
         if isinstance(active_screen, CanvasBaseScreen):
-            active_screen.move_back_layer()
+            active_screen.move_to_back_single_layer()
 
     def move_to_front_active(self):
         """Move selected items to the front in the active canvas."""
@@ -920,6 +927,25 @@ class MainWindow(QMainWindow):
         active_screen = self.get_active_screen_widget()
         if isinstance(active_screen, CanvasBaseScreen):
             active_screen.move_to_back()
+
+
+    def _update_stacking_order_action_states(self):
+        """Enable stacking actions when the active canvas has at least one selected object."""
+        active_screen = self.get_active_screen_widget()
+        has_selection = False
+        if isinstance(active_screen, CanvasBaseScreen):
+            has_selection = any(
+                isinstance(item, BaseGraphicObject)
+                for item in active_screen.scene.selectedItems()
+            )
+
+        self.edit_menu.move_to_front_action.setEnabled(has_selection)
+        self.edit_menu.move_to_back_action.setEnabled(has_selection)
+        self.edit_menu.move_front_layer_action.setEnabled(has_selection)
+        self.edit_menu.move_back_layer_action.setEnabled(has_selection)
+
+    def _on_canvas_selection_changed(self, *_args):
+        self._update_stacking_order_action_states()
 
     # ========== Alignment Operations ==========
 

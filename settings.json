@@ -34,7 +34,7 @@
         "display_items": {
             "select_mode": true,
             "tag": true,
-            "object_id": false,
+            "object_id": true,
             "transform_line": true,
             "click_area": false
         }

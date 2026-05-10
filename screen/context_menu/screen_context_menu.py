@@ -68,25 +68,25 @@ class ScreenContextMenu:
 
         stacking_order_menu = self.menu.addMenu(IconService.get_icon('stacking-order'), "Stacking Order")
 
-        move_front_layer_action = QAction(IconService.get_icon('move-front-layer'), "Move Front Layer", self.menu)
-        move_front_layer_action.triggered.connect(self.canvas.move_front_layer)
-        move_front_layer_action.setEnabled(has_selection)
-        stacking_order_menu.addAction(move_front_layer_action)
-
-        move_back_layer_action = QAction(IconService.get_icon('move-back-layer'), "Move Back Layer", self.menu)
-        move_back_layer_action.triggered.connect(self.canvas.move_back_layer)
-        move_back_layer_action.setEnabled(has_selection)
-        stacking_order_menu.addAction(move_back_layer_action)
-
-        move_to_front_action = QAction(IconService.get_icon('move-to-front'), "Move to Front", self.menu)
+        move_to_front_action = QAction(IconService.get_icon('move-to-front'), "Move to Front Layer", self.menu)
         move_to_front_action.triggered.connect(self.canvas.move_to_front)
         move_to_front_action.setEnabled(has_selection)
         stacking_order_menu.addAction(move_to_front_action)
 
-        move_to_back_action = QAction(IconService.get_icon('move-to-back'), "Move to Back", self.menu)
+        move_to_back_action = QAction(IconService.get_icon('move-to-back'), "Move to Back Layer", self.menu)
         move_to_back_action.triggered.connect(self.canvas.move_to_back)
         move_to_back_action.setEnabled(has_selection)
         stacking_order_menu.addAction(move_to_back_action)
+
+        move_front_layer_action = QAction(IconService.get_icon('move-front-layer'), "Move to Front Single Layer", self.menu)
+        move_front_layer_action.triggered.connect(self.canvas.move_to_front_single_layer)
+        move_front_layer_action.setEnabled(has_selection)
+        stacking_order_menu.addAction(move_front_layer_action)
+
+        move_back_layer_action = QAction(IconService.get_icon('move-back-layer'), "Move to Back Single Layer", self.menu)
+        move_back_layer_action.triggered.connect(self.canvas.move_to_back_single_layer)
+        move_back_layer_action.setEnabled(has_selection)
+        stacking_order_menu.addAction(move_back_layer_action)
 
         flip_menu = self.menu.addMenu(IconService.get_icon('flip'), "Flip")
 
