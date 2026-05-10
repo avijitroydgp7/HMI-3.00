@@ -4,7 +4,7 @@ Centralized Undo Command classes for the HMI Designer application.
 These commands implement the Command pattern using Qt's QUndoCommand base class.
 """
 from PySide6.QtWidgets import QGraphicsItem
-from PySide6.QtGui import QUndoCommand, QPen, QBrush, QColor, QTransform
+from PySide6.QtGui import QUndoCommand, QPen, QBrush, QColor, QTransform, QGradient
 from PySide6.QtCore import QPointF, QRectF, Qt
 import copy
 
@@ -140,6 +140,12 @@ class CornerRadiusCommand(QUndoCommand):
         if not self.item.scene() or not hasattr(self.item, 'corner_radii'):
             return
         self.item.corner_radii = radii.copy()
+
+        data = self.item.data(Qt.ItemDataRole.UserRole)
+        if isinstance(data, dict):
+            data['corner_radii'] = radii.copy()
+            self.item.setData(Qt.ItemDataRole.UserRole, data)
+
         if hasattr(self.item, 'update_path'):
             self.item.update_path()
         self.item.update()
@@ -358,27 +364,93 @@ class PropertyChangeCommand(QUndoCommand):
         """Restore old value."""
         self._apply_value(self.old_value)
         
+    def _serialize_pen(self, pen):
+        """Serialize a QPen to the same schema used by canvas serialization."""
+        color = pen.color()
+        return {
+            'color': color.name(QColor.NameFormat.HexRgb),
+            'alpha': color.alpha(),
+            'width': pen.width(),
+            'style': pen.style().value,
+            'cap_style': pen.capStyle().value,
+            'join_style': pen.joinStyle().value
+        }
+
+    def _serialize_brush(self, brush):
+        """Serialize a QBrush to the same schema used by canvas serialization/deserialization."""
+        color = brush.color()
+        data = {
+            'color': color.name(QColor.NameFormat.HexRgb),
+            'alpha': color.alpha(),
+            'style': brush.style().value
+        }
+
+        gradient = brush.gradient()
+        if isinstance(gradient, QGradient):
+            data['gradient'] = {
+                'type': gradient.type().value,
+                'spread': gradient.spread().value,
+                'coordinate_mode': gradient.coordinateMode().value,
+                'stops': [
+                    {
+                        'position': position,
+                        'color': stop_color.name(QColor.NameFormat.HexRgb),
+                        'alpha': stop_color.alpha()
+                    }
+                    for position, stop_color in gradient.stops()
+                ]
+            }
+
+        return data
+
     def _apply_value(self, value):
         """Helper to apply a value to the item."""
         if not self.item.scene():
             return
-            
+
+        data = self.item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(data, dict):
+            data = None
+
         # Handle different property types
         if self.property_name == 'pen':
             if hasattr(self.item, 'item'):
                 self.item.item.setPen(value)
+                if data is not None:
+                    data['pen'] = self._serialize_pen(value)
         elif self.property_name == 'brush':
             if hasattr(self.item, 'item'):
                 self.item.item.setBrush(value)
+                if data is not None:
+                    data['brush'] = self._serialize_brush(value)
+        elif self.property_name == 'opacity':
+            self.item.setOpacity(value)
+            if data is not None:
+                data['opacity'] = value
         elif self.property_name == 'rotation':
             self.item.setRotation(value)
+            if data is not None:
+                data['rotation'] = value
         elif self.property_name == 'z_value':
             self.item.setZValue(value)
+            if data is not None:
+                data['z_value'] = value
+        elif self.property_name == 'rounded_enabled' and hasattr(self.item, 'rounded_enabled'):
+            self.item.rounded_enabled = value
+            if data is not None:
+                data['rounded_enabled'] = value
+        elif self.property_name == 'corner_radii' and hasattr(self.item, 'corner_radii'):
+            self.item.corner_radii = value.copy() if isinstance(value, list) else value
+            if data is not None:
+                data['corner_radii'] = self.item.corner_radii.copy() if hasattr(self.item.corner_radii, 'copy') else self.item.corner_radii
         else:
             # Try generic setter
             setter_name = f'set{self.property_name[0].upper()}{self.property_name[1:]}'
             if hasattr(self.item, setter_name):
                 getattr(self.item, setter_name)(value)
+
+        if data is not None:
+            self.item.setData(Qt.ItemDataRole.UserRole, data)
 
 
 class ZOrderCommand(QUndoCommand):
