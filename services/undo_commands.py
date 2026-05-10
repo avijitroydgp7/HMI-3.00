@@ -202,15 +202,75 @@ class RemoveItemCommand(QUndoCommand):
         self.items_data = []
         self.removed_items = []  # Track items that were actually removed
         for item in items:
-            item_data = item.data(Qt.ItemDataRole.UserRole)
-            if item_data:
-                data_copy = copy.deepcopy(item_data)
-                # Store current position
-                data_copy['pos'] = [item.pos().x(), item.pos().y()]
-                rect = item.boundingRect()
-                data_copy['rect'] = [rect.x(), rect.y(), rect.width(), rect.height()]
-                self.items_data.append(data_copy)
+            snapshot = self._snapshot_item_data(item)
+            if snapshot:
+                self.items_data.append(snapshot)
         self.items = []  # Will hold references to recreated items
+
+    def _serialize_pen(self, pen):
+        """Serialize pen data in a format compatible with canvas deserialization."""
+        color = pen.color()
+        return {
+            'color': color.name(QColor.NameFormat.HexRgb),
+            'alpha': color.alpha(),
+            'width': pen.width(),
+            'style': pen.style().value,
+            'cap_style': pen.capStyle().value,
+            'join_style': pen.joinStyle().value
+        }
+
+    def _serialize_brush(self, brush):
+        """Serialize brush data in a format compatible with canvas deserialization."""
+        color = brush.color()
+        return {
+            'color': color.name(QColor.NameFormat.HexRgb),
+            'alpha': color.alpha(),
+            'style': brush.style().value
+        }
+
+    def _snapshot_item_data(self, item):
+        """Capture a fresh snapshot of the item's current visual state."""
+        item_data = item.data(Qt.ItemDataRole.UserRole)
+        if not item_data:
+            return None
+
+        data_copy = copy.deepcopy(item_data) if isinstance(item_data, dict) else {}
+
+        # Always overwrite geometric state from the live item.
+        data_copy['pos'] = [item.pos().x(), item.pos().y()]
+        rect = item.boundingRect()
+        data_copy['rect'] = [rect.x(), rect.y(), rect.width(), rect.height()]
+
+        # Serialize visual properties from composed graphics item when present.
+        composed_item = getattr(item, 'item', None)
+        if composed_item is not None:
+            if hasattr(composed_item, 'pen'):
+                try:
+                    data_copy['pen'] = self._serialize_pen(composed_item.pen())
+                except Exception:
+                    pass
+            if hasattr(composed_item, 'brush'):
+                try:
+                    data_copy['brush'] = self._serialize_brush(composed_item.brush())
+                except Exception:
+                    pass
+
+        # Capture top-level visual state from live object.
+        if hasattr(item, 'opacity'):
+            data_copy['opacity'] = item.opacity()
+        if hasattr(item, 'rotation'):
+            data_copy['rotation'] = item.rotation()
+        if hasattr(item, 'zValue'):
+            data_copy['z_value'] = item.zValue()
+
+        # Preserve rectangle-specific extras when available.
+        if hasattr(item, 'corner_radii'):
+            corner_radii = item.corner_radii
+            data_copy['corner_radii'] = corner_radii.copy() if hasattr(corner_radii, 'copy') else corner_radii
+        if hasattr(item, 'rounded_enabled'):
+            data_copy['rounded_enabled'] = item.rounded_enabled
+
+        return data_copy
         
     def redo(self):
         """Remove all items from the canvas."""
