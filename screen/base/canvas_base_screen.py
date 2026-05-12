@@ -211,6 +211,8 @@ class CanvasBaseScreen(QGraphicsView):
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
         self.setMouseTracking(True)
         self._last_viewport_mouse_pos = None
+        self._last_paste_anchor = None
+        self._paste_count = 0
         
         # Transform interaction state
         self._resizing_handle = None
@@ -1306,15 +1308,72 @@ class CanvasBaseScreen(QGraphicsView):
             logger.debug("Paste: No canvas items in clipboard")
             return
         
-        # Use paste command for undo support
-        command = PasteItemsCommand(self, clipboard_data, QPointF(20, 20), "Paste Items")
+        paste_anchor, paste_offset = self._calculate_paste_position(clipboard_data)
+
+        # Use paste command for undo support (single stack step)
+        command = PasteItemsCommand(
+            self,
+            clipboard_data,
+            offset=paste_offset,
+            anchor=paste_anchor,
+            description="Paste Items",
+        )
         self.undo_stack.push(command)
+        self._last_paste_anchor = QPointF(paste_anchor)
+        self._paste_count += 1
         
         # If this was a cut operation, mark it as completed so subsequent pastes don't re-delete
         if is_cut:
             self.edit_service.mark_cut_completed()
         
         logger.debug(f"Pasted {len(clipboard_data)} items")
+
+    def _calculate_paste_position(self, clipboard_data):
+        """Compute paste anchor and offset with snapping awareness."""
+        base_anchor = self._resolve_paste_anchor()
+        source_anchor = self._clipboard_anchor(clipboard_data)
+        raw_offset = base_anchor - source_anchor
+        snapped_offset = self._apply_snap_to_offset(clipboard_data, raw_offset)
+        return base_anchor, snapped_offset
+
+    def _resolve_paste_anchor(self):
+        """Resolve where a new paste should land."""
+        if self._last_viewport_mouse_pos is not None:
+            return self.mapToScene(self._last_viewport_mouse_pos)
+        if self._last_paste_anchor is not None:
+            step = QPointF(20, 20)
+            if self.view_service.snap_enabled and self.view_service.snapping_mode == 'grid':
+                grid_size = max(1, int(self.view_service.grid_size))
+                step = QPointF(grid_size, grid_size)
+            return self._last_paste_anchor + step
+        return QPointF(20, 20)
+
+    def _clipboard_anchor(self, clipboard_data):
+        """Use the top-left of copied items as source anchor."""
+        if not clipboard_data:
+            return QPointF(0, 0)
+        xs = []
+        ys = []
+        for data in clipboard_data:
+            pos = data.get('pos', [0, 0])
+            xs.append(float(pos[0]))
+            ys.append(float(pos[1]))
+        return QPointF(min(xs), min(ys))
+
+    def _apply_snap_to_offset(self, clipboard_data, offset):
+        """Adjust offset based on snap settings."""
+        if not self.view_service.snap_enabled:
+            return offset
+        if self.view_service.snapping_mode != 'grid':
+            return offset
+        grid_size = max(1, int(self.view_service.grid_size))
+        source_anchor = self._clipboard_anchor(clipboard_data)
+        target_anchor = source_anchor + offset
+        snapped_anchor = QPointF(
+            round(target_anchor.x() / grid_size) * grid_size,
+            round(target_anchor.y() / grid_size) * grid_size,
+        )
+        return snapped_anchor - source_anchor
 
     def delete(self):
         """Delete selected items."""

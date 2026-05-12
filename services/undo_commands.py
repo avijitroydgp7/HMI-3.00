@@ -626,11 +626,12 @@ class PasteItemsCommand(QUndoCommand):
     Command for pasting items from clipboard.
     Handles multiple items with position offset.
     """
-    def __init__(self, canvas, items_data, offset=None, description="Paste Items"):
+    def __init__(self, canvas, items_data, offset=None, anchor=None, description="Paste Items"):
         super().__init__(description)
         self.canvas = canvas
         self.original_items_data = copy.deepcopy(items_data)  # Keep original unmodified
         self.offset = offset or QPointF(20, 20)
+        self.anchor = QPointF(anchor) if anchor is not None else None
         self.created_items = []
         self.assigned_ids = []  # Store assigned IDs for consistent redo
         self._first_redo = True
