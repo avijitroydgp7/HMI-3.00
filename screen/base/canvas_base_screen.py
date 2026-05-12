@@ -214,6 +214,15 @@ class CanvasBaseScreen(QGraphicsView):
         
         # Transform interaction state
         self._resizing_handle = None
+
+        # Explicit interaction mode flags
+        self._mode_drag_move = False
+        self._mode_resize_handle = False
+        self._mode_tool_draw = False
+
+        # Debug tracing for press-move-release cycles
+        self._interaction_sequence = 0
+        self._active_interaction_id = None
         
         # Drag/move undo tracking state
         self._drag_started = False
@@ -625,9 +634,31 @@ class CanvasBaseScreen(QGraphicsView):
             self.undo_stack.push(command)
             logger.debug(f"Pushed move undo command for {len(items)} items")
 
+    def _begin_interaction_cycle(self):
+        """Start a new press-move-release interaction cycle for debug tracing."""
+        self._interaction_sequence += 1
+        self._active_interaction_id = self._interaction_sequence
+        logger.debug("Interaction[%s] begin", self._active_interaction_id)
+
+    def _reset_drag_tracking(self):
+        """Reset drag tracking state deterministically."""
+        self._drag_started = False
+        self._drag_initial_positions = {}
+
+    def _reset_interaction_modes(self):
+        """Reset interaction mode flags and cycle id."""
+        self._mode_drag_move = False
+        self._mode_resize_handle = False
+        self._mode_tool_draw = False
+        if self._active_interaction_id is not None:
+            logger.debug("Interaction[%s] end", self._active_interaction_id)
+        self._active_interaction_id = None
+
     def mousePressEvent(self, event):
         """Handle mouse press events."""
         self._store_viewport_mouse_pos(event.pos())
+        self._begin_interaction_cycle()
+        self._reset_drag_tracking()
         scene_pos = self.mapToScene(event.pos())
         logger.debug(f"Mouse press at scene pos: {scene_pos}")
         
@@ -647,6 +678,8 @@ class CanvasBaseScreen(QGraphicsView):
                     if handle_name:
                         logger.debug(f"Activating resize handle: {handle_name}")
                         self._resizing_handle = handle_name
+                        self._mode_resize_handle = True
+                        logger.debug("Interaction[%s] mode=resize handle=%s", self._active_interaction_id, handle_name)
                         self.transform_handler.handle_mouse_press(handle_name, event.pos(), scene_pos)
                         self.setDragMode(QGraphicsView.DragMode.NoDrag)
                         event.accept()
@@ -656,6 +689,8 @@ class CanvasBaseScreen(QGraphicsView):
 
         if self.current_tool:
             if event.button() == Qt.MouseButton.LeftButton:
+                self._mode_tool_draw = True
+                logger.debug("Interaction[%s] mode=tool tool=%s", self._active_interaction_id, self.current_tool.__class__.__name__)
                 logger.debug(f"Passing mouse press to tool: {self.current_tool.__class__.__name__}")
                 self.current_tool.mouse_press(scene_pos)
                 event.accept()
@@ -711,6 +746,8 @@ class CanvasBaseScreen(QGraphicsView):
             
             if items_to_drag:
                 self._drag_started = True
+                self._mode_drag_move = True
+                logger.debug("Interaction[%s] mode=drag tracked=%s", self._active_interaction_id, len(items_to_drag))
                 self._drag_initial_positions = {}
                 for item in items_to_drag:
                     self._drag_initial_positions[id(item)] = QPointF(item.pos())
@@ -745,6 +782,7 @@ class CanvasBaseScreen(QGraphicsView):
                         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
                     return
                 
+                logger.debug("Interaction[%s] resize move handle=%s", self._active_interaction_id, self._resizing_handle)
                 logger.debug(f"Passing mouse move to transform handler. Handle: {self._resizing_handle}")
                 self.transform_handler.handle_mouse_move(scene_pos, event.modifiers())
                 self.update_snap_lines(self.transform_handler.get_items())
@@ -766,6 +804,7 @@ class CanvasBaseScreen(QGraphicsView):
 
 
         if self.current_tool:
+            logger.debug("Interaction[%s] tool move", self._active_interaction_id)
             self.current_tool.mouse_move(scene_pos, event.modifiers())
             event.accept()
             return
@@ -783,28 +822,29 @@ class CanvasBaseScreen(QGraphicsView):
         """Handle mouse release events."""
         self._store_viewport_mouse_pos(event.pos())
         scene_pos = self.mapToScene(event.pos())
-        logger.debug(f"Mouse release at scene pos: {scene_pos}")
+        logger.debug("Interaction[%s] release at scene pos: %s", self._active_interaction_id, scene_pos)
         self.clear_snap_lines()
 
         if self._resizing_handle:
-            logger.debug(f"Finished resizing handle: {self._resizing_handle}")
+            logger.debug("Interaction[%s] finished resizing handle: %s", self._active_interaction_id, self._resizing_handle)
             # The transform handler will push the undo command in handle_mouse_release
             if self.transform_handler and self.transform_handler.is_valid():
                 self.transform_handler.handle_mouse_release()
             self._resizing_handle = None
+            self._reset_drag_tracking()
             if not self.current_tool:
                 self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
             self.save_items()
-            # Update status bar with final size/position after resize
             self._update_selected_object_info()
             event.accept()
+            self._reset_interaction_modes()
             return
 
         if self.current_tool:
             if event.button() == Qt.MouseButton.LeftButton:
-                logger.debug(f"Passing mouse release to tool: {self.current_tool.__class__.__name__}")
+                logger.debug("Interaction[%s] tool release via %s", self._active_interaction_id, self.current_tool.__class__.__name__)
                 self.current_tool.mouse_release(scene_pos)
-                
+
                 temp_item = self.current_tool.current_item
                 if temp_item and temp_item.scene() == self.scene:
                     rect = temp_item.rect().normalized()
@@ -821,21 +861,30 @@ class CanvasBaseScreen(QGraphicsView):
                     self.current_tool.current_item = None
 
                 event.accept()
+            self._reset_drag_tracking()
+            self._reset_interaction_modes()
             return
 
-        # Handle drag/move undo tracking
-        if self._drag_started and self._drag_initial_positions:
+        should_push_move = (
+            self._mode_drag_move and
+            self._drag_started and
+            bool(self._drag_initial_positions) and
+            not self._mode_resize_handle and
+            not self._mode_tool_draw
+        )
+
+        if should_push_move:
+            logger.debug("Interaction[%s] emitting move undo command", self._active_interaction_id)
             self._push_move_undo_command()
-            self._drag_started = False
-            self._drag_initial_positions = {}
+        self._reset_drag_tracking()
 
         super().mouseReleaseEvent(event)
-        
-        # Always save after a potential modification
+
         logger.debug("Saving items after mouse release.")
         self.save_items()
         if self.transform_handler and self.transform_handler.is_valid():
             self.transform_handler.update_geometry()
+        self._reset_interaction_modes()
 
     def _resolve_base_graphic_object(self, items):
         """Resolve the nearest BaseGraphicObject from a list of hit-tested items."""
