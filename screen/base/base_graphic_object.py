@@ -101,12 +101,21 @@ class RectangleObject(BaseGraphicObject):
     def corner_radii(self):
         """Get corner radii [top_left, top_right, bottom_right, bottom_left]."""
         return self._corner_radii.copy()
+
+    def get_clamped_corner_radii(self, radii):
+        """Clamp corner radii against current rect dimensions."""
+        if not isinstance(radii, (list, tuple)) or len(radii) != 4:
+            return self._corner_radii.copy()
+
+        rect = self.rect_item.rect()
+        max_radius = min(rect.width(), rect.height()) / 2.0
+        return [max(0.0, min(float(radius), max_radius)) for radius in radii]
     
     @corner_radii.setter
     def corner_radii(self, radii):
         """Set corner radii [top_left, top_right, bottom_right, bottom_left]."""
         if len(radii) == 4:
-            self._corner_radii = list(radii)
+            self._corner_radii = self.get_clamped_corner_radii(radii)
             self.update()
     
     @property

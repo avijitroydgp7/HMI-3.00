@@ -296,7 +296,9 @@ class CanvasBaseScreen(QGraphicsView):
             item = RectangleObject(rect, self.view_service, self)
             # Restore corner radii if present
             corner_radii = data.get('corner_radii', [0.0, 0.0, 0.0, 0.0])
-            item.corner_radii = corner_radii
+            clamped_corner_radii = item.get_clamped_corner_radii(corner_radii)
+            item.corner_radii = clamped_corner_radii
+            data['corner_radii'] = clamped_corner_radii
             item.rounded_enabled = data.get('rounded_enabled', False)
         elif item_type == 'ellipse':
             item = EllipseObject(rect, self.view_service, self)
@@ -1235,7 +1237,9 @@ class CanvasBaseScreen(QGraphicsView):
 
         # Ensure rounded rectangle runtime state is copied from the live item.
         if hasattr(item, 'corner_radii'):
-            data_copy['corner_radii'] = item.corner_radii.copy()
+            clamped_corner_radii = item.get_clamped_corner_radii(item.corner_radii)
+            item.corner_radii = clamped_corner_radii
+            data_copy['corner_radii'] = clamped_corner_radii
         if hasattr(item, 'rounded_enabled'):
             data_copy['rounded_enabled'] = item.rounded_enabled
         
