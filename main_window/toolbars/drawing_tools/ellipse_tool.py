@@ -50,11 +50,13 @@ class EllipseTool:
     def mouse_release(self, scene_pos):
         """Finishes the drawing operation."""
         if self.current_item:
-            if self.current_item.rect().width() < 5 or self.current_item.rect().height() < 5:
+            rect = self.current_item.rect().normalized()
+            if rect.width() < 5 or rect.height() < 5:
                 self.scene.removeItem(self.current_item)
+                self.current_item = None
             else:
+                self.current_item.setRect(rect)
                 self.current_item.setSelected(True)
 
-            # The item is finalized in canvas_base_screen
-            # self.current_item = None
+            # The item is finalized in canvas_base_screen if it still exists.
             self.start_pos = None

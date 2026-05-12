@@ -385,8 +385,15 @@ class CanvasBaseScreen(QGraphicsView):
                     pass
         return max_id + 1
 
-    def add_new_item(self, item_type, rect, pos):
-        """Registers a newly drawn item using the factory logic with undo support."""
+    def add_new_item(self, item_type, rect, pos, preview_item=None):
+        """Registers a newly drawn item using the factory logic with undo support.
+        
+        Args:
+            item_type: Type of item ('rectangle', 'ellipse', etc.)
+            rect: QRectF for the item's bounding rect
+            pos: QPointF for item position
+            preview_item: Optional preview item to extract state from (e.g., for corner_radii)
+        """
         new_id = self._generate_next_id()
         width = rect.width()
         height = rect.height()
@@ -412,6 +419,14 @@ class CanvasBaseScreen(QGraphicsView):
             'rotation': 0.0,
             'z_value': 0.0
         }
+        
+        # Extract state from preview item if provided
+        if preview_item and item_type == 'rectangle':
+            # Extract corner radii and rounded state from preview
+            if hasattr(preview_item, 'corner_radii'):
+                data['corner_radii'] = preview_item.corner_radii.copy()
+            if hasattr(preview_item, 'rounded_enabled'):
+                data['rounded_enabled'] = preview_item.rounded_enabled
         
         # Use AddItemCommand for undo support
         command = AddItemCommand(self, data, f"Add {item_type}")
@@ -791,16 +806,20 @@ class CanvasBaseScreen(QGraphicsView):
                 self.current_tool.mouse_release(scene_pos)
                 
                 temp_item = self.current_tool.current_item
-                if temp_item:
+                if temp_item and temp_item.scene() == self.scene:
                     rect = temp_item.rect().normalized()
                     pos = temp_item.pos()
                     item_type = temp_item.data(0)
-                    
+
                     self.scene.removeItem(temp_item)
-                    
+                    self.current_tool.current_item = None
+
                     if item_type:
-                        self.add_new_item(item_type, rect, pos)
-                
+                        self.add_new_item(item_type, rect, pos, temp_item)
+                elif temp_item:
+                    # Preview item was removed by the tool; clear stale reference.
+                    self.current_tool.current_item = None
+
                 event.accept()
             return
 
