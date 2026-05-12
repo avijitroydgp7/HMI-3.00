@@ -441,20 +441,30 @@ class LayersDock(QDockWidget):
         # Also update the stored opacity value in selected tree items
         selected = self.tree_widget.selectedItems()
         for item in selected:
-            item.setData(0, Qt.ItemDataRole.UserRole + 13, value)
+            try:
+                item.setData(0, Qt.ItemDataRole.UserRole + 13, value)
+            except RuntimeError:
+                # Selection can temporarily contain stale wrappers during tree updates.
+                self.item_to_object_map.pop(id(item), None)
     
     def _apply_opacity_to_selected(self, value):
         """Apply opacity to selected layers."""
         new_opacity = value / 100.0
         selected = self.tree_widget.selectedItems()
         for item in selected:
-            canvas_obj = self.item_to_object_map.get(id(item))
+            try:
+                canvas_obj = self.item_to_object_map.get(id(item))
+            except RuntimeError:
+                continue
             if not canvas_obj:
                 continue
 
             old_opacity = canvas_obj.opacity()
             if old_opacity == new_opacity:
-                item.setData(0, Qt.ItemDataRole.UserRole + 13, value)
+                try:
+                    item.setData(0, Qt.ItemDataRole.UserRole + 13, value)
+                except RuntimeError:
+                    self.item_to_object_map.pop(id(item), None)
                 continue
 
             if self.current_canvas and hasattr(self.current_canvas, 'undo_stack') and self.current_canvas.undo_stack:
@@ -463,7 +473,10 @@ class LayersDock(QDockWidget):
             else:
                 canvas_obj.setOpacity(new_opacity)
 
-            item.setData(0, Qt.ItemDataRole.UserRole + 13, value)
+            try:
+                item.setData(0, Qt.ItemDataRole.UserRole + 13, value)
+            except RuntimeError:
+                self.item_to_object_map.pop(id(item), None)
 
         self.opacityChanged.emit(value)
     
